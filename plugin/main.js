@@ -35,7 +35,12 @@ function colorDescToHex(c) {
     const g = c.grain != null ? c.grain : c.green;
     return LD.toHex(c.red, g, c.blue);
   }
-  return null; // CMYK·Lab 문서는 아직 지원하지 않음 → 경고
+  // CMYK 는 % 단위로 와요. ⚠ 확인 필요: 필드 이름(cyan, magenta, yellowColor, black)
+  if (c._obj === "CMYKColorClass" || "cyan" in c) {
+    const rgb = LD.cmykToRgb(c.cyan / 100, c.magenta / 100, (c.yellowColor != null ? c.yellowColor : c.yellow) / 100, c.black / 100);
+    return LD.toHex(rgb.r, rgb.g, rgb.b);
+  }
+  return null; // Lab 등은 아직 지원하지 않음 → 경고
 }
 
 function isText(layer) {

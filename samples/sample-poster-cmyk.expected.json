@@ -1,0 +1,204 @@
+{
+  "colorMode": "CMYK",
+  "widthPx": 1754,
+  "heightPx": 2480,
+  "ppi": 150,
+  "layers": [
+    {
+      "id": 2,
+      "name": "제목",
+      "text": "봄의 제전",
+      "groupPath": [
+        "타이틀"
+      ],
+      "color": "#FFFFFF",
+      "cmyk": {
+        "c": 0,
+        "m": 0,
+        "y": 0,
+        "k": 0
+      },
+      "sizePx": 220,
+      "sizePt": 105.6,
+      "opacity": 1,
+      "bounds": {
+        "left": 153,
+        "top": 372,
+        "right": 1071,
+        "bottom": 580
+      },
+      "purposeHint": "art"
+    },
+    {
+      "id": 4,
+      "name": "영문 부제",
+      "text": "THE RITE OF SPRING",
+      "groupPath": [
+        "타이틀"
+      ],
+      "color": "#E8A97C",
+      "cmyk": {
+        "c": 4,
+        "m": 32,
+        "y": 50,
+        "k": 9
+      },
+      "sizePx": 54,
+      "sizePt": 25.9,
+      "opacity": 1,
+      "bounds": {
+        "left": 151,
+        "top": 641,
+        "right": 659,
+        "bottom": 681
+      },
+      "purposeHint": "art"
+    },
+    {
+      "id": 5,
+      "name": "그림 위 일정",
+      "text": "11월 8일 단 하루",
+      "groupPath": [],
+      "color": "#C8763F",
+      "cmyk": {
+        "c": 8,
+        "m": 50,
+        "y": 77,
+        "k": 21
+      },
+      "sizePx": 64,
+      "sizePt": 30.7,
+      "opacity": 1,
+      "bounds": {
+        "left": 156,
+        "top": 1125,
+        "right": 645,
+        "bottom": 1186
+      },
+      "purposeHint": "info"
+    },
+    {
+      "id": 6,
+      "name": "일시",
+      "text": "11.8(토) 19:30",
+      "groupPath": [
+        "공연 정보"
+      ],
+      "color": "#8A8478",
+      "cmyk": {
+        "c": 14,
+        "m": 16,
+        "y": 25,
+        "k": 46
+      },
+      "sizePx": 29,
+      "sizePt": 13.9,
+      "opacity": 1,
+      "bounds": {
+        "left": 153,
+        "top": 1497,
+        "right": 331,
+        "bottom": 1524
+      },
+      "purposeHint": "info"
+    },
+    {
+      "id": 8,
+      "name": "장소",
+      "text": "예술의전당 오페라극장 3층",
+      "groupPath": [
+        "공연 정보"
+      ],
+      "color": "#3B352B",
+      "cmyk": {
+        "c": 31,
+        "m": 34,
+        "y": 44,
+        "k": 77
+      },
+      "sizePx": 44,
+      "sizePt": 21.1,
+      "opacity": 1,
+      "bounds": {
+        "left": 153,
+        "top": 1581,
+        "right": 688,
+        "bottom": 1625
+      },
+      "purposeHint": "info"
+    },
+    {
+      "id": 9,
+      "name": "가격",
+      "text": "R석 70,000원 · S석 50,000원 · 예매 필수",
+      "groupPath": [
+        "공연 정보"
+      ],
+      "color": "#6A6458",
+      "cmyk": {
+        "c": 20,
+        "m": 22,
+        "y": 33,
+        "k": 58
+      },
+      "sizePx": 36,
+      "sizePt": 17.3,
+      "opacity": 1,
+      "bounds": {
+        "left": 153,
+        "top": 1689,
+        "right": 796,
+        "bottom": 1725
+      },
+      "purposeHint": "info"
+    },
+    {
+      "id": 10,
+      "name": "접근성 안내",
+      "text": "음성해설 · 수어통역 · 휠체어석 운영",
+      "groupPath": [
+        "공연 정보"
+      ],
+      "color": "#2F5E51",
+      "cmyk": {
+        "c": 61,
+        "m": 10,
+        "y": 47,
+        "k": 57
+      },
+      "sizePx": 30,
+      "sizePt": 14.4,
+      "opacity": 1,
+      "bounds": {
+        "left": 151,
+        "top": 1794,
+        "right": 632,
+        "bottom": 1823
+      },
+      "purposeHint": "info"
+    },
+    {
+      "id": 11,
+      "name": "주최·후원",
+      "text": "주최 ○○문화재단 · 후원 ○○구청",
+      "groupPath": [],
+      "color": "#B6AE9E",
+      "cmyk": {
+        "c": 8,
+        "m": 10,
+        "y": 21,
+        "k": 29
+      },
+      "sizePx": 18,
+      "sizePt": 8.6,
+      "opacity": 0.8,
+      "bounds": {
+        "left": 151,
+        "top": 2364,
+        "right": 429,
+        "bottom": 2382
+      },
+      "purposeHint": "other"
+    }
+  ]
+}

@@ -28,6 +28,8 @@
 | 9 | 레이어 선택 | 패널의 레이어 항목을 누르면 포토샵에서 그 레이어가 선택되는지 | |
 | 10 | JSON 저장 | 'JSON 저장' → 파일을 `npm run extract`로 만든 `samples/sample-poster.layers.json`과 비교. 같은 값이 나와야 해요 (배경 방식 `method`만 달라요) | |
 | 11 | 저장 키 | 파일을 닫았다 다시 열어도 `document.key`(경로)와 레이어 `id`가 그대로인지 | |
+| 12 | CMYK 문서 글자색 | `samples/sample-poster-cmyk.psd`를 열고 '일시'가 `#8A8478` 근처(±2)로 나오는지. 안 나오면 Debug 콘솔에서 `textStyle.color` 필드 이름(`cyan`, `magenta`, `yellowColor`, `black`)을 확인 | |
+| 13 | 목적 정보 남는지 | `npm run purpose`로 목적을 넣은 PSD를 포토샵에서 열고 **다른 이름으로 저장** → `npm run purpose -- 저장한파일.psd`로 목적이 그대로 나오는지 (포토샵이 XMP를 지우지 않는지) | |
 
 ## 주의: 샘플 PSD로 확인할 때
 

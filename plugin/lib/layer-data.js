@@ -14,7 +14,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var SCHEMA_VERSION = "0.1";
+  var SCHEMA_VERSION = "0.2";
   var MM_PER_INCH = 25.4;
 
   function round(n, digits) {
@@ -52,6 +52,99 @@
       return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     }
     return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+  }
+
+  /*
+   * CMYK ↔ RGB 변환 (인쇄용 포스터 대응)
+   * 포토샵 기본 CMYK 프로필(U.S. Web Coated SWOP v2)을 근사한 다항식이에요. ag-psd 가 픽셀을 변환할 때
+   * 쓰는 것과 같은 식이라, 글자색과 배경 픽셀이 같은 기준으로 RGB가 돼요.
+   * 계수 출처: pdf.js (DeviceCmykCS, https://github.com/mozilla/pdf.js), Copyright 2012 Mozilla Foundation,
+   * Apache License 2.0
+   * 문서마다 실제 CMYK 프로필이 다를 수 있어서 결과는 '근사치'예요.
+   */
+  // c, m, y, k: 잉크 양 0~1  →  { r, g, b } 0~255
+  function cmykToRgb(c, m, y, k) {
+    var o = cmykToRgbRaw(c, m, y, k);
+    return { r: clamp255(o[0]), g: clamp255(o[1]), b: clamp255(o[2]) };
+  }
+
+  // 반올림·자르기 전 값 (역변환 계산용)
+  function cmykToRgbRaw(c, m, y, k) {
+    var r = 255 +
+      c * (-4.387332384609988 * c + 54.48615194189176 * m + 18.82290502165302 * y + 212.25662451639585 * k - 285.2331026137004) +
+      m * (1.7149763477362134 * m - 5.6096736904047315 * y - 17.873870861415444 * k - 5.497006427196366) +
+      y * (-2.5217340131683033 * y - 21.248923337353073 * k + 17.5119270841813) +
+      k * (-21.86122147463605 * k - 189.48180835922747);
+    var g = 255 +
+      c * (8.841041422036149 * c + 60.118027045597366 * m + 6.871425592049007 * y + 31.159100130055922 * k - 79.2970844816548) +
+      m * (-15.310361306967817 * m + 17.575251261109482 * y + 131.35250912493976 * k - 190.9453302588951) +
+      y * (4.444339102852739 * y + 9.8632861493405 * k - 24.86741582555878) +
+      k * (-20.737325471181034 * k - 187.80453709719578);
+    var b = 255 +
+      c * (0.8842522430003296 * c + 8.078677503112928 * m + 30.89978309703729 * y - 0.23883238689178934 * k - 14.183576799673286) +
+      m * (10.49593273432072 * m + 63.02378494754052 * y + 50.606957656360734 * k - 112.23884253719248) +
+      y * (0.03296041114873217 * y + 115.60384449646641 * k - 193.58209356861505) +
+      k * (-22.33816807309886 * k - 180.12613974708367);
+    return [r, g, b];
+  }
+
+  // RGB(0~255) → CMYK 잉크(0~1). cmykToRgb 의 역함수를 숫자로 풀어요 (가우스-뉴턴).
+  // 표현할 수 없는 색(인쇄 색 영역 밖)은 가장 가까운 색으로 맞추고 error 를 돌려줘요.
+  function rgbToCmyk(r, g, b) {
+    function f(x, k) {
+      var c = cmykToRgbRaw(x[0], x[1], x[2], k);
+      return [c[0] - r, c[1] - g, c[2] - b];
+    }
+    function sq(e) { return e[0] * e[0] + e[1] * e[1] + e[2] * e[2]; }
+    function solve(k) {
+      var x = [0.3, 0.3, 0.3];
+      for (var it = 0; it < 30; it++) {
+        var e = f(x, k);
+        var J = [[], [], []], h = 1e-4;
+        for (var j = 0; j < 3; j++) {
+          var x2 = x.slice();
+          x2[j] += h;
+          var e2 = f(x2, k);
+          for (var i = 0; i < 3; i++) J[i][j] = (e2[i] - e[i]) / h;
+        }
+        // (JᵀJ) d = -Jᵀe
+        var A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], v = [0, 0, 0];
+        for (i = 0; i < 3; i++) {
+          for (j = 0; j < 3; j++) for (var t = 0; t < 3; t++) A[i][j] += J[t][i] * J[t][j];
+          for (t = 0; t < 3; t++) v[i] -= J[t][i] * e[t];
+          A[i][i] += 1e-6;
+        }
+        var d = solve3(A, v);
+        if (!d) break;
+        for (i = 0; i < 3; i++) x[i] = Math.min(1, Math.max(0, x[i] + d[i]));
+        if (Math.abs(d[0]) + Math.abs(d[1]) + Math.abs(d[2]) < 1e-7) break;
+      }
+      return { x: x, err: sq(f(x, k)) };
+    }
+    var k0 = 1 - Math.max(r, g, b) / 255;
+    var best = null;
+    var ks = [0, 0.25, 0.5, 0.75, 0.9, 1].map(function (s) { return k0 * s; });
+    for (var n = 0; n < ks.length; n++) {
+      var s = solve(ks[n]);
+      // 오차가 거의 같으면 검정 잉크(K)를 더 쓰는 쪽을 골라요 (인쇄에서 흔한 방식)
+      if (!best || s.err < best.err - 1 || (Math.abs(s.err - best.err) <= 1 && ks[n] > best.k)) best = { x: s.x, k: ks[n], err: s.err };
+    }
+    return { c: best.x[0], m: best.x[1], y: best.x[2], k: best.k, error: Math.sqrt(best.err) };
+  }
+
+  function solve3(A, v) {
+    var det = A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+    if (Math.abs(det) < 1e-12) return null;
+    function d(col) {
+      var M = A.map(function (row, i) { return row.map(function (val, j) { return j === col ? v[i] : val; }); });
+      return M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+    }
+    return [d(0) / det, d(1) / det, d(2) / det];
+  }
+
+  // 잉크 0~1 → 사람이 읽는 퍼센트 표기 { c, m, y, k } (정수 %)
+  function cmykPercent(cmyk) {
+    return { c: Math.round(cmyk.c * 100), m: Math.round(cmyk.m * 100), y: Math.round(cmyk.y * 100), k: Math.round(cmyk.k * 100) };
   }
 
   function pxToMm(px, ppi) {
@@ -212,6 +305,7 @@
       key: input.docKey + "#" + input.id,
       name: input.name || "",
       groupPath: input.groupPath || [],
+      groupIds: input.groupIds || [],
       text: input.text || "",
       sizePt: round(pxToPt(input.sizePx, ppi), 1),
       sizePx: round(input.sizePx, 1),
@@ -229,6 +323,7 @@
         weightGuess: guessWeight(input.fontPostScriptName || input.fontName, input.fontStyleName, input.fauxBold)
       },
       color: input.color || null,
+      colorSource: input.colorSource || null,
       colorRuns: input.colorRuns || [],
       opacity: round(opacity * fill, 3),
       opacityDetail: { layer: round(opacity, 3), fill: round(fill, 3) },
@@ -238,6 +333,7 @@
       boundsMm: b ? b.mm : null,
       background: input.background || null,
       purpose: null,
+      purposeSource: null,
       purposeSuggested: null,
       warnings: input.warnings || []
     };
@@ -256,6 +352,7 @@
         widthPx: input.widthPx,
         heightPx: input.heightPx,
         ppi: ppi,
+        colorMode: input.colorMode || "RGB",
         widthMm: round(pxToMm(input.widthPx, ppi), 1),
         heightMm: round(pxToMm(input.heightPx, ppi), 1),
         purpose: null
@@ -272,6 +369,9 @@
     toHex: toHex,
     hexToRgb: hexToRgb,
     relativeLuminance: relativeLuminance,
+    cmykToRgb: cmykToRgb,
+    rgbToCmyk: rgbToCmyk,
+    cmykPercent: cmykPercent,
     pxToMm: pxToMm,
     pxToPt: pxToPt,
     ptToPx: ptToPx,

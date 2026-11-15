@@ -41,6 +41,8 @@
   .fix input[type=number] { font:inherit; padding:3px 4px; border:1px solid var(--line); border-radius:4px; }
   #fixlist li { margin:2px 0; }
   #fixlist button { padding:0 6px; margin-left:6px; }
+  .purpose { background:#FBF8F2; border:1px solid var(--line); border-radius:8px; padding:8px 10px 2px; margin-bottom:10px; }
+  .purpose select, td select { font:inherit; padding:2px 4px; border:1px solid var(--line); border-radius:4px; background:#fff; }
   .badge { display:inline-block; font-size:11px; padding:1px 6px; border-radius:10px; background:#EEF5FC; color:#1B6EC2; margin-left:6px; }
 </style>
 </head>
@@ -63,10 +65,21 @@
       <button id="copy" disabled>JSON 복사</button>
       <span class="meta" id="status"></span>
     </div>
+    <div class="purpose">
+      <div class="row"><b>목적</b> 문서 전체
+        <select id="docPurpose">
+          <option value="">아직 안 정함</option><option value="art">예술적 표현</option>
+          <option value="info">정보 전달</option><option value="mixed">복합 목적</option>
+        </select>
+        <span id="groupPurposes" class="row" style="margin:0"></span>
+        <button id="downloadPurposePsd">목적 저장된 PSD 내려받기</button>
+      </div>
+      <p class="meta" style="margin:0 0 8px">복합 목적이면 그룹·레이어마다 고를 수 있어요. 레이어 지정이 그룹보다 우선해요. 목적은 PSD 파일 안(XMP)에 저장돼서 파일과 함께 다녀요.</p>
+    </div>
     <div class="scroll">
       <table>
-        <thead><tr><th>ID</th><th>그룹</th><th>내용</th><th>크기</th><th>글자색</th><th>배경 (어두운~밝은)</th><th>투명도</th></tr></thead>
-        <tbody id="rows"><tr><td colspan="7" class="meta">아직 파일이 없어요.</td></tr></tbody>
+        <thead><tr><th>ID</th><th>그룹</th><th>목적</th><th>내용</th><th>크기</th><th>글자색</th><th>배경 (어두운~밝은)</th><th>투명도</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="8" class="meta">아직 파일이 없어요.</td></tr></tbody>
       </table>
     </div>
     <p class="warn" id="docwarn"></p>
@@ -96,12 +109,15 @@
 
 <script src="../node_modules/ag-psd/dist/bundle.js"></script>
 <script src="../plugin/lib/layer-data.js"></script>
+<script src="../plugin/lib/purpose-store.js"></script>
 <script src="../src/psd-extract.js"></script>
 <script src="../src/psd-apply.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   let result = null, fileName = "";
   let psdOriginal = null, psdFixed = null, fixes = [], selectedId = null, fixedIsCurrent = false;
+  let purposeInfo = PurposeStore.empty();
+  const PL = PurposeStore.LABELS;
 
   const drop = $("drop"), input = $("file");
   drop.onclick = () => input.click();
@@ -117,6 +133,7 @@
       const buf = await file.arrayBuffer();
       const psd = agPsd.readPsd(buf, { useImageData: true });
       psdOriginal = psd; psdFixed = null; fixes = []; selectedId = null; fixedIsCurrent = false;
+      purposeInfo = PurposeStore.readFromPsd(psd) || PurposeStore.empty();
       result = PsdExtract.extractFromPsd(psd, { fileName: file.name });
       showPreview(psd);
       render();
@@ -144,6 +161,8 @@
     $("docwarn").textContent = result.warnings.join(" ");
     $("download").disabled = $("copy").disabled = false;
 
+    renderPurposeBar();
+    const mixed = purposeInfo.document === "mixed";
     const rows = $("rows");
     rows.innerHTML = "";
     const wrap = $("preview-wrap");
@@ -154,13 +173,21 @@
       const tr = document.createElement("tr");
       tr.dataset.id = l.id;
       tr.innerHTML =
-        `<td>${l.id}</td><td>${esc(l.groupPath.join(" / ") || "-")}</td>` +
+        `<td>${l.id}</td><td>${esc(l.groupPath.join(" / ") || "-")}</td><td>${purposeCell(l, mixed)}</td>` +
         `<td>${esc(l.text)}${l.visible ? "" : " <span class='warn'>(숨김)</span>"}${l.warnings.length ? `<div class='warn'>⚠ ${esc(l.warnings.join(" / "))}</div>` : ""}</td>` +
         `<td>${l.sizePt}pt<br><span class="meta">${l.sizeMm}mm</span></td>` +
         `<td>${sw(l.color)}${l.color || "-"}</td>` +
         `<td>${s ? `${sw(s.darkestColor)}${s.darkestColor} ~ ${sw(s.lightestColor)}${s.lightestColor}<br><span class="meta">편차 ${s.luminanceStdDev}</span>` : "-"}</td>` +
         `<td>${Math.round(l.opacity * 100)}%</td>`;
       tr.onclick = () => select(l.id);
+      const sel = tr.querySelector("select[data-layer]");
+      if (sel) {
+        sel.onclick = (e) => e.stopPropagation();
+        sel.onchange = () => {
+          if (sel.value) purposeInfo.layers[l.id] = sel.value; else delete purposeInfo.layers[l.id];
+          purposesChanged();
+        };
+      }
       rows.appendChild(tr);
 
       if (l.bounds) {
@@ -177,6 +204,59 @@
       }
     });
   }
+
+  // ---------------- 목적
+  const SRC = { document: "문서", group: "그룹", layer: "직접" };
+  function purposeCell(l, mixed) {
+    const shown = l.purpose ? `${PL[l.purpose]}${l.purposeSource ? ` <span class="meta">(${SRC[l.purposeSource]})</span>` : ""}` : '<span class="meta">안 정함</span>';
+    if (!mixed) return shown;
+    const own = purposeInfo.layers[l.id] || "";
+    return `<select data-layer="${l.id}"><option value="">${l.groupIds && l.groupIds.length ? "그룹 따름" : "안 정함"}</option>` +
+      `<option value="art"${own === "art" ? " selected" : ""}>예술적 표현</option>` +
+      `<option value="info"${own === "info" ? " selected" : ""}>정보 전달</option></select><br>${shown}`;
+  }
+
+  function renderPurposeBar() {
+    $("docPurpose").value = purposeInfo.document || "";
+    const box = $("groupPurposes");
+    if (purposeInfo.document !== "mixed" || !result.groups.length) { box.innerHTML = ""; return; }
+    box.innerHTML = result.groups.map((g) => {
+      const v = purposeInfo.groups[g.id] || "";
+      return `<label>${esc(g.name)} <select data-group="${g.id}"><option value="">안 정함</option>` +
+        `<option value="art"${v === "art" ? " selected" : ""}>예술적 표현</option>` +
+        `<option value="info"${v === "info" ? " selected" : ""}>정보 전달</option></select></label>`;
+    }).join(" ");
+    box.querySelectorAll("select").forEach((s) => (s.onchange = () => {
+      if (s.value) purposeInfo.groups[s.dataset.group] = s.value; else delete purposeInfo.groups[s.dataset.group];
+      purposesChanged();
+    }));
+  }
+
+  function purposesChanged() {
+    if (!psdOriginal) return;
+    PurposeStore.writeToPsd(psdOriginal, purposeInfo); // 메모리의 PSD에만 반영 (파일은 내려받을 때 저장)
+    purposeInfo = PurposeStore.readFromPsd(psdOriginal);
+    PurposeStore.applyToDocument(result, purposeInfo);
+    fixedIsCurrent = false;
+    render();
+    if (selectedId != null) select(selectedId);
+  }
+
+  $("docPurpose").onchange = () => {
+    if (!needDoc()) { $("docPurpose").value = ""; return; }
+    purposeInfo.document = $("docPurpose").value || null;
+    purposesChanged();
+  };
+
+  $("downloadPurposePsd").onclick = () => {
+    if (!needDoc()) return;
+    PurposeStore.writeToPsd(psdOriginal, purposeInfo);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([agPsd.writePsd(psdOriginal)], { type: "application/octet-stream" }));
+    a.download = fileName;
+    a.click();
+    $("status").textContent = "목적 정보를 넣은 PSD를 내려받았어요. 원래 파일을 이걸로 바꾸면 다음에 열 때 목적이 그대로 나와요.";
+  };
 
   function select(id) {
     document.querySelectorAll("[data-id]").forEach((el) => el.classList.toggle("sel", el.dataset.id == id));

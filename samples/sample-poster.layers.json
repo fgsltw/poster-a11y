@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "source": "psd-file",
-  "extractedAt": "2026-11-14T11:56:06.784Z",
+  "extractedAt": "2026-11-15T10:00:08.628Z",
   "document": {
     "key": "sample-poster.psd",
     "name": "sample-poster.psd",
@@ -9,6 +9,7 @@
     "widthPx": 1754,
     "heightPx": 2480,
     "ppi": 150,
+    "colorMode": "RGB",
     "widthMm": 297,
     "heightMm": 419.9,
     "purpose": null
@@ -18,13 +19,17 @@
       "id": 7,
       "name": "공연 정보",
       "groupPath": [],
-      "visible": true
+      "groupIds": [],
+      "visible": true,
+      "purpose": null
     },
     {
       "id": 3,
       "name": "타이틀",
       "groupPath": [],
-      "visible": true
+      "groupIds": [],
+      "visible": true,
+      "purpose": null
     }
   ],
   "layers": [
@@ -33,6 +38,7 @@
       "key": "sample-poster.psd#11",
       "name": "주최·후원",
       "groupPath": [],
+      "groupIds": [],
       "text": "주최 ○○문화재단 · 후원 ○○구청",
       "sizePt": 8.6,
       "sizePx": 18,
@@ -50,6 +56,9 @@
         "weightGuess": "regular"
       },
       "color": "#B5AE9F",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 0.8,
       "opacityDetail": {
@@ -1113,6 +1122,7 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     },
@@ -1122,6 +1132,9 @@
       "name": "접근성 안내",
       "groupPath": [
         "공연 정보"
+      ],
+      "groupIds": [
+        7
       ],
       "text": "음성해설 · 수어통역 · 휠체어석 운영",
       "sizePt": 14.4,
@@ -1140,6 +1153,9 @@
         "weightGuess": "regular"
       },
       "color": "#2F5D50",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 1,
       "opacityDetail": {
@@ -2203,6 +2219,7 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     },
@@ -2212,6 +2229,9 @@
       "name": "가격",
       "groupPath": [
         "공연 정보"
+      ],
+      "groupIds": [
+        7
       ],
       "text": "R석 70,000원 · S석 50,000원 · 예매 필수",
       "sizePt": 17.3,
@@ -2230,6 +2250,9 @@
         "weightGuess": "regular"
       },
       "color": "#6B6458",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 1,
       "opacityDetail": {
@@ -3293,6 +3316,7 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     },
@@ -3302,6 +3326,9 @@
       "name": "장소",
       "groupPath": [
         "공연 정보"
+      ],
+      "groupIds": [
+        7
       ],
       "text": "예술의전당 오페라극장 3층",
       "sizePt": 21.1,
@@ -3320,6 +3347,9 @@
         "weightGuess": "bold"
       },
       "color": "#3B352C",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 1,
       "opacityDetail": {
@@ -4383,6 +4413,7 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     },
@@ -4392,6 +4423,9 @@
       "name": "일시",
       "groupPath": [
         "공연 정보"
+      ],
+      "groupIds": [
+        7
       ],
       "text": "11.8(토) 19:30",
       "sizePt": 13.9,
@@ -4410,6 +4444,9 @@
         "weightGuess": "regular"
       },
       "color": "#8A8478",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 1,
       "opacityDetail": {
@@ -5473,6 +5510,7 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     },
@@ -5481,6 +5519,7 @@
       "key": "sample-poster.psd#5",
       "name": "그림 위 일정",
       "groupPath": [],
+      "groupIds": [],
       "text": "11월 8일 단 하루",
       "sizePt": 30.7,
       "sizePx": 64,
@@ -5498,6 +5537,9 @@
         "weightGuess": "bold"
       },
       "color": "#C9763F",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 1,
       "opacityDetail": {
@@ -6561,6 +6603,7 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     },
@@ -6570,6 +6613,9 @@
       "name": "영문 부제",
       "groupPath": [
         "타이틀"
+      ],
+      "groupIds": [
+        3
       ],
       "text": "THE RITE OF SPRING",
       "sizePt": 25.9,
@@ -6588,6 +6634,9 @@
         "weightGuess": "regular"
       },
       "color": "#E8A87C",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 1,
       "opacityDetail": {
@@ -7651,6 +7700,7 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     },
@@ -7660,6 +7710,9 @@
       "name": "제목",
       "groupPath": [
         "타이틀"
+      ],
+      "groupIds": [
+        3
       ],
       "text": "봄의 제전",
       "sizePt": 105.6,
@@ -7678,6 +7731,9 @@
         "weightGuess": "bold"
       },
       "color": "#FFFFFF",
+      "colorSource": {
+        "space": "rgb"
+      },
       "colorRuns": [],
       "opacity": 1,
       "opacityDetail": {
@@ -8741,9 +8797,17 @@
         }
       },
       "purpose": null,
+      "purposeSource": null,
       "purposeSuggested": null,
       "warnings": []
     }
   ],
-  "warnings": []
+  "warnings": [],
+  "purposes": {
+    "version": 1,
+    "document": null,
+    "groups": {},
+    "layers": {},
+    "updatedAt": null
+  }
 }

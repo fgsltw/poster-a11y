@@ -7,7 +7,8 @@
     "extract": "node tools/psd-to-json.js",
     "test": "node --test test/",
     "web": "node tools/serve.js",
-    "apply": "node tools/apply-fixes.js"
+    "apply": "node tools/apply-fixes.js",
+    "purpose": "node tools/set-purpose.js"
   },
   "type": "commonjs",
   "dependencies": {
