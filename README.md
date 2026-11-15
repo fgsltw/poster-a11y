@@ -1,6 +1,6 @@
-# 포스터 접근성 검수 — 포토샵 연동 (기술 A)
+# 포스터 접근성 검수
 
-포토샵 문서에서 텍스트 레이어와 배경 픽셀을 읽어 검사 엔진(B)과 패널 화면(C)에 넘기는 부분이에요.
+포스터 PSD의 글자를 읽고(기술 A), 목적에 따라 검사하고(기술 B 기준 구현), 고친 접근성 버전을 만드는 도구예요.
 
 ## 폴더 구조
 
@@ -12,6 +12,7 @@ plugin/                포토샵 플러그인 (UXP)
   lib/purpose-store.js ★ 목적 정보(예술/정보/복합)를 PSD 안(XMP)에 저장·불러오기
 src/psd-extract.js     PSD 파일 → 공통 데이터 (포토샵 없이)
 src/psd-apply.js       수정 제안 적용 → 접근성 버전 PSD (포토샵 없이)
+engine/                ★ 검사 엔진 (기술 B 기준 구현) — 정책 표 policies.js, 본체 engine.js (docs/engine.md)
 src/simulate.js        보는 사람·환경 미리보기 (색각이상, 저시력 흐림, 대비 저하, 어두운 조명)
 tools/
   psd-to-json.js       PSD → JSON 변환 (명령줄)
@@ -25,6 +26,7 @@ samples/               샘플 PSD (RGB, 인쇄용 CMYK), 변환 결과 JSON, 정
 docs/
   layer-data.md        ★ A → B 데이터 형식 약속
   apply-fixes.md       ★ B → A 수정 목록 형식 약속
+  engine.md            ★ 검사 엔진: 목적별 정책, 검사 항목, 결과 형식, B에게 넘길 일
   feasibility-checklist.md  11/19 포토샵 가능성 확인 순서
 test/                  변환 결과 자동 확인
 ```
@@ -64,7 +66,8 @@ npx vercel deploy --prod --yes
 ## 팀원에게
 
 - **모두:** 위 웹 페이지 주소로 바로 써 볼 수 있어요. '샘플 포스터' 버튼을 누르면 PSD 없이도 시작돼요.
-- **B (검사 엔진):** 데이터 형식은 `docs/layer-data.md`(v0.2), 실제 예시는 `samples/sample-poster.layers.json`이에요. 레이어마다 `purpose`(목적)가 들어 있어서 목적별로 판정 강도를 바꾸면 돼요. 실제 PSD는 `npm run extract` 또는 브라우저 페이지로 바로 JSON을 만들 수 있어요.
+- **B (검사 엔진):** `engine/`에 기준 구현이 있어요 (`docs/engine.md`). 이어받아 기준값과 문구를 다듬어 주세요.
+- **B (데이터):** 데이터 형식은 `docs/layer-data.md`(v0.2), 실제 예시는 `samples/sample-poster.layers.json`이에요. 레이어마다 `purpose`(목적)가 들어 있어서 목적별로 판정 강도를 바꾸면 돼요. 실제 PSD는 `npm run extract` 또는 브라우저 페이지로 바로 JSON을 만들 수 있어요.
 - **C (패널 화면):** 같은 JSON으로 화면 시안을 만들면, 2주차에 포토샵 패널로 옮길 때 데이터가 그대로 들어와요.
 - **기획 C:** 실제 포스터 PSD를 `samples/`에 넣어 주세요. 저장할 때 **호환성 최대화**를 켜야 배경 픽셀을 읽을 수 있어요.
 
@@ -79,5 +82,6 @@ npx vercel deploy --prod --yes
 - [x] 포토샵 플러그인 뼈대: 문서·텍스트 레이어·배경 픽셀 읽기, JSON 저장, 레이어 선택
 - [x] **보는 사람·환경 미리보기**: 색각이상 3종, 시력·관람 거리로 계산한 흐림, 대비 저하, 어두운 조명 — 원래 3주차 일
 - [x] 브라우저 페이지 배포용 묶음 (`npm run build:web`), 샘플 포스터 버튼
+- [x] **검사 엔진 기준 구현 (B)**: 목적별 판정, 크기(관람 거리 각도)·대비(이미지 배경)·위계, 목적 추천, OKLCH 추천색, 배경 띠, 충돌 감지와 대체텍스트, 검사 → 수정 적용 연결
 - [ ] **포토샵에서 실제 실행 확인** (`docs/feasibility-checklist.md`) — 포토샵 설치 필요
 - [ ] 기획 C의 실제 PSD로 확인
