@@ -36,6 +36,12 @@
   button:disabled { opacity:.5; cursor:default; }
   pre { background:#1E1B16; color:#EDE6D6; padding:12px; border-radius:8px; max-height:360px; overflow:auto; font-size:12px; }
   .scroll { overflow:auto; max-height:520px; }
+  .fix { margin-top:16px; padding-top:12px; border-top:1px solid var(--line); }
+  .fix h2 { font-size:16px; margin:0 0 6px; }
+  .fix input[type=number] { font:inherit; padding:3px 4px; border:1px solid var(--line); border-radius:4px; }
+  #fixlist li { margin:2px 0; }
+  #fixlist button { padding:0 6px; margin-left:6px; }
+  .badge { display:inline-block; font-size:11px; padding:1px 6px; border-radius:10px; background:#EEF5FC; color:#1B6EC2; margin-left:6px; }
 </style>
 </head>
 <body>
@@ -65,15 +71,37 @@
     </div>
     <p class="warn" id="docwarn"></p>
     <details><summary>선택한 레이어 JSON</summary><pre id="json">레이어를 눌러 보세요.</pre></details>
+
+    <div class="fix">
+      <h2>수정 적용 · 접근성 버전 만들기</h2>
+      <p class="meta" id="fixtarget">표나 미리보기에서 레이어를 고르세요.</p>
+      <div class="row">글자색 <input type="color" id="fxColor" value="#000000"> <button id="addColor">목록에 추가</button></div>
+      <div class="row">글자 크기 <input type="number" id="fxSize" step="0.5" min="4" style="width:72px"> pt <button id="addSize">목록에 추가</button></div>
+      <div class="row">글자 뒤 배경 띠 <input type="color" id="fxPlate" value="#FFFFFF">
+        불투명도 <input type="number" id="fxPlateOp" value="85" min="10" max="100" style="width:60px">%
+        여백 <input type="number" id="fxPad" value="1.5" step="0.5" min="0" style="width:60px">mm
+        <button id="addPlate">목록에 추가</button></div>
+      <div class="row"><button id="loadFixes">수정 목록 JSON 불러오기</button><input id="fixesFile" type="file" accept=".json" hidden>
+        <span class="meta">검사 엔진(B) 결과를 docs/apply-fixes.md 형식으로</span></div>
+      <ol id="fixlist" class="meta"><li>아직 수정이 없어요.</li></ol>
+      <div class="row">
+        <button id="previewFix">미리보기에 적용</button>
+        <button class="primary" id="downloadPsd">접근성 버전 PSD 내려받기</button>
+        <button id="showOriginal">원본 보기</button>
+      </div>
+      <p class="meta" id="fixstatus"></p>
+    </div>
   </section>
 </main>
 
 <script src="../node_modules/ag-psd/dist/bundle.js"></script>
 <script src="../plugin/lib/layer-data.js"></script>
 <script src="../src/psd-extract.js"></script>
+<script src="../src/psd-apply.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   let result = null, fileName = "";
+  let psdOriginal = null, psdFixed = null, fixes = [], selectedId = null, fixedIsCurrent = false;
 
   const drop = $("drop"), input = $("file");
   drop.onclick = () => input.click();
@@ -88,9 +116,12 @@
     try {
       const buf = await file.arrayBuffer();
       const psd = agPsd.readPsd(buf, { useImageData: true });
+      psdOriginal = psd; psdFixed = null; fixes = []; selectedId = null; fixedIsCurrent = false;
       result = PsdExtract.extractFromPsd(psd, { fileName: file.name });
       showPreview(psd);
       render();
+      renderFixes();
+      $("fixstatus").textContent = "";
       $("status").textContent = `텍스트 레이어 ${result.layers.length}개`;
     } catch (err) {
       console.error(err);
@@ -153,7 +184,124 @@
     const shown = Object.assign({}, l, { background: Object.assign({}, l.background, { samples: `[${l.background ? l.background.samples.length : 0}개 생략]` }) });
     $("json").textContent = JSON.stringify(shown, null, 2);
     document.querySelector("details").open = true;
+
+    selectedId = l.id;
+    if (l.color) $("fxColor").value = l.color.toLowerCase();
+    if (l.sizePt) $("fxSize").value = l.sizePt;
+    const c = minContrast(l);
+    $("fixtarget").innerHTML = `선택: <b>[${l.id}] ${esc(l.text.slice(0, 24))}</b> · ${l.sizePt}pt · ${l.color}` +
+      (c ? ` · 최저 대비 ${c.toFixed(2)}:1 <span class="meta">(참고용, 판정은 B 엔진)</span>` : "");
   }
+
+  // 참고용: 글자색과 배경 샘플 사이의 가장 낮은 대비
+  function minContrast(l) {
+    if (!l.color || !l.background || !l.background.samples.length) return null;
+    const fg = LayerData.hexToRgb(l.color);
+    const Lf = LayerData.relativeLuminance(fg.r, fg.g, fg.b);
+    let min = Infinity;
+    for (const hex of l.background.samples) {
+      const b = LayerData.hexToRgb(hex);
+      const Lb = LayerData.relativeLuminance(b.r, b.g, b.b);
+      min = Math.min(min, (Math.max(Lf, Lb) + 0.05) / (Math.min(Lf, Lb) + 0.05));
+    }
+    return min;
+  }
+
+  // ---------------- 수정 적용
+  function needDoc() {
+    if (!psdOriginal) { $("fixstatus").textContent = "먼저 PSD 파일을 넣어 주세요."; return false; }
+    return true;
+  }
+  function needLayer() {
+    if (!needDoc()) return false;
+    if (selectedId == null) { $("fixstatus").textContent = "먼저 레이어를 고르세요."; return false; }
+    return true;
+  }
+  function addFix(f) { fixes.push(f); fixedIsCurrent = false; renderFixes(); }
+
+  $("addColor").onclick = () => needLayer() && addFix({ layerId: selectedId, type: "color", value: $("fxColor").value.toUpperCase() });
+  $("addSize").onclick = () => {
+    if (!needLayer()) return;
+    const v = parseFloat($("fxSize").value);
+    if (!(v > 0)) { $("fixstatus").textContent = "글자 크기를 숫자로 넣어 주세요."; return; }
+    addFix({ layerId: selectedId, type: "size", valuePt: v });
+  };
+  $("addPlate").onclick = () => needLayer() && addFix({
+    layerId: selectedId, type: "backplate", color: $("fxPlate").value.toUpperCase(),
+    opacity: Math.min(1, Math.max(0.1, parseFloat($("fxPlateOp").value) / 100 || 0.85)),
+    paddingMm: Math.max(0, parseFloat($("fxPad").value) || 0)
+  });
+
+  $("loadFixes").onclick = () => needDoc() && $("fixesFile").click();
+  $("fixesFile").onchange = async () => {
+    const f = $("fixesFile").files[0];
+    if (!f) return;
+    try {
+      const raw = JSON.parse(await f.text());
+      const list = Array.isArray(raw) ? raw : raw.fixes;
+      if (!Array.isArray(list)) throw new Error("fixes 배열이 없어요.");
+      fixes = fixes.concat(list); fixedIsCurrent = false; renderFixes();
+      $("fixstatus").textContent = `${list.length}개를 불러왔어요.`;
+    } catch (e) { $("fixstatus").textContent = "불러오기 실패: " + e.message; }
+    $("fixesFile").value = "";
+  };
+
+  function describe(f) {
+    if (f.type === "color") return `글자색 ${f.value}`;
+    if (f.type === "size") return `크기 ${f.valuePt}pt`;
+    if (f.type === "backplate") return `배경 띠 ${f.color} · ${Math.round(f.opacity * 100)}% · 여백 ${f.paddingMm}mm`;
+    return f.type;
+  }
+  function renderFixes() {
+    const ol = $("fixlist");
+    if (!fixes.length) { ol.innerHTML = "<li>아직 수정이 없어요.</li>"; return; }
+    ol.innerHTML = fixes.map((f, i) => {
+      const l = result && result.layers.find((x) => x.id === f.layerId);
+      return `<li>[${f.layerId}] ${esc(l ? l.text.slice(0, 16) : "?")} — ${esc(describe(f))}<button data-i="${i}">삭제</button></li>`;
+    }).join("");
+    ol.querySelectorAll("button").forEach((b) => (b.onclick = () => { fixes.splice(+b.dataset.i, 1); fixedIsCurrent = false; renderFixes(); }));
+  }
+
+  function applyNow() {
+    const r = PsdApply.applyFixes(psdOriginal, fixes);
+    psdFixed = r.psd; fixedIsCurrent = true;
+    const msgs = [`적용 ${r.applied.length}개`];
+    if (r.skipped.length) msgs.push(`건너뜀: ${r.skipped.map((s) => `[${s.fix.layerId}] ${s.reason}`).join(" / ")}`);
+    if (r.warnings.length) msgs.push("⚠ " + r.warnings.join(" "));
+    $("fixstatus").textContent = msgs.join(" · ");
+    return r;
+  }
+
+  $("previewFix").onclick = () => {
+    if (!needDoc()) return;
+    if (!fixes.length) { $("fixstatus").textContent = "수정 목록이 비어 있어요."; return; }
+    applyNow();
+    result = PsdExtract.extractFromPsd(psdFixed, { fileName: fileName.replace(/\.psd$/i, "") + ".접근성버전.psd" });
+    showPreview(psdFixed);
+    render();
+    $("status").innerHTML = `텍스트 레이어 ${result.layers.length}개 <span class="badge">수정 후</span>`;
+    if (selectedId != null && result.layers.some((x) => x.id === selectedId)) select(selectedId);
+  };
+
+  $("showOriginal").onclick = () => {
+    if (!needDoc()) return;
+    result = PsdExtract.extractFromPsd(psdOriginal, { fileName });
+    showPreview(psdOriginal);
+    render();
+    $("status").textContent = `텍스트 레이어 ${result.layers.length}개 (원본)`;
+  };
+
+  $("downloadPsd").onclick = () => {
+    if (!needDoc()) return;
+    if (!fixes.length) { $("fixstatus").textContent = "수정 목록이 비어 있어요."; return; }
+    if (!fixedIsCurrent) applyNow();
+    const buf = agPsd.writePsd(psdFixed, PsdApply.WRITE_OPTIONS);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([buf], { type: "application/octet-stream" }));
+    a.download = fileName.replace(/\.psd$/i, "") + ".접근성버전.psd";
+    a.click();
+    $("fixstatus").textContent += " · 내려받기 시작 (원본 파일은 그대로예요)";
+  };
 
   $("download").onclick = () => {
     const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });

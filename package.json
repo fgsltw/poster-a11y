@@ -6,7 +6,8 @@
     "sample": "node tools/make-sample-psd.js",
     "extract": "node tools/psd-to-json.js",
     "test": "node --test test/",
-    "web": "node tools/serve.js"
+    "web": "node tools/serve.js",
+    "apply": "node tools/apply-fixes.js"
   },
   "type": "commonjs",
   "dependencies": {
