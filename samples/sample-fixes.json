@@ -1,0 +1,9 @@
+{
+  "description": "샘플 포스터용 수정 목록 예시. 검사 엔진(B)의 결과 fix 를 이 형식으로 바꿔서 넘기면 돼요.",
+  "fixes": [
+    { "layerId": 6, "type": "color", "value": "#524D42", "reason": "대비 3.4:1 → 4.5:1 이상" },
+    { "layerId": 11, "type": "size", "valuePt": 11, "reason": "8.6pt → 최소 11pt" },
+    { "layerId": 11, "type": "color", "value": "#6E675B", "reason": "대비 강화" },
+    { "layerId": 5, "type": "backplate", "color": "#1B1A2E", "opacity": 0.85, "paddingMm": 2, "reason": "복잡한 그림 위 글자" }
+  ]
+}
