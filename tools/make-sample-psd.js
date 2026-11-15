@@ -4,7 +4,8 @@
  * 일부러 문제가 있는 글자(작은 글자, 낮은 대비, 그림 위 글자)를 넣었어요.
  *
  *   node tools/make-sample-psd.js
- *   → samples/sample-poster.psd, samples/sample-poster.expected.json
+ *   → samples/sample-poster.psd (RGB), samples/sample-poster-cmyk.psd (인쇄용 CMYK)
+ *     와 각각의 .expected.json (정답 값)
  *
  * 주의: 포토샵에서 열면 글자가 포토샵 글꼴로 다시 그려질 수 있어요(맑은 고딕 기준).
  */
@@ -12,6 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const { createCanvas, GlobalFonts } = require("@napi-rs/canvas");
 const agPsd = require("ag-psd");
+const LD = require("../plugin/lib/layer-data.js");
 
 const FONT_DIR = "C:/Windows/Fonts";
 GlobalFonts.registerFromPath(path.join(FONT_DIR, "malgun.ttf"), "Malgun Gothic");
@@ -113,9 +115,17 @@ function renderText(t) {
   return { imageData: { width: tw, height: th, data: new Uint8ClampedArray(trimmed.data) }, left, top, right: left + tw, bottom: top + th, canvas: (() => { const cc = createCanvas(tw, th); cc.getContext("2d").putImageData(trimmed, 0, 0); return cc; })() };
 }
 
-function main() {
-  const outDir = path.join(__dirname, "..", "samples");
-  fs.mkdirSync(outDir, { recursive: true });
+// CMYK 문서용: 디자이너가 % 단위로 고른 것처럼 반올림한 CMYK 값과, 그 값이 화면에 보이는 RGB
+function toCmykColor(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const pct = LD.cmykPercent(LD.rgbToCmyk(r, g, b));
+  const shown = LD.cmykToRgb(pct.c / 100, pct.m / 100, pct.y / 100, pct.k / 100);
+  return { pct, hex: LD.toHex(shown.r, shown.g, shown.b) };
+}
+
+function build(mode, outDir) {
+  const cmyk = mode === "cmyk";
+  const base = cmyk ? "sample-poster-cmyk" : "sample-poster";
 
   const bg = createCanvas(W, H);
   const bctx = bg.getContext("2d");
@@ -133,7 +143,12 @@ function main() {
   ];
   const expected = [];
 
-  for (const t of TEXTS) {
+  for (const t0 of TEXTS) {
+    const cc = cmyk ? toCmykColor(t0.color) : null;
+    const t = cc ? Object.assign({}, t0, { color: cc.hex }) : t0;
+    const fillColor = cc
+      ? { c: (cc.pct.c / 100) * 255, m: (cc.pct.m / 100) * 255, y: (cc.pct.y / 100) * 255, k: (cc.pct.k / 100) * 255 }
+      : hexToRgb(t.color);
     const r = renderText(t);
     cctx.globalAlpha = t.opacity == null ? 1 : t.opacity;
     cctx.drawImage(r.canvas, r.left, r.top);
@@ -152,7 +167,7 @@ function main() {
       text: {
         text: t.text,
         transform: [t.scale, 0, 0, t.scale, t.x, t.y],
-        style: { font: { name: t.psFont }, fontSize: t.fontSize, fillColor: hexToRgb(t.color), fauxBold: false }
+        style: { font: { name: t.psFont }, fontSize: t.fontSize, fillColor, fauxBold: false }
       }
     };
 
@@ -173,6 +188,7 @@ function main() {
       text: t.text,
       groupPath: t.group ? [t.group] : [],
       color: t.color,
+      cmyk: cc ? cc.pct : undefined,
       sizePx: effPx,
       sizePt: Math.round(((effPx * 72) / PPI) * 10) / 10,
       opacity: t.opacity == null ? 1 : t.opacity,
@@ -183,6 +199,7 @@ function main() {
 
   const compData = cctx.getImageData(0, 0, W, H);
   const psd = {
+    colorMode: cmyk ? 4 : 3,
     width: W,
     height: H,
     imageResources: {
@@ -200,13 +217,20 @@ function main() {
   };
 
   const buf = agPsd.writePsdBuffer(psd, { invalidateTextLayers: true });
-  fs.writeFileSync(path.join(outDir, "sample-poster.psd"), buf);
-  fs.writeFileSync(path.join(outDir, "sample-poster.preview.png"), comp.toBuffer("image/png"));
+  fs.writeFileSync(path.join(outDir, base + ".psd"), buf);
+  if (!cmyk) fs.writeFileSync(path.join(outDir, base + ".preview.png"), comp.toBuffer("image/png"));
   fs.writeFileSync(
-    path.join(outDir, "sample-poster.expected.json"),
-    JSON.stringify({ widthPx: W, heightPx: H, ppi: PPI, layers: expected }, null, 2)
+    path.join(outDir, base + ".expected.json"),
+    JSON.stringify({ colorMode: cmyk ? "CMYK" : "RGB", widthPx: W, heightPx: H, ppi: PPI, layers: expected }, null, 2)
   );
-  console.log(`샘플 PSD 생성: ${W}x${H}px, ${PPI}ppi, 텍스트 레이어 ${expected.length}개, ${(buf.length / 1024 / 1024).toFixed(1)}MB`);
+  console.log(`${base}.psd: ${W}x${H}px, ${PPI}ppi, ${cmyk ? "CMYK" : "RGB"}, 텍스트 레이어 ${expected.length}개, ${(buf.length / 1024 / 1024).toFixed(1)}MB`);
+}
+
+function main() {
+  const outDir = path.join(__dirname, "..", "samples");
+  fs.mkdirSync(outDir, { recursive: true });
+  build("rgb", outDir);
+  build("cmyk", outDir);
 }
 
 main();

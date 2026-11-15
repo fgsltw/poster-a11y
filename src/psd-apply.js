@@ -162,10 +162,24 @@
     (text.styleRuns || []).forEach(function (r) { fn(r.style); });
   }
 
-  function applyColor(layer, hex) {
+  function applyColor(layer, hex, isCmyk) {
     var rgb = LD.hexToRgb(hex);
     if (!rgb) throw new Error("색 형식이 잘못됐어요: " + hex);
-    setTextStyle(layer.text, function (s) { s.fillColor = { r: rgb.r, g: rgb.g, b: rgb.b }; });
+    var note = "";
+    if (isCmyk) {
+      // CMYK 문서에는 CMYK 글자색으로 넣어요. 디자이너가 보는 값처럼 % 단위로 반올림해요.
+      var ink = LD.rgbToCmyk(rgb.r, rgb.g, rgb.b);
+      var pct = LD.cmykPercent(ink);
+      var printable = LD.cmykToRgb(pct.c / 100, pct.m / 100, pct.y / 100, pct.k / 100);
+      setTextStyle(layer.text, function (s) {
+        s.fillColor = { c: (pct.c / 100) * 255, m: (pct.m / 100) * 255, y: (pct.y / 100) * 255, k: (pct.k / 100) * 255 };
+      });
+      note = " (CMYK " + pct.c + "/" + pct.m + "/" + pct.y + "/" + pct.k + ")";
+      if (ink.error > 6) note += " ⚠ 인쇄로 낼 수 없는 색이라 가장 가까운 색 " + LD.toHex(printable.r, printable.g, printable.b) + "로 바꿨어요";
+      rgb = printable;
+    } else {
+      setTextStyle(layer.text, function (s) { s.fillColor = { r: rgb.r, g: rgb.g, b: rgb.b }; });
+    }
     // 미리보기: 글자 모양(알파)은 그대로 두고 색만 바꿔요 → 정확해요
     var img = layer.imageData;
     if (img) {
@@ -176,7 +190,7 @@
         img.data[i + 2] = rgb.b;
       }
     }
-    return "글자색 → " + hex.toUpperCase();
+    return "글자색 → " + hex.toUpperCase() + note;
   }
 
   // 양선형 보간으로 크기를 바꿔요 (프리멀티플라이드로 계산해서 가장자리 색 번짐을 막아요)
@@ -236,10 +250,15 @@
     return "글자 크기 → " + LD.round(valuePt, 1) + "pt (×" + LD.round(factor, 2) + ")";
   }
 
-  function applyBackplate(found, fix, ppi, newId) {
+  function applyBackplate(found, fix, ppi, newId, isCmyk) {
     var layer = found.layer;
     var rgb = LD.hexToRgb(fix.color || "#FFFFFF");
     if (!rgb) throw new Error("배경 띠 색 형식이 잘못됐어요: " + fix.color);
+    if (isCmyk) {
+      // 저장할 때 CMYK로 바뀌니까 인쇄로 낼 수 있는 색으로 미리 맞춰요
+      var pct = LD.cmykPercent(LD.rgbToCmyk(rgb.r, rgb.g, rgb.b));
+      rgb = LD.cmykToRgb(pct.c / 100, pct.m / 100, pct.y / 100, pct.k / 100);
+    }
     var opacity = fix.opacity == null ? 0.85 : fix.opacity;
     var pad = Math.round(((fix.paddingMm == null ? 1.5 : fix.paddingMm) / MM_PER_INCH) * ppi);
     var left = layer.left - pad, top = layer.top - pad, right = layer.right + pad, bottom = layer.bottom + pad;
@@ -293,10 +312,10 @@
       if (!found) { skipped.push({ fix: f, reason: "레이어를 찾지 못했어요." }); continue; }
       if (!found.layer.text) { skipped.push({ fix: f, reason: "텍스트 레이어가 아니에요." }); continue; }
       try {
-        if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f.value) });
+        if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f.value, psd.colorMode === 4) });
         else if (f.type === "size") applied.push({ fix: f, message: applySize(found.layer, f.valuePt, ppi) });
         else if (f.type === "backplate") {
-          var r = applyBackplate(found, f, ppi, nextId++);
+          var r = applyBackplate(found, f, ppi, nextId++, psd.colorMode === 4);
           applied.push({ fix: f, message: r.message, createdLayerId: r.layerId });
         } else skipped.push({ fix: f, reason: "모르는 수정 종류예요: " + f.type });
       } catch (e) {

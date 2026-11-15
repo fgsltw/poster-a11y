@@ -36,6 +36,16 @@ const fixes = results.filter(r => r.fix && r.fix.passes !== false).map(r => ({ l
 // fix.type 이름을 color / size / backplate 로 맞춰 주세요. size 는 value 대신 valuePt.
 ```
 
+## CMYK 문서
+
+- 색은 RGB hex로 주면 돼요. A가 CMYK 문서에는 **CMYK %로 바꿔서** 글자색에 넣어요 (결과 메시지에 `CMYK 25/26/38/68`처럼 보여요).
+- 인쇄로 낼 수 없는 색(예: 형광 초록)이면 가장 가까운 인쇄 색으로 바꾸고 메시지에 ⚠로 알려요.
+- 배경 띠 색도 같은 방식으로 인쇄 가능한 색에 맞춰요.
+
+## 목적 정보
+
+수정을 적용해도 PSD 안의 목적 정보는 그대로 남아요. 접근성 버전 PSD를 다시 열어도 목적이 유지돼요.
+
 ## 결과
 
 `applyFixes(psd, fixes)`가 돌려주는 값:

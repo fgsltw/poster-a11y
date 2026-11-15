@@ -6,6 +6,8 @@
 - 플러그인 코드는 UXP 환경(CommonJS `require`, `photoshop`·`uxp` 모듈)을 가정한다. 브라우저 전용 API를 쓰지 않는다.
 - 문서를 바꾸는 작업은 `core.executeAsModal` 안에서 하고, 읽기용 변경(레이어 숨김 등)은 작업 내역에 남기지 않는다.
 - 수정 적용은 `src/psd-apply.js`, 입력 형식은 `docs/apply-fixes.md`가 기준이다. 원본 PSD 파일과 원본 객체는 절대 바꾸지 않고 복사본을 만든다.
+- 목적 정보는 `plugin/lib/purpose-store.js`로 PSD XMP에 저장한다. 레이어 목적 계산 규칙(문서 → 레이어 지정 → 가까운 그룹)은 `resolve` 한 곳에서만 정한다.
+- CMYK 색 변환은 `layer-data.js`의 `cmykToRgb`/`rgbToCmyk`만 쓴다 (글자와 배경이 같은 기준이어야 대비가 맞다).
 - 목적 정보 저장 키는 문서 ID가 아니라 **파일 경로 + 레이어 ID**(`document.key`, `layer.key`)를 쓴다.
 - 기능을 고치면 `npm test`를 돌린다. 샘플 PSD를 바꾸면 `npm run sample` 후 정답 파일도 함께 갱신된다.
 - 포토샵에서 직접 확인하지 못한 동작은 "확인 필요"로 표시하고 `docs/feasibility-checklist.md`에 항목을 추가한다.
