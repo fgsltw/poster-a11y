@@ -43,6 +43,9 @@
   #fixlist button { padding:0 6px; margin-left:6px; }
   .purpose { background:#FBF8F2; border:1px solid var(--line); border-radius:8px; padding:8px 10px 2px; margin-bottom:10px; }
   .purpose select, td select { font:inherit; padding:2px 4px; border:1px solid var(--line); border-radius:4px; background:#fff; }
+  .sim { margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+  .sim h2 { font-size:16px; margin:0 0 4px; }
+  .sim select, .sim input { font:inherit; padding:2px 4px; border:1px solid var(--line); border-radius:4px; background:#fff; }
   .badge { display:inline-block; font-size:11px; padding:1px 6px; border-radius:10px; background:#EEF5FC; color:#1B6EC2; margin-left:6px; }
 </style>
 </head>
@@ -56,8 +59,50 @@
     <div id="drop">PSD 파일을 여기에 끌어다 놓거나 눌러서 고르세요
       <input id="file" type="file" accept=".psd" hidden>
     </div>
+    <div class="row" style="margin-top:8px">
+      <span class="meta">PSD가 없으면</span>
+      <button data-sample="sample-poster.psd">샘플 포스터 (RGB)</button>
+      <button data-sample="sample-poster-cmyk.psd">샘플 포스터 (인쇄용 CMYK)</button>
+    </div>
     <p class="meta" id="docmeta"></p>
     <div id="preview-wrap"><img id="preview" alt=""></div>
+
+    <div class="sim">
+      <h2>보는 사람·환경 미리보기</h2>
+      <p class="meta" style="margin:0 0 8px">근사 미리보기예요. 문제를 눈으로 확인하는 용도이고, 판정은 검사 엔진(B)이 해요.</p>
+      <div class="row">색각
+        <select id="simCvd">
+          <option value="">정상</option>
+          <option value="protan">적색맹 (제1색각이상)</option>
+          <option value="deutan">녹색맹 (제2색각이상)</option>
+          <option value="tritan">청색맹 (제3색각이상)</option>
+        </select>
+      </div>
+      <div class="row">시력
+        <select id="simAcuity">
+          <option value="">흐림 없음</option>
+          <option value="1">1.0 (정상)</option>
+          <option value="0.5">0.5</option>
+          <option value="0.3">0.3 (저시력)</option>
+          <option value="0.1">0.1 (심한 저시력)</option>
+        </select>
+        관람 거리 <input type="number" id="simDist" value="2" step="0.5" min="0.3" style="width:60px"> m
+      </div>
+      <div class="row">대비 저하
+        <select id="simHaze">
+          <option value="0">없음</option>
+          <option value="0.3">약간 (백내장 초기·눈부심)</option>
+          <option value="0.5">많이</option>
+        </select>
+        조명
+        <select id="simLight">
+          <option value="normal">보통</option>
+          <option value="dim">어두움 (저녁 야외)</option>
+          <option value="dark">아주 어두움</option>
+        </select>
+      </div>
+      <div class="row"><button id="simReset">원래대로 보기</button><span class="meta" id="simstatus"></span></div>
+    </div>
   </section>
   <section class="card">
     <div class="row">
@@ -112,12 +157,24 @@
 <script src="../plugin/lib/purpose-store.js"></script>
 <script src="../src/psd-extract.js"></script>
 <script src="../src/psd-apply.js"></script>
+<script src="../src/simulate.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   let result = null, fileName = "";
   let psdOriginal = null, psdFixed = null, fixes = [], selectedId = null, fixedIsCurrent = false;
   let purposeInfo = PurposeStore.empty();
   const PL = PurposeStore.LABELS;
+
+  // 배포할 때 tools/build-web.js 가 "./samples/" 로 바꿔요
+  const SAMPLE_BASE = "../samples/";
+  document.querySelectorAll("[data-sample]").forEach((b) => (b.onclick = async () => {
+    $("status").textContent = "샘플 내려받는 중…";
+    try {
+      const res = await fetch(SAMPLE_BASE + b.dataset.sample);
+      if (!res.ok) throw new Error(res.status);
+      await load(new File([await res.blob()], b.dataset.sample));
+    } catch (e) { $("status").textContent = "샘플을 불러오지 못했어요: " + e.message; }
+  }));
 
   const drop = $("drop"), input = $("file");
   drop.onclick = () => input.click();
@@ -146,14 +203,50 @@
     }
   }
 
-  function showPreview(psd) {
-    const img = $("preview");
-    if (!psd.imageData) { img.removeAttribute("src"); return; }
+  let shownPsd = null;
+  function drawImage(imgData) {
     const c = document.createElement("canvas");
-    c.width = psd.imageData.width; c.height = psd.imageData.height;
-    c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(psd.imageData.data), c.width, c.height), 0, 0);
-    img.src = c.toDataURL("image/jpeg", 0.85);
+    c.width = imgData.width; c.height = imgData.height;
+    c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(imgData.data), c.width, c.height), 0, 0);
+    $("preview").src = c.toDataURL("image/jpeg", 0.85);
   }
+  function showPreview(psd) {
+    shownPsd = psd;
+    if (!psd.imageData) { $("preview").removeAttribute("src"); return; }
+    if (simActive()) runSimulation(); else { drawImage(psd.imageData); $("simstatus").textContent = ""; }
+  }
+
+  // ---------------- 시뮬레이션
+  function simOptions() {
+    return {
+      colorVision: $("simCvd").value || null,
+      acuity: parseFloat($("simAcuity").value) || null,
+      distanceM: parseFloat($("simDist").value) || null,
+      contrastLoss: parseFloat($("simHaze").value) || 0,
+      lighting: $("simLight").value
+    };
+  }
+  function simActive() {
+    const o = simOptions();
+    return !!(o.colorVision || o.acuity || o.contrastLoss || o.lighting !== "normal");
+  }
+  function runSimulation() {
+    if (!shownPsd || !shownPsd.imageData) return;
+    if (!simActive()) { drawImage(shownPsd.imageData); $("simstatus").textContent = ""; return; }
+    const o = Object.assign(simOptions(), { ppi: result.document.ppi, maxWidth: 1200 });
+    const t0 = performance.now();
+    const r = Simulate.simulate(shownPsd.imageData, o);
+    drawImage(r.image);
+    $("simstatus").textContent = `${r.description.join(" · ")} (${Math.round(performance.now() - t0)}ms)`;
+  }
+  ["simCvd", "simAcuity", "simDist", "simHaze", "simLight"].forEach((id) => ($(id).onchange = () => {
+    if (!shownPsd) { $("simstatus").textContent = "먼저 PSD 파일을 넣어 주세요."; return; }
+    runSimulation();
+  }));
+  $("simReset").onclick = () => {
+    $("simCvd").value = ""; $("simAcuity").value = ""; $("simHaze").value = "0"; $("simLight").value = "normal";
+    if (shownPsd) runSimulation();
+  };
 
   function render() {
     const d = result.document;
