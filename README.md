@@ -47,8 +47,23 @@ npm install
 | `npm run build:web` | 배포용 폴더 `dist-web/` 만들기 → Vercel 등에 이 폴더만 올리면 돼요 |
 | `npm run sample` | 샘플 PSD 다시 만들기 (Windows 맑은 고딕 필요) |
 
+## 웹 페이지 (배포됨)
+
+**https://poster-a11y-chi.vercel.app** — 설치 없이 링크만 열면 돼요. PSD는 방문자의 브라우저 안에서만 처리되고 서버로 올라가지 않아요.
+
+다시 배포하려면 (Vercel에 로그인한 사람만):
+
+```bash
+npm run build:web
+cd dist-web
+npx vercel deploy --prod --yes
+```
+
+처음 한 번은 `dist-web`에서 `npx vercel link --yes --project poster-a11y`로 연결해야 해요. 연결할 때 생기는 `.env.local`(로그인 토큰)은 배포 전에 지워 주세요.
+
 ## 팀원에게
 
+- **모두:** 위 웹 페이지 주소로 바로 써 볼 수 있어요. '샘플 포스터' 버튼을 누르면 PSD 없이도 시작돼요.
 - **B (검사 엔진):** 데이터 형식은 `docs/layer-data.md`(v0.2), 실제 예시는 `samples/sample-poster.layers.json`이에요. 레이어마다 `purpose`(목적)가 들어 있어서 목적별로 판정 강도를 바꾸면 돼요. 실제 PSD는 `npm run extract` 또는 브라우저 페이지로 바로 JSON을 만들 수 있어요.
 - **C (패널 화면):** 같은 JSON으로 화면 시안을 만들면, 2주차에 포토샵 패널로 옮길 때 데이터가 그대로 들어와요.
 - **기획 C:** 실제 포스터 PSD를 `samples/`에 넣어 주세요. 저장할 때 **호환성 최대화**를 켜야 배경 픽셀을 읽을 수 있어요.

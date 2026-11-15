@@ -36,7 +36,9 @@ const REWRITES = [
 ];
 
 function main() {
-  fs.rmSync(OUT, { recursive: true, force: true });
+  // 예전 결과를 지우되, Vercel 연결 정보(.vercel)는 남겨서 같은 주소로 다시 배포되게 해요
+  fs.mkdirSync(OUT, { recursive: true });
+  for (const f of fs.readdirSync(OUT)) if (f !== ".vercel") fs.rmSync(path.join(OUT, f), { recursive: true, force: true });
   for (const [from, to] of FILES) {
     const src = path.join(ROOT, from);
     if (!fs.existsSync(src)) throw new Error(`파일이 없어요: ${from} (npm install / npm run sample 을 먼저 해 주세요)`);
