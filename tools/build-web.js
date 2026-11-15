@@ -20,6 +20,10 @@ const FILES = [
   ["src/psd-extract.js", "lib/psd-extract.js"],
   ["src/psd-apply.js", "lib/psd-apply.js"],
   ["src/simulate.js", "lib/simulate.js"],
+  ["engine/policies.js", "engine/policies.js"],
+  ["engine/color.js", "engine/color.js"],
+  ["engine/roles.js", "engine/roles.js"],
+  ["engine/engine.js", "engine/engine.js"],
   ["samples/sample-poster.psd", "samples/sample-poster.psd"],
   ["samples/sample-poster-cmyk.psd", "samples/sample-poster-cmyk.psd"]
 ];
@@ -32,6 +36,7 @@ const REWRITES = [
   ['src="../src/psd-extract.js"', 'src="./lib/psd-extract.js"'],
   ['src="../src/psd-apply.js"', 'src="./lib/psd-apply.js"'],
   ['src="../src/simulate.js"', 'src="./lib/simulate.js"'],
+  ['src="../engine/', 'src="./engine/'],
   ['const SAMPLE_BASE = "../samples/";', 'const SAMPLE_BASE = "./samples/";']
 ];
 
