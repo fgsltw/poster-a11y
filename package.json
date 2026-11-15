@@ -1,0 +1,17 @@
+{
+  "name": "poster-a11y",
+  "version": "0.1.0",
+  "description": "포스터 접근성 검수 — 포토샵 연동(기술 A)",
+  "scripts": {
+    "sample": "node tools/make-sample-psd.js",
+    "extract": "node tools/psd-to-json.js",
+    "test": "node --test test/",
+    "web": "node tools/serve.js"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@napi-rs/canvas": "^1.1.1",
+    "ag-psd": "^34.2.0"
+  },
+  "private": true
+}

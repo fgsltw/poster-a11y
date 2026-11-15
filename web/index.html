@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSD 레이어 추출기</title>
+<style>
+  :root { --bg:#F7F5F0; --card:#FFFFFF; --line:#E3DED3; --ink:#26221C; --sub:#6E675B; --accent:#C2541B; --warn:#9A5B00; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Malgun Gothic", system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:20px 24px 8px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  header p { margin:0; color:var(--sub); font-size:14px; }
+  main { padding:16px 24px 40px; display:grid; gap:16px; grid-template-columns: minmax(260px, 420px) 1fr; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  #drop { border:2px dashed var(--line); border-radius:10px; padding:28px 16px; text-align:center; color:var(--sub); cursor:pointer; }
+  #drop.over { border-color:var(--accent); color:var(--accent); }
+  #preview-wrap { position:relative; margin-top:12px; }
+  #preview { width:100%; display:block; border-radius:6px; }
+  .box { position:absolute; border:2px solid var(--accent); background:rgba(194,84,27,.08); cursor:pointer; }
+  .box.sel { border-color:#1B6EC2; background:rgba(27,110,194,.15); }
+  .box span { position:absolute; top:-18px; left:-2px; background:var(--accent); color:#fff; font-size:11px; padding:0 4px; border-radius:3px; white-space:nowrap; }
+  .meta { font-size:13px; color:var(--sub); margin:8px 0 0; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--sub); font-weight:600; position:sticky; top:0; background:var(--card); }
+  tr.sel td { background:#EEF5FC; }
+  td:nth-child(2), th { white-space:nowrap; }
+  tr { cursor:pointer; }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:2px; border:1px solid #0002; vertical-align:-1px; margin-right:4px; }
+  .warn { color:var(--warn); font-size:12px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  button { font:inherit; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button:disabled { opacity:.5; cursor:default; }
+  pre { background:#1E1B16; color:#EDE6D6; padding:12px; border-radius:8px; max-height:360px; overflow:auto; font-size:12px; }
+  .scroll { overflow:auto; max-height:520px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PSD 레이어 추출기</h1>
+  <p>포토샵 없이 PSD에서 텍스트 레이어 정보(크기·색·위치·배경 픽셀)를 뽑아요. 파일은 이 브라우저 안에서만 처리돼요.</p>
+</header>
+<main>
+  <section class="card">
+    <div id="drop">PSD 파일을 여기에 끌어다 놓거나 눌러서 고르세요
+      <input id="file" type="file" accept=".psd" hidden>
+    </div>
+    <p class="meta" id="docmeta"></p>
+    <div id="preview-wrap"><img id="preview" alt=""></div>
+  </section>
+  <section class="card">
+    <div class="row">
+      <button class="primary" id="download" disabled>JSON 내려받기</button>
+      <button id="copy" disabled>JSON 복사</button>
+      <span class="meta" id="status"></span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>ID</th><th>그룹</th><th>내용</th><th>크기</th><th>글자색</th><th>배경 (어두운~밝은)</th><th>투명도</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="meta">아직 파일이 없어요.</td></tr></tbody>
+      </table>
+    </div>
+    <p class="warn" id="docwarn"></p>
+    <details><summary>선택한 레이어 JSON</summary><pre id="json">레이어를 눌러 보세요.</pre></details>
+  </section>
+</main>
+
+<script src="../node_modules/ag-psd/dist/bundle.js"></script>
+<script src="../plugin/lib/layer-data.js"></script>
+<script src="../src/psd-extract.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let result = null, fileName = "";
+
+  const drop = $("drop"), input = $("file");
+  drop.onclick = () => input.click();
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0]); };
+  input.onchange = () => input.files[0] && load(input.files[0]);
+
+  async function load(file) {
+    fileName = file.name;
+    $("status").textContent = "읽는 중…";
+    try {
+      const buf = await file.arrayBuffer();
+      const psd = agPsd.readPsd(buf, { useImageData: true });
+      result = PsdExtract.extractFromPsd(psd, { fileName: file.name });
+      showPreview(psd);
+      render();
+      $("status").textContent = `텍스트 레이어 ${result.layers.length}개`;
+    } catch (err) {
+      console.error(err);
+      $("status").textContent = "읽기 실패: " + err.message;
+    }
+  }
+
+  function showPreview(psd) {
+    const img = $("preview");
+    if (!psd.imageData) { img.removeAttribute("src"); return; }
+    const c = document.createElement("canvas");
+    c.width = psd.imageData.width; c.height = psd.imageData.height;
+    c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(psd.imageData.data), c.width, c.height), 0, 0);
+    img.src = c.toDataURL("image/jpeg", 0.85);
+  }
+
+  function render() {
+    const d = result.document;
+    $("docmeta").textContent = `${d.name} · ${d.widthPx}×${d.heightPx}px · ${d.ppi}ppi · 인쇄 ${d.widthMm}×${d.heightMm}mm`;
+    $("docwarn").textContent = result.warnings.join(" ");
+    $("download").disabled = $("copy").disabled = false;
+
+    const rows = $("rows");
+    rows.innerHTML = "";
+    const wrap = $("preview-wrap");
+    wrap.querySelectorAll(".box").forEach((b) => b.remove());
+
+    result.layers.forEach((l) => {
+      const s = l.background && l.background.stats;
+      const tr = document.createElement("tr");
+      tr.dataset.id = l.id;
+      tr.innerHTML =
+        `<td>${l.id}</td><td>${esc(l.groupPath.join(" / ") || "-")}</td>` +
+        `<td>${esc(l.text)}${l.visible ? "" : " <span class='warn'>(숨김)</span>"}${l.warnings.length ? `<div class='warn'>⚠ ${esc(l.warnings.join(" / "))}</div>` : ""}</td>` +
+        `<td>${l.sizePt}pt<br><span class="meta">${l.sizeMm}mm</span></td>` +
+        `<td>${sw(l.color)}${l.color || "-"}</td>` +
+        `<td>${s ? `${sw(s.darkestColor)}${s.darkestColor} ~ ${sw(s.lightestColor)}${s.lightestColor}<br><span class="meta">편차 ${s.luminanceStdDev}</span>` : "-"}</td>` +
+        `<td>${Math.round(l.opacity * 100)}%</td>`;
+      tr.onclick = () => select(l.id);
+      rows.appendChild(tr);
+
+      if (l.bounds) {
+        const b = document.createElement("div");
+        b.className = "box";
+        b.dataset.id = l.id;
+        b.style.left = (l.bounds.left / d.widthPx) * 100 + "%";
+        b.style.top = (l.bounds.top / d.heightPx) * 100 + "%";
+        b.style.width = (l.bounds.width / d.widthPx) * 100 + "%";
+        b.style.height = (l.bounds.height / d.heightPx) * 100 + "%";
+        b.innerHTML = `<span>${l.id}</span>`;
+        b.onclick = () => select(l.id);
+        wrap.appendChild(b);
+      }
+    });
+  }
+
+  function select(id) {
+    document.querySelectorAll("[data-id]").forEach((el) => el.classList.toggle("sel", el.dataset.id == id));
+    const l = result.layers.find((x) => x.id == id);
+    const shown = Object.assign({}, l, { background: Object.assign({}, l.background, { samples: `[${l.background ? l.background.samples.length : 0}개 생략]` }) });
+    $("json").textContent = JSON.stringify(shown, null, 2);
+    document.querySelector("details").open = true;
+  }
+
+  $("download").onclick = () => {
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName.replace(/\.psd$/i, "") + ".layers.json";
+    a.click();
+  };
+  $("copy").onclick = async () => {
+    await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+    $("status").textContent = "복사했어요";
+  };
+
+  const sw = (hex) => (hex ? `<span class="sw" style="background:${hex}"></span>` : "");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+</script>
+</body>
+</html>

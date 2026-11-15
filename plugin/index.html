@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { color: var(--uxp-host-text-color); font-size: 12px; padding: 8px; }
+  h2 { font-size: 13px; margin: 12px 0 6px; }
+  .buttons { display: flex; flex-wrap: wrap; }
+  .buttons sp-button { margin: 0 6px 6px 0; }
+  .meta { color: var(--uxp-host-text-color-secondary); }
+  .check { display: flex; padding: 3px 0; border-bottom: 1px solid var(--uxp-host-border-color); }
+  .check .mark { width: 18px; }
+  .check .body { flex: 1; }
+  .ok { color: #2D9D78; }
+  .fail { color: #E34850; }
+  .todo { color: #E68619; }
+  .layer { padding: 4px 0; border-bottom: 1px solid var(--uxp-host-border-color); cursor: pointer; }
+  .layer:hover { background: var(--uxp-host-background-color-hover, rgba(128,128,128,.15)); }
+  .sw { display: inline-block; width: 10px; height: 10px; border: 1px solid #8888; margin-right: 4px; }
+</style>
+</head>
+<body>
+  <sp-heading size="XS">포스터 접근성 검수 · 개발용</sp-heading>
+  <div class="meta">기술 A 1주차: 문서·텍스트 레이어·배경 픽셀 읽기</div>
+
+  <div class="buttons" style="margin-top:8px">
+    <sp-button id="btnRead" variant="cta">문서 읽기</sp-button>
+    <sp-button id="btnSave" variant="secondary" disabled>JSON 저장</sp-button>
+  </div>
+  <div id="status" class="meta"></div>
+
+  <h2>가능성 확인 (11/19)</h2>
+  <div id="checks" class="meta">‘문서 읽기’를 누르면 항목별 결과가 여기에 나와요.</div>
+
+  <h2>텍스트 레이어</h2>
+  <div class="meta">항목을 누르면 포토샵에서 그 레이어가 선택돼요.</div>
+  <div id="layers"></div>
+
+  <script src="main.js"></script>
+</body>
+</html>
