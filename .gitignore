@@ -2,3 +2,5 @@ node_modules/
 *.log
 .DS_Store
 samples/*.접근성버전.*
+dist-web/
+.vercel/
