@@ -14,7 +14,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var SCHEMA_VERSION = "0.2";
+  var SCHEMA_VERSION = "0.3";
   var MM_PER_INCH = 25.4;
 
   function round(n, digits) {
@@ -295,6 +295,27 @@
    *          sizePx (변형까지 반영된 실제 크기), sizeSourcePx, scale, color(hex), colorRuns,
    *          opacity(0~1), fillOpacity(0~1), blendMode, visible, bounds, background, ppi, docKey, warnings }
    */
+  /*
+   * 줄 간격·자간
+   *   input.leadingSourcePx: 줄 간격 (글꼴 크기와 같은 단위). 없으면 자동 줄 간격
+   *   input.autoLeadingRatio: 자동 줄 간격 비율 (포토샵 기본 1.2)
+   *   input.tracking: 포토샵 자간 (1/1000 em)
+   */
+  function buildSpacing(input) {
+    var text = input.text || "";
+    var lines = text.split(/\r\n|\r|\n/).filter(function (s) { return s.trim(); }).length || 1;
+    var src = input.sizeSourcePx;
+    var auto = input.leadingSourcePx == null || input.autoLeading === true;
+    var ratio = auto ? (input.autoLeadingRatio || 1.2) : src ? input.leadingSourcePx / src : null;
+    return {
+      lineCount: lines,
+      lineHeightRatio: ratio == null ? null : round(ratio, 3),
+      autoLeading: auto,
+      letterSpacingEm: input.tracking == null ? 0 : round(input.tracking / 1000, 3),
+      note: "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+    };
+  }
+
   function buildTextLayer(input) {
     var ppi = input.ppi;
     var b = input.bounds ? boundsWithMm(input.bounds, ppi) : null;
@@ -322,6 +343,10 @@
         fauxBold: !!input.fauxBold,
         weightGuess: guessWeight(input.fontPostScriptName || input.fontName, input.fontStyleName, input.fauxBold)
       },
+      // 줄·글자 간격 (v0.3). 비율은 모두 '글자 크기의 몇 배'
+      spacing: buildSpacing(input),
+      // 글자 기준점 (베이스라인 왼쪽, 문서 px). 글자 크기를 바꿀 때 이 점을 중심으로 커져요 (v0.3)
+      origin: input.origin ? { x: round(input.origin.x, 1), y: round(input.origin.y, 1) } : null,
       color: input.color || null,
       colorSource: input.colorSource || null,
       colorRuns: input.colorRuns || [],

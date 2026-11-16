@@ -26,6 +26,10 @@
     var f = Math.pow(10, d == null ? 2 : d);
     return Math.round(n * f) / f;
   }
+  function short(t) {
+    t = String(t || "");
+    return t.length > 12 ? t.slice(0, 11) + "…" : t;
+  }
   function ceilHalf(n) {
     return Math.ceil(n * 2) / 2;
   }
@@ -201,7 +205,244 @@
     return res;
   }
 
-  // ---------------------------------------------------------------- 핵심 정보 위계
+  // ---------------------------------------------------------------- ① 글자 굵기
+  function checkWeight(l, pol, P) {
+    var w = l.font && l.font.weightGuess;
+    if (P.weight.thinWeights.indexOf(w) < 0) return null; // 얇은 글꼴일 때만 결과를 만들어요
+    var big = (l.sizePt || 0) >= P.weight.okAbovePt;
+    var status = big ? "pass" : pol.judge === "advisory" ? "advisory" : "warn";
+    var res = {
+      check: "weight",
+      status: status,
+      metric: "얇은 글꼴 (" + (l.font.name || "이름 없음") + ") · " + l.sizePt + "pt" + (big ? " — 충분히 커서 괜찮아요" : ""),
+      detail: { weightGuess: w, fontName: l.font.name, okAbovePt: P.weight.okAbovePt },
+      fix: null
+    };
+    if (status !== "pass") {
+      res.message = pol.messages.weight;
+      if (pol.fix.allowWeight) res.fix = { type: "weight", fauxBold: true, strategy: pol.fix.strategy, passes: true };
+    }
+    return res;
+  }
+
+  // ---------------------------------------------------------------- ④ 텍스트 간격
+  function checkSpacing(l, pol, P) {
+    var s = l.spacing;
+    if (!s) return null;
+    var S = P.spacing, issues = [], fix = null;
+    var multi = s.lineCount >= 2;
+    if (multi && s.lineHeightRatio != null && s.lineHeightRatio < S.lineHeightMin) {
+      issues.push("줄 간격 " + round(s.lineHeightRatio, 2) + "배 (기준 " + S.lineHeightMin + "배 이상)");
+      fix = fix || {};
+      fix.lineHeight = S.lineHeightMin;
+    }
+    if (s.letterSpacingEm < S.letterSpacingMin) {
+      issues.push("자간 " + s.letterSpacingEm + "em (기준 " + S.letterSpacingMin + "em 이상)");
+      fix = fix || {};
+      fix.letterSpacingEm = S.letterSpacingMin;
+    }
+    // 한 줄이고 자간도 괜찮으면 결과를 만들지 않아요
+    if (!issues.length && !multi) return null;
+    var status = issues.length ? (pol.judge === "advisory" ? "advisory" : "warn") : "pass";
+    var res = {
+      check: "spacing",
+      status: status,
+      metric: issues.length ? issues.join(" · ") : "줄 간격 " + round(s.lineHeightRatio, 2) + "배 · " + s.lineCount + "줄",
+      detail: { lineCount: s.lineCount, lineHeightRatio: s.lineHeightRatio, letterSpacingEm: s.letterSpacingEm, wcag: { lineHeight: S.lineHeightMin, letterSpacing: S.letterSpacingWcag, wordSpacing: S.wordSpacingWcag } },
+      fix: null
+    };
+    if (issues.length) {
+      res.message = pol.messages.spacing;
+      if (pol.fix.allowSpacing) res.fix = Object.assign({ type: "spacing", strategy: pol.fix.strategy, passes: true }, fix);
+    }
+    return res;
+  }
+
+  // ---------------------------------------------------------------- ③ 확대 후 잘림·겹침
+  function boxOf(l) {
+    var b = l.bounds;
+    return b ? { left: b.left, top: b.top, right: b.right, bottom: b.bottom } : null;
+  }
+  // 글자 기준점(베이스라인 왼쪽)을 중심으로 factor 배 키운 상자 — A 의 applyFixes 와 같은 방식
+  function scaledBox(l, factor) {
+    var b = boxOf(l);
+    if (!b) return null;
+    var o = l.origin || { x: b.left, y: b.bottom };
+    return {
+      left: o.x + (b.left - o.x) * factor,
+      top: o.y + (b.top - o.y) * factor,
+      right: o.x + (b.right - o.x) * factor,
+      bottom: o.y + (b.bottom - o.y) * factor
+    };
+  }
+  function overlaps(a, b, tol) {
+    return Math.min(a.right, b.right) - Math.max(a.left, b.left) > tol && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > tol;
+  }
+  function overflowOf(box, W, H, m) {
+    var o = { left: m - box.left, top: m - box.top, right: box.right - (W - m), bottom: box.bottom - (H - m) };
+    var out = {};
+    Object.keys(o).forEach(function (k) { if (o[k] > 0.5) out[k] = Math.round(o[k]); });
+    return Object.keys(out).length ? out : null;
+  }
+  var SIDE_LABELS = { left: "왼쪽", top: "위", right: "오른쪽", bottom: "아래" };
+
+  function sizeFixFactor(l, sizeRes) {
+    var f = sizeRes && sizeRes.fix;
+    if (!f || f.type !== "size" || !l.sizePt) return 1;
+    return f.valuePt / l.sizePt;
+  }
+
+  function checkLayout(doc, layers, perLayer, P) {
+    var W = doc.document.widthPx, H = doc.document.heightPx;
+    var L = P.layout, out = [];
+    // 모든 수정을 함께 적용했을 때의 상자
+    var after = {};
+    layers.forEach(function (l) {
+      after[l.id] = scaledBox(l, sizeFixFactor(l, perLayer[l.id] && perLayer[l.id].size));
+    });
+    function problemsAt(l, factor) {
+      var box = scaledBox(l, factor);
+      if (!box) return null;
+      var hits = layers.filter(function (o) { return o.id !== l.id && after[o.id] && overlaps(box, after[o.id], L.overlapTolerancePx); });
+      var over = overflowOf(box, W, H, L.canvasMarginPx);
+      return hits.length || over ? { hits: hits, overflow: over } : null;
+    }
+    function describeProblem(p) {
+      var parts = [];
+      if (p.overflow) parts.push("포스터 밖으로 나가요 (" + Object.keys(p.overflow).map(function (k) { return SIDE_LABELS[k] + " " + p.overflow[k] + "px"; }).join(", ") + ")");
+      if (p.hits.length) parts.push(p.hits.map(function (o) { return "'" + short(o.text) + "'"; }).join(", ") + "와(과) 겹쳐요");
+      return parts.join(" · ");
+    }
+
+    var reported = {};
+    layers.forEach(function (l) {
+      var sizeRes = perLayer[l.id] && perLayer[l.id].size;
+      var factor = sizeFixFactor(l, sizeRes);
+      var common = { layerId: l.id, layerName: l.name, text: l.text, check: "layout", purpose: sizeRes && sizeRes.purpose, purposeSource: sizeRes && sizeRes.purposeSource };
+      if (factor > 1) {
+        var p = problemsAt(l, factor);
+        if (!p) {
+          out.push(Object.assign({}, common, { status: "pass", metric: "추천 크기 " + sizeRes.fix.valuePt + "pt로 키워도 잘리거나 겹치지 않아요", detail: { factor: round(factor, 2) } }));
+          return;
+        }
+        // 겹치지 않는 가장 큰 크기 찾기
+        var lo = 1, hi = factor;
+        if (problemsAt(l, 1)) lo = 1;
+        else for (var i = 0; i < 20; i++) { var mid = (lo + hi) / 2; if (problemsAt(l, mid)) hi = mid; else lo = mid; }
+        var maxFitPt = problemsAt(l, lo) ? null : Math.floor(l.sizePt * lo * 2) / 2;
+        var res = Object.assign({}, common, {
+          status: "warn",
+          metric: "추천 크기 " + sizeRes.fix.valuePt + "pt로 키우면 " + describeProblem(p),
+          message: "여러 줄로 나누거나, 위치를 옮기거나, 주변 여백을 늘려 주세요." + (maxFitPt && maxFitPt > l.sizePt ? " 지금 자리에서 겹치지 않는 최대 크기는 " + maxFitPt + "pt예요." : ""),
+          detail: { factor: round(factor, 2), overflow: p.overflow, overlapsWith: p.hits.map(function (o) { return o.id; }), maxFitPt: maxFitPt },
+          fix: null
+        });
+        sizeRes.fix.layoutWarning = res.metric;
+        if (maxFitPt) sizeRes.fix.maxFitPt = maxFitPt;
+        out.push(res);
+        p.hits.forEach(function (o) { reported[[l.id, o.id].sort().join(":")] = true; });
+        return;
+      }
+      // 지금 이미 겹쳐 있거나 잘린 글자
+      var now = problemsAt(l, 1);
+      if (!now) return;
+      var hits = now.hits.filter(function (o) { return !reported[[l.id, o.id].sort().join(":")]; });
+      if (!hits.length && !now.overflow) return;
+      hits.forEach(function (o) { reported[[l.id, o.id].sort().join(":")] = true; });
+      out.push(Object.assign({}, common, {
+        status: sizeRes && sizeRes.purpose === "art" ? "advisory" : "warn",
+        metric: "지금 " + describeProblem({ hits: hits, overflow: now.overflow }),
+        message: "글자끼리 겹치거나 잘리면 읽기 어려워요. 위치나 간격을 조정해 주세요.",
+        detail: { overflow: now.overflow, overlapsWith: hits.map(function (o) { return o.id; }) },
+        fix: null
+      }));
+    });
+    return out;
+  }
+
+  // ---------------------------------------------------------------- 핵심 정보 위계 · ⑤ 계층과 그룹화
+  function gapBetween(a, b) {
+    var dx = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right));
+    var dy = Math.max(0, Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom));
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function checkGrouping(doc, roles, docPurpose, P) {
+    var Hc = P.hierarchy, out = [];
+    var bad = docPurpose === "art" ? "advisory" : "warn";
+    var H = doc.document.heightPx, W = doc.document.widthPx;
+    var visible = doc.layers.filter(function (l) { return l.visible !== false && l.text && l.text.trim() && l.bounds; });
+    if (!visible.length) return out;
+
+    // 제목과 본문이 구별되는가
+    var title = visible.filter(function (l) { return roles[l.id].role === "title"; })[0];
+    var others = visible.filter(function (l) { return l !== title; }).map(function (l) { return l.sizePt || 0; }).sort(function (a, b) { return a - b; });
+    if (title && others.length) {
+      var med = others[Math.floor(others.length / 2)] || 1;
+      var ratio = (title.sizePt || 0) / med;
+      var ok = ratio >= Hc.titleRatioMin;
+      out.push({
+        layerId: title.id, layerName: title.name, text: title.text, role: "title", check: "hierarchy",
+        status: ok ? "pass" : bad,
+        metric: "제목이 본문보다 " + round(ratio, 1) + "배 커요 (기준 " + Hc.titleRatioMin + "배)",
+        message: ok ? undefined : "제목과 본문의 크기 차이가 작아 무엇이 제목인지 알기 어려워요. 제목을 키우거나 본문을 줄여 주세요.",
+        detail: { titleRatio: round(ratio, 2), median: med }
+      });
+    }
+
+    // 관련 정보가 가까이 있는가
+    Hc.relatedPairs.forEach(function (pair) {
+      var A = visible.filter(function (l) { return roles[l.id].role === pair[0]; });
+      var B = visible.filter(function (l) { return roles[l.id].role === pair[1]; });
+      if (!A.length || !B.length) return;
+      var best = null;
+      A.forEach(function (a) { B.forEach(function (b) {
+        var g = gapBetween(a.bounds, b.bounds);
+        if (!best || g < best.gap) best = { a: a, b: b, gap: g };
+      }); });
+      var r = best.gap / H, near = r <= Hc.relatedMaxGapRatio;
+      out.push({
+        layerId: best.b.id, layerName: best.b.name, text: best.b.text, role: pair[1], check: "hierarchy",
+        status: near ? "pass" : bad,
+        metric: R.LABELS[pair[0]] + "–" + R.LABELS[pair[1]] + " 거리: 포스터 높이의 " + Math.round(r * 100) + "% (기준 " + Math.round(Hc.relatedMaxGapRatio * 100) + "% 이하)",
+        message: near ? undefined : R.LABELS[pair[0]] + "와(과) " + R.LABELS[pair[1]] + "이(가) 멀리 떨어져 있어요. 함께 읽어야 하는 정보는 가까이 모아 주세요.",
+        detail: { pair: pair, gapPx: Math.round(best.gap), gapRatio: round(r, 3), layerIds: [best.a.id, best.b.id] }
+      });
+    });
+
+    // 글자 묶음이 너무 붙어 있는가 (위아래로 놓인 글자 사이)
+    for (var i = 0; i < visible.length; i++) {
+      for (var j = 0; j < visible.length; j++) {
+        var a = visible[i].bounds, b = visible[j].bounds;
+        if (i === j || a.bottom > b.top) continue; // a 가 b 위에 있을 때만
+        if (Math.min(a.right, b.right) <= Math.max(a.left, b.left)) continue; // 가로로 겹치는 범위가 있어야 위아래 이웃
+        var gap = b.top - a.bottom;
+        var em = Math.min(visible[i].sizePx || 0, visible[j].sizePx || 0);
+        if (em && gap < Hc.crowdedGapEm * em) {
+          out.push({
+            layerId: visible[j].id, layerName: visible[j].name, text: visible[j].text, check: "hierarchy",
+            status: bad,
+            metric: "'" + short(visible[i].text) + "'와(과) 사이가 " + Math.round(gap) + "px (글자 크기의 " + round(gap / em, 2) + "배, 기준 " + Hc.crowdedGapEm + "배 이상)",
+            message: "글자 묶음이 너무 붙어 있어 한 덩어리로 보여요. 사이 여백을 늘려 주세요.",
+            detail: { crowdedWith: visible[i].id, gapPx: Math.round(gap), gapEm: round(gap / em, 2) }
+          });
+        }
+      }
+    }
+
+    // 글자가 너무 밀집되어 있는가 (글자 상자 면적 합 / 포스터 면적)
+    var area = visible.reduce(function (s, l) { return s + l.bounds.width * l.bounds.height; }, 0);
+    var cov = area / (W * H);
+    out.push({
+      layerId: null, check: "hierarchy",
+      status: cov <= Hc.maxTextCoverage ? "pass" : bad,
+      metric: "글자가 차지하는 면적: 포스터의 " + Math.round(cov * 100) + "% (기준 " + Math.round(Hc.maxTextCoverage * 100) + "% 이하)",
+      message: cov <= Hc.maxTextCoverage ? undefined : "글자가 너무 많아 복잡해 보여요. 덜 중요한 정보는 줄이거나 다른 곳으로 옮겨 주세요.",
+      detail: { textCoverage: round(cov, 3) }
+    });
+    return out;
+  }
+
   function checkHierarchy(doc, roles, layerResults, docPurpose, P) {
     var out = [];
     var visible = doc.layers.filter(function (l) { return l.visible !== false; });
@@ -273,8 +514,14 @@
       var contrast = Object.assign({}, common, checkContrast(l, env, pol, P, purpose, docPurpose, altText));
       perLayer[l.id] = { size: size, contrast: contrast };
       results.push(size, contrast);
+      var weight = checkWeight(l, pol, P);
+      if (weight) results.push(Object.assign({}, common, weight));
+      var spacing = checkSpacing(l, pol, P);
+      if (spacing) results.push(Object.assign({}, common, spacing));
     });
+    results = results.concat(checkLayout(doc, layers, perLayer, P));
     results = results.concat(checkHierarchy(doc, roles, perLayer, docPurpose, P));
+    results = results.concat(checkGrouping(doc, roles, docPurpose, P));
     results.forEach(function (r) { r.statusLabel = STATUS_LABELS[r.status]; });
     results.sort(function (a, b) { return STATUS_ORDER[a.status] - STATUS_ORDER[b.status]; });
 
@@ -283,7 +530,7 @@
     var needsWork = counts.fail + counts.conflict + counts.warn > 0;
 
     return {
-      engineVersion: "0.1",
+      engineVersion: "0.2",
       policyVersion: P.version,
       environment: env,
       document: {
@@ -324,6 +571,11 @@
       if (r.fix.type === "color") f.value = r.fix.value;
       if (r.fix.type === "size") f.valuePt = r.fix.valuePt;
       if (r.fix.type === "backplate") { f.color = r.fix.color; f.opacity = r.fix.opacity; f.paddingMm = r.fix.paddingMm; }
+      if (r.fix.type === "weight") f.fauxBold = true;
+      if (r.fix.type === "spacing") {
+        if (r.fix.lineHeight != null) f.lineHeight = r.fix.lineHeight;
+        if (r.fix.letterSpacingEm != null) f.letterSpacingEm = r.fix.letterSpacingEm;
+      }
       out.push(f);
     });
     return out;

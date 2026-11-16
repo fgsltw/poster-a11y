@@ -1,11 +1,11 @@
 {
-  "schemaVersion": "0.2",
+  "schemaVersion": "0.3",
   "source": "psd-file",
-  "extractedAt": "2026-11-15T10:00:08.628Z",
+  "extractedAt": "2026-11-16T08:28:45.238Z",
   "document": {
     "key": "sample-poster.psd",
     "name": "sample-poster.psd",
-    "path": "C:\\Users\\fgslt\\OneDrive\\Desktop\\문제해결형 ai\\poster-a11y\\samples\\sample-poster.psd",
+    "path": "C:\\Users\\fgslt\\OneDrive\\Desktop\\서울시립대\\2026\\2학기\\문제해결형 ai\\poster-a11y\\samples\\sample-poster.psd",
     "widthPx": 1754,
     "heightPx": 2480,
     "ppi": 150,
@@ -54,6 +54,17 @@
         "style": null,
         "fauxBold": false,
         "weightGuess": "regular"
+      },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 150,
+        "y": 2380
       },
       "color": "#B5AE9F",
       "colorSource": {
@@ -1152,6 +1163,17 @@
         "fauxBold": false,
         "weightGuess": "regular"
       },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 150,
+        "y": 1820
+      },
       "color": "#2F5D50",
       "colorSource": {
         "space": "rgb"
@@ -2248,6 +2270,17 @@
         "style": null,
         "fauxBold": false,
         "weightGuess": "regular"
+      },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 150,
+        "y": 1720
       },
       "color": "#6B6458",
       "colorSource": {
@@ -3346,6 +3379,17 @@
         "fauxBold": false,
         "weightGuess": "bold"
       },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 150,
+        "y": 1620
+      },
       "color": "#3B352C",
       "colorSource": {
         "space": "rgb"
@@ -4443,6 +4487,17 @@
         "fauxBold": false,
         "weightGuess": "regular"
       },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 150,
+        "y": 1520
+      },
       "color": "#8A8478",
       "colorSource": {
         "space": "rgb"
@@ -5535,6 +5590,17 @@
         "style": null,
         "fauxBold": false,
         "weightGuess": "bold"
+      },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 150,
+        "y": 1180
       },
       "color": "#C9763F",
       "colorSource": {
@@ -6633,6 +6699,17 @@
         "fauxBold": false,
         "weightGuess": "regular"
       },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 150,
+        "y": 680
+      },
       "color": "#E8A87C",
       "colorSource": {
         "space": "rgb"
@@ -7729,6 +7806,17 @@
         "style": null,
         "fauxBold": false,
         "weightGuess": "bold"
+      },
+      "spacing": {
+        "lineCount": 1,
+        "lineHeightRatio": 1.2,
+        "autoLeading": true,
+        "letterSpacingEm": 0,
+        "note": "줄 수는 줄바꿈 기준이에요. 글상자 안에서 자동으로 넘어간 줄은 세지 않아요."
+      },
+      "origin": {
+        "x": 140,
+        "y": 560
       },
       "color": "#FFFFFF",
       "colorSource": {

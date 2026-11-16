@@ -57,6 +57,38 @@
       complexity: { simple: 0.01, busy: 0.04 }
     },
 
+    // ① 글자 굵기: 이 굵기로 추정되는 글꼴은 '얇은 글씨'로 봐요 (글꼴 이름의 Thin·Light 등)
+    weight: {
+      thinWeights: ["light"],
+      // 얇아도 이만큼 크면 괜찮다고 봐요 (pt). 큰 제목용 얇은 글꼴은 흔해요
+      okAbovePt: 36
+    },
+
+    // ③ 글자 크기를 키울 때 (확대·재배치): 포스터 밖으로 나가거나 다른 글자와 겹치는지
+    layout: {
+      canvasMarginPx: 0, // 이만큼 안쪽까지만 허용 (재단선 여백을 두려면 늘려요)
+      overlapTolerancePx: 2 // 이 정도 겹침은 무시 (글자 상자 가장자리 오차)
+    },
+
+    // ④ 텍스트 간격 (WCAG 1.4.12)
+    //   WCAG 1.4.12 는 '사용자가 간격을 이만큼 늘려도 내용이 깨지지 않아야 한다'는 웹 기준이에요.
+    //   인쇄 포스터에서는 정보 글자의 권장값으로 써요. 예술 글자에는 '참고'로만 알려요.
+    spacing: {
+      lineHeightMin: 1.5, // 여러 줄 글자의 줄 간격 (글자 크기의 배수)
+      letterSpacingMin: 0, // 자간이 이보다 좁으면 '너무 붙어 있음' (WCAG 권장 0.12 는 사용자 조정값이라 기본값으로 쓰지 않아요)
+      letterSpacingWcag: 0.12,
+      wordSpacingWcag: 0.16
+    },
+
+    // ⑤ 정보 계층 및 그룹화
+    hierarchy: {
+      titleRatioMin: 1.5, // 제목이 본문(중간 크기)보다 이 배수 이상 커야 구별돼요
+      relatedPairs: [["date", "place"]], // 가까이 있어야 하는 정보
+      relatedMaxGapRatio: 0.12, // 두 정보 사이 거리가 포스터 높이의 이 비율보다 멀면 '떨어져 있음'
+      crowdedGapEm: 0.3, // 위아래 글자 묶음 사이가 글자 크기의 이 배수보다 좁으면 '붙어 있음'
+      maxTextCoverage: 0.4 // 글자 상자가 포스터 면적의 이 비율보다 많으면 '밀집'
+    },
+
     // 핵심 정보: 이 역할이 포스터에 없으면 '누락'으로 알려요
     essentialRoles: ["title", "date", "place"],
 
@@ -69,6 +101,8 @@
           strategy: "minimal",
           maxLightnessShift: 0.12, // OKLCH 밝기(0~1)를 이만큼까지만 바꿔요
           allowSize: false,
+          allowWeight: false,
+          allowSpacing: false,
           allowBackplate: true,
           backplateMaxOpacity: 0.45 // 옅은 배경 띠만
         },
@@ -76,7 +110,9 @@
         support: "alternative", // 원본을 지키는 대신 대체 정보 제공
         messages: {
           contrast: "원본의 분위기를 지키면서, 글자 밝기를 조금만 조정하면 더 잘 보일 수 있어요.",
-          size: "작가의 의도에 맞는 크기라면 그대로 두셔도 괜찮아요. 같은 내용을 다른 곳에서도 안내하면 좋아요."
+          size: "작가의 의도에 맞는 크기라면 그대로 두셔도 괜찮아요. 같은 내용을 다른 곳에서도 안내하면 좋아요.",
+          weight: "얇은 글꼴이 분위기를 만든다면 그대로 두셔도 괜찮아요. 작게 쓰인 곳만 조금 굵게 하면 더 잘 보여요.",
+          spacing: "글자 사이가 좁으면 멀리서 글자끼리 붙어 보일 수 있어요."
         }
       },
       info: {
@@ -86,6 +122,8 @@
           strategy: "full",
           maxLightnessShift: 1,
           allowSize: true,
+          allowWeight: true,
+          allowSpacing: true,
           allowBackplate: true,
           backplateMaxOpacity: 0.9
         },
@@ -93,7 +131,9 @@
         support: "accessibleVersion", // 별도 접근성 버전 만들기
         messages: {
           contrast: "글자와 배경의 대비가 낮아 읽기 어려울 수 있어요. 아래 색으로 바꾸면 기준을 넘어요.",
-          size: "관람 거리에 비해 글자가 작아요. 추천 크기 이상으로 키워 주세요."
+          size: "관람 거리에 비해 글자가 작아요. 추천 크기 이상으로 키워 주세요.",
+          weight: "얇은 글씨는 작거나 멀리서 볼 때 획이 끊겨 보여요. 더 굵은 글꼴(Regular 이상)로 바꿔 주세요.",
+          spacing: "줄이나 글자 사이가 좁아 읽기 어려울 수 있어요. 아래 간격으로 넓혀 주세요."
         }
       },
       mixed: {
