@@ -125,7 +125,31 @@
     return best;
   }
 
+  // ---------------------------------------------------------------- 색각이상
+  // 색각이상으로 보이는 색 (선형 RGB 행렬, 심한 정도 1.0). src/simulate.js 와 같은 값이에요.
+  // 출처: Machado, Oliveira, Fernandes (2009) "A Physiologically-based Model for Simulation of Color Vision Deficiency"
+  var CVD = {
+    protan: [0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882, -0.048116, 1.051998],
+    deutan: [0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.01182, 0.04294, 0.968881],
+    tritan: [1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.3039]
+  };
+  function simulateCvd(rgb, type) {
+    var m = CVD[type];
+    if (!m) return rgb.slice();
+    var r = toLinear(rgb[0]), g = toLinear(rgb[1]), b = toLinear(rgb[2]);
+    return [m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b].map(function (v) {
+      return Math.max(0, Math.min(255, fromLinear(Math.max(0, Math.min(1, v)))));
+    });
+  }
+  // 두 색이 눈에 얼마나 달라 보이는지 (OKLab 거리. 0.02 ≈ 겨우 구분, 0.1 이상이면 확실히 달라요)
+  function deltaE(a, b) {
+    var x = rgbToOklab(a), y = rgbToOklab(b);
+    return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
+  }
+
   return {
+    simulateCvd: simulateCvd,
+    deltaE: deltaE,
     hexToRgb: hexToRgb,
     rgbToHex: rgbToHex,
     luminance: luminance,

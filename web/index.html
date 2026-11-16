@@ -161,11 +161,11 @@
   .prank li { display: grid; grid-template-columns: 22px 1fr 70px; gap: 2px 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
   .prank li:hover, .prank li.hl { background: var(--brand-soft); }
   .prank .rk { font-weight: 700; color: var(--sub); text-align: center; }
-  .prank .bar { grid-column: 2 / 4; height: 6px; background: #E5E9EF; border-radius: 3px; overflow: hidden; }
-  .prank .bar span { display: block; height: 100%; }
+  .prank .lbar { grid-column: 2 / 4; display: block; height: 6px; background: #E5E9EF; border-radius: 3px; overflow: hidden; }
+  .prank .lbar span { display: block; height: 100%; }
   .prank .lv { font-size: 11px; font-weight: 700; text-align: right; }
   .lv-high { color: var(--fail); } .lv-mid { color: var(--warn); } .lv-low { color: var(--pass); }
-  .bar .b-high { background: #E11D2E; } .bar .b-mid { background: #F59E0B; } .bar .b-low { background: #16A34A; }
+  .lbar .b-high { background: #E11D2E; } .lbar .b-mid { background: #F59E0B; } .lbar .b-low { background: #16A34A; }
   .stage.after .mark:hover, .stage.after .mark:focus-visible { opacity: 1; }
 
   /* 결과 */
@@ -407,7 +407,7 @@
       <details class="more-box" id="settingsBox">
         <summary>부가 기능: 보는 환경·목적 바꾸기</summary>
         <div class="body settings">
-          <p class="note">기본은 벽 포스터 · 2m예요. 바꾸면 바로 다시 검사해요.</p>
+          <p class="note">기본은 SNS 이미지(휴대폰 화면, 35cm)예요. 바꾸면 바로 다시 검사해요.</p>
     <div class="field"><label for="viewer">누가 보나요?</label>
       <select id="viewer">
         <option value="general">일반 시력 (1.0)</option>
@@ -425,13 +425,13 @@
       <button class="help" type="button" data-help="field" aria-label="시야 설명">?</button></div>
     <div class="field"><span>어디에 쓰나요?</span>
       <div class="seg" role="radiogroup" aria-label="쓰는 곳">
-        <label><input type="radio" name="medium" value="wall" checked><span>벽 포스터</span></label>
+        <label><input type="radio" name="medium" value="wall"><span>벽 포스터</span></label>
         <label><input type="radio" name="medium" value="flyer"><span>전단</span></label>
-        <label><input type="radio" name="medium" value="sns"><span>SNS</span></label>
+        <label><input type="radio" name="medium" value="sns" checked><span>SNS</span></label>
       </div>
       <button class="help" type="button" data-help="medium" aria-label="쓰는 곳 설명">?</button>
     </div>
-    <div class="field"><label for="dist">관람 거리</label><input type="number" id="dist" value="2" step="0.1" min="0.1"> m
+    <div class="field"><label for="dist">관람 거리</label><input type="number" id="dist" value="0.35" step="0.05" min="0.1"> m
       <button class="help" type="button" data-help="distance" aria-label="관람 거리 설명">?</button></div>
     <div class="field"><label for="purpose">목적</label>
       <select id="purpose">
@@ -547,6 +547,8 @@
       case "spacing": return "줄·글자 간격이 좁아요";
       case "font": return "글꼴이 알아보기 어려워요";
       case "field": return "핵심 정보가 흩어져 있어요";
+      case "colorOnly": return "색으로만 구분한 정보가 있어요";
+      case "cvd": return "색각이상이면 잘 안 보여요";
       case "layout": return /지금/.test(x.metric) ? "글자가 겹치거나 잘려 있어요" : "키우면 겹치거나 잘려요";
       case "hierarchy":
         if (d.missingRole) return `${ROLE[d.missingRole]} 정보가 없어요`;
@@ -571,6 +573,8 @@
       case "spacing": return "여러 줄 글은 줄 간격이 글자 크기의 1.5배 이상이면 읽기 편해요 (WCAG 1.4.12). 자간이 좁으면 글자끼리 붙어 보여요.";
       case "layout": return "추천 크기로 키웠을 때 다른 글자와 겹치거나 포스터 밖으로 나가는지 미리 계산했어요.";
       case "hierarchy": return "제목·일시·장소 같은 핵심 정보가 잘 보이고, 함께 읽는 정보가 가까이 있는지 봐요.";
+      case "colorOnly": return "색을 구분하기 어려운 사람은 색만 다르게 한 강조를 알아채지 못해요. 정보는 색과 함께 모양·글자로도 구분해야 해요 (WCAG 1.4.1). 적·녹·청색맹으로 보았을 때 두 색이 거의 같아지는지도 계산했어요.";
+      case "cvd": return "일반 눈으로는 대비가 충분해도, 색각이상이 있으면 특정 색(예: 적색맹에게 빨강)이 어둡게 보여 배경과 구분이 안 될 수 있어요. 적·녹·청색맹으로 보았을 때의 대비를 다시 계산했어요.";
       case "field": return "시야가 좁은 사람(녹내장 등)은 포스터를 한눈에 훑지 못하고 조금씩 옮겨 가며 봐요. 일시·장소·가격·접근성 정보가 한곳에 모여 있어야 찾기 쉬워요 (근접성의 원칙). 시야 10°·5°는 한국 시각장애 판정 기준이에요.";
     }
     return "";
@@ -954,6 +958,10 @@
     const sizeOf = (id) => S.check.results.find((y) => y.layerId === id && y.check === "size" && y.fix);
     if (x.alternative && x.alternative.type === "largePrint") return { kind: "handout", layerId: x.layerId, label: "큰 글씨 안내문으로 함께 제공한 모습" };
     if (x.check === "field") return { kind: "field", detail: d };
+    if (x.check === "cvd" || x.check === "colorOnly") {
+      const type = x.check === "cvd" ? d.drops[0].type : (d.lostFor && d.lostFor[0]) || "deutan";
+      return { kind: "cvd", layerId: x.layerId, type, label: `${EnginePolicies.colorVision.labels[type]}으로 보면` };
+    }
     if (x.check === "font") return { kind: "font", layerId: x.layerId, allCaps: (d.issues || []).includes("allCaps"), label: "읽기 쉬운 글꼴로 바꾼 모습 (예시)" };
     if (x.check === "layout") return asFix(sizeOf(x.layerId), { label: "추천 크기로 키운 모습" }) ||
       { kind: "none", layerIds: [x.layerId], note: "위치를 옮기거나 여러 줄로 나눠야 해서 자동으로 고친 모습을 만들 수 없어요." };
@@ -976,7 +984,7 @@
       return { kind: "fix", fix: { layerId: x.layerId, type: "weight", fauxBold: true }, label: "굵게 하면 (참고)" };
     return { kind: "none", layerIds: x.layerId != null ? [x.layerId] : [], note: "자동으로 고칠 수 없는 항목이에요. 디자인에서 직접 조정해 주세요." };
   }
-  const cmpLabel = (x) => (["none", "field"].includes((previewSpecOf(x) || {}).kind) ? "지금 모습 보기" : "고친 모습 비교");
+  const cmpLabel = (x) => (["none", "field", "cvd"].includes((previewSpecOf(x) || {}).kind) ? "지금 모습 보기" : "고친 모습 비교");
 
   function fig(src, cap) { return `<figure><img src="${src}" alt="${esc(cap)}"><figcaption>${esc(cap)}</figcaption></figure>`; }
   // '고친 뒤' 그림: 누르면 이 수정을 적용 목록에 넣고 빼요
@@ -1061,6 +1069,15 @@
       };
     }
     if (spec.kind === "field") return previewField(spec.detail);
+    if (spec.kind === "cvd") {
+      // 같은 부분을 일반 눈 / 색각이상 눈으로 나란히
+      const l = layerOf(spec.layerId);
+      const img = PsdApply.compositePsd(S.psd, regionAround([l.bounds])).imageData;
+      const sim = { width: img.width, height: img.height, data: new Uint8ClampedArray(img.data) };
+      Simulate.applyColorVision(sim, spec.type);
+      const name = EnginePolicies.colorVision.labels[spec.type];
+      return { before: toUrl(img, 560), beforeCaption: "일반 눈", after: toUrl(sim, 560), afterCaption: name + "으로 보면" };
+    }
     const boxes = (spec.layerIds || []).map(layerOf).filter((l) => l && l.bounds).map((l) => l.bounds);
     return { before: boxes.length ? crop(S.psd, regionAround(boxes)) : null, note: spec.note };
   }
@@ -1280,7 +1297,7 @@
     // 오른쪽 순위 목록 (지도를 켜지 않아도 볼 수 있어요)
     $("heatList").innerHTML = list.map((x, k) => `<li data-hl="${x.layerId}"><span class="rk">${k + 1}</span>
       <span>${esc(x.roleLabel)} · “${esc(short(x.text, 18))}”</span><span class="lv lv-${x.level}">${LEVEL_TEXT[x.level]}</span>
-      <span></span><span class="bar" title="식별 쉬움 ${Math.round(x.legibility * 100)}%"><span class="b-${x.level}" style="width:${Math.max(4, Math.round(x.legibility * 100))}%"></span></span></li>`).join("") ||
+      <span></span><span class="lbar" title="식별 쉬움 ${Math.round(x.legibility * 100)}%"><span class="b-${x.level}" style="width:${Math.max(4, Math.round(x.legibility * 100))}%"></span></span></li>`).join("") ||
       '<li><span></span><span>글자가 없어요.</span></li>';
     $("heatList").querySelectorAll("[data-hl]").forEach((li) => {
       const id = +li.dataset.hl;

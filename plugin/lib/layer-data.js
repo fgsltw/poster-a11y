@@ -14,7 +14,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var SCHEMA_VERSION = "0.4";
+  var SCHEMA_VERSION = "0.5";
   var MM_PER_INCH = 25.4;
 
   function round(n, digits) {
@@ -353,6 +353,8 @@
       color: input.color || null,
       colorSource: input.colorSource || null,
       colorRuns: input.colorRuns || [],
+      // v0.5: 글자 구간이 여러 개일 때 구간마다 { text, color, sizePx, fontName, bold, italic, underline }
+      styleRuns: input.styleRuns || [],
       opacity: round(opacity * fill, 3),
       opacityDetail: { layer: round(opacity, 3), fill: round(fill, 3) },
       blendMode: input.blendMode || "normal",

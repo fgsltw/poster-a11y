@@ -120,6 +120,30 @@
         var color = colorToHex(st.fillColor);
         if (!color) lw.push("글자 색을 RGB로 읽지 못했어요 (Lab 등).");
 
+        // 글자 구간마다 스타일 (색만 다른 강조가 있는지 보려고, v0.5)
+        var runStyles = [];
+        if (ds.runs.length > 1) {
+          var pos = 0, fullText = layer.text.text || "";
+          for (var q = 0; q < ds.runs.length; q++) {
+            var rs = {}, kk;
+            for (kk in (layer.text.style || {})) rs[kk] = layer.text.style[kk];
+            for (kk in ds.runs[q].style) rs[kk] = ds.runs[q].style[kk];
+            var piece = fullText.slice(pos, pos + ds.runs[q].length);
+            pos += ds.runs[q].length;
+            if (!piece.trim()) continue;
+            var fname = (rs.font && rs.font.name) || "";
+            runStyles.push({
+              text: piece,
+              color: colorToHex(rs.fillColor) || color,
+              sizePx: rs.fontSize != null ? Math.round(rs.fontSize * scale * 10) / 10 : null,
+              fontName: fname || null,
+              bold: !!rs.fauxBold || /(semibold|demibold|bold|black|heavy)/i.test(fname),
+              italic: !!rs.fauxItalic || /(italic|oblique)/i.test(fname),
+              underline: !!rs.underline
+            });
+          }
+        }
+
         var colorRuns = [];
         var seen = {};
         for (var r = 0; r < ds.runs.length; r++) {
@@ -172,6 +196,7 @@
             color: color,
             colorSource: colorSourceOf(st.fillColor),
             colorRuns: colorRuns,
+            styleRuns: runStyles,
             opacity: layer.opacity,
             fillOpacity: layer.fillOpacity,
             blendMode: layer.blendMode,
