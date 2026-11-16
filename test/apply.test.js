@@ -108,3 +108,26 @@ test("손대지 않은 레이어는 그대로다", () => {
     assert.deepEqual(layerAfter(id).bounds, layerBefore(id).bounds);
   }
 });
+
+test("일부 영역만 합성하면 전체 합성의 같은 부분과 똑같다 (항목별 전후 미리보기용)", () => {
+  const full = compositePsd(original).imageData;
+  const rect = { left: 100, top: 1450, right: 420, bottom: 1560 };
+  const part = compositePsd(original, rect).imageData;
+  assert.equal(part.width, 320);
+  assert.equal(part.height, 110);
+  for (const [x, y] of [[0, 0], [60, 50], [319, 109], [150, 70]]) {
+    const a = ((rect.top + y) * full.width + rect.left + x) * 4, b = (y * part.width + x) * 4;
+    assert.deepEqual([...part.data.slice(b, b + 4)], [...full.data.slice(a, a + 4)], `(${x}, ${y})`);
+  }
+});
+
+test("quick 옵션은 원본 비교·전체 합성을 건너뛰고 수정만 적용한다", () => {
+  const r = applyFixes(original, [{ layerId: 6, type: "color", value: "#222222" }], { quick: true });
+  assert.equal(r.applied.length, 1);
+  assert.equal(r.previewMatchesOriginal, null);
+  // 전체 합성을 다시 하지 않아서 합성 이미지는 원본 그대로예요 (색을 바꿨는데도)
+  assert.equal(compareImageData(r.psd.imageData, original.imageData).maxDiff, 0);
+  // 하지만 레이어는 바뀌었어요 → 영역 합성으로 보면 달라요
+  const rect = { left: 140, top: 1490, right: 340, bottom: 1530 };
+  assert.ok(compareImageData(compositePsd(r.psd, rect).imageData, compositePsd(original, rect).imageData).maxDiff > 50);
+});
