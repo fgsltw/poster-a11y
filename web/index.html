@@ -158,7 +158,13 @@
   .heatlegend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; }
   .heatlegend p { flex-basis: 100%; margin: 2px 0 0; color: var(--sub); font-size: 12px; }
   .prank { margin: 0; padding: 0; list-style: none; }
-  .prank li { display: grid; grid-template-columns: 22px 1fr 70px; gap: 2px 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
+  .prank li { display: grid; grid-template-columns: 22px 1fr 76px; gap: 2px 8px; align-items: center; padding: 7px 4px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
+  .prank .ptxt { min-width: 0; overflow-wrap: anywhere; }
+  .prank .pact { grid-column: 2 / 4; display: flex; justify-content: flex-end; }
+  .prank .pdelta { grid-column: 2 / 4; font-size: 12px; color: var(--pass); }
+  .prank .pact:empty { display: none; }
+  .qfix.on { background: var(--pass-bg); color: var(--pass); border-color: var(--pass); font-weight: 700; }
+  .hz { cursor: pointer; }
   .prank li:hover, .prank li.hl { background: var(--brand-soft); }
   .prank .rk { font-weight: 700; color: var(--sub); text-align: center; }
   .prank .lbar { grid-column: 2 / 4; display: block; height: 6px; background: #E5E9EF; border-radius: 3px; overflow: hidden; }
@@ -389,6 +395,7 @@
       <div class="summary" id="summary" aria-live="polite"></div>
       <details class="more-box heatbox" id="heatBox">
         <summary>정보 전달 지도 · 어디부터 볼까요?</summary>
+        <p class="note" style="margin:8px 0 0;color:var(--sub);font-size:12px">줄을 누르면 지도 위에서 설명과 고치기가 열려요. '바로 고치기'는 그 글자의 추천 수정을 한 번에 넣어요.</p>
         <div class="body"><ol class="prank" id="heatList"></ol>
           <p class="note" style="margin:6px 0 0;color:var(--sub);font-size:12px">우선순위 = 정보 중요도 × (1 − 식별 쉬움). 식별 쉬움 = 크기·대비 중 약한 쪽 × 위치. 실제 시선 측정은 아니에요.</p></div>
       </details>
@@ -890,6 +897,7 @@
   }
   function popHtml(m) {
     let html = `<h3 id="popTitle"><span class="pnum s-${m.worst}">${m.n}</span>“${esc(short(m.layer.text, 34))}”</h3>`;
+    if (!m.items.length) html += `<p class="pnone">이 글자는 검사에서 고칠 곳이 없어요. 잘 보여요.</p>`;
     m.items.forEach((x) => {
       html += `<section class="pitem"><div><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <b>${esc(titleOf(x))}</b></div>` +
         detailHtml(x, S.items.indexOf(x)) + `</section>`;
@@ -1211,7 +1219,7 @@
       b.textContent = isApplied(applyFixOf(+b.dataset.applyI)) ? "✓ 적용됨 · 빼기" : "이 수정 적용";
     });
     updateAfterBox();
-    if (S.view !== "before") setView(S.view);
+    if (S.view !== "before") setView(S.view); else renderHeat();
   }
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-apply-i]");
@@ -1276,7 +1284,9 @@
       z.style.width = ((Math.min(W, b.right + padX) - Math.max(0, b.left - padX)) / W) * 100 + "%";
       z.style.height = ((Math.min(H, b.bottom + padY) - Math.max(0, b.top - padY)) / H) * 100 + "%";
       z.innerHTML = `<span class="hzlabel" aria-hidden="true">${k + 1}</span>`;
-      bindTip(z, () => heatTip(x, k + 1));
+      bindTip(z, () => (popFor === z ? "" : heatTip(x, k + 1)));
+      z.onclick = (e) => { e.stopPropagation(); hideTip(z); openFromMap(z, x.layerId); };
+      z.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFromMap(z, x.layerId); } };
       box.appendChild(z);
     });
   }
@@ -1286,35 +1296,92 @@
       <div class="row"><span class="tchip c-${x.level === "high" ? "fail" : x.level === "mid" ? "warn" : "pass"}">${LEVEL_TEXT[x.level]}</span>우선순위 ${pct(x.score)}</div>
       <div class="row"><span class="lbl">중요도</span> ${pct(x.importance)} (${esc(x.roleLabel)})</div>
       <div class="row"><span class="lbl">식별 쉬움</span> ${pct(x.legibility)} = 크기 ${pct(x.parts.size)} · 대비 ${pct(x.parts.contrast)} 중 약한 쪽${x.parts.atEdge ? " × 가장자리 감점" : ""}</div>
-      ${x.level !== "low" ? `<div class="row">${WEAK_TEXT[x.weakest]} 잘 안 보여요.${x.parts.atEdge ? " 포스터 가장자리에 붙어 있어 눈에 덜 띄어요." : ""}</div>` : ""}`;
+      ${x.level !== "low" ? `<div class="row">${WEAK_TEXT[x.weakest]} 잘 안 보여요.${x.parts.atEdge ? " 포스터 가장자리에 붙어 있어 눈에 덜 띄어요." : ""}</div>` : ""}
+      <div class="row lbl">누르면 설명과 고치기가 열려요.</div>`;
   }
   function renderHeat() {
     const on = $("heatToggle").getAttribute("aria-pressed") === "true";
     const box = $("heat"), stage = $("stage");
     stage.classList.toggle("heaton", on);
     box.hidden = !on; $("heatLegend").hidden = !on;
+    // 지도 영역에 붙어 있던 설명 창은 다시 그린 영역에 옮겨 붙여요
+    const reanchor = popFor && popFor.classList && popFor.classList.contains("hz") ? popFor.dataset.layer : null;
     box.innerHTML = "";
     const list = heatData();
     // 오른쪽 순위 목록 (지도를 켜지 않아도 볼 수 있어요)
-    $("heatList").innerHTML = list.map((x, k) => `<li data-hl="${x.layerId}"><span class="rk">${k + 1}</span>
-      <span>${esc(x.roleLabel)} · “${esc(short(x.text, 18))}”</span><span class="lv lv-${x.level}">${LEVEL_TEXT[x.level]}</span>
-      <span></span><span class="lbar" title="식별 쉬움 ${Math.round(x.legibility * 100)}%"><span class="b-${x.level}" style="width:${Math.max(4, Math.round(x.legibility * 100))}%"></span></span></li>`).join("") ||
-      '<li><span></span><span>글자가 없어요.</span></li>';
+    // 고친 뒤 지도 (수정을 적용했으면) — 목록에 '먼저 검토 → 잘 보여요'처럼 보여줘요
+    const freshAfter = chosenFixes().length && S.afterCheck && S.fixedKey === JSON.stringify(chosenFixes()) ? S.afterCheck : null;
+    $("heatList").innerHTML = list.map((x, k) => {
+      const qi = quickFixItems(x.layerId), done = qi.length && qi.every((i) => isApplied(applyFixOf(i)));
+      const some = !done && qi.some((i) => isApplied(applyFixOf(i)));
+      const aft = freshAfter && S.view !== "after" ? (freshAfter.priority || []).find((y) => y.layerId === x.layerId) : null;
+      const btn = qi.length ? `<button type="button" class="btn small qfix${done ? " on" : ""}" data-qfix="${x.layerId}" aria-pressed="${!!done}">${done ? "✓ 고침" : some ? "더 고치기" : "바로 고치기"}</button>`
+        : x.level !== "low" && (markOf(x.layerId) || {}).items ? `<button type="button" class="btn small" data-qopen="${x.layerId}">설명 보기</button>` : "";
+      return `<li data-hl="${x.layerId}"><span class="rk">${k + 1}</span>
+      <span class="ptxt">${esc(x.roleLabel)} · “${esc(short(x.text, 18))}”</span>
+      <span class="lv lv-${x.level}">${LEVEL_TEXT[x.level]}${aft && aft.level !== x.level ? `<br><span class="lv-${aft.level}">→ ${LEVEL_TEXT[aft.level]}</span>` : ""}</span>
+      ${aft && Math.abs(aft.legibility - x.legibility) >= 0.05 ? `<span class="pdelta">고친 뒤 식별 쉬움 ${Math.round(x.legibility * 100)}% → <b>${Math.round(aft.legibility * 100)}%</b></span>` : ""}
+      <span></span><span class="lbar" title="식별 쉬움 ${Math.round(x.legibility * 100)}%"><span class="b-${x.level}" style="width:${Math.max(4, Math.round(x.legibility * 100))}%"></span></span>
+      <span class="pact">${btn}</span></li>`;
+    }).join("") || '<li><span></span><span>글자가 없어요.</span></li>';
     $("heatList").querySelectorAll("[data-hl]").forEach((li) => {
       const id = +li.dataset.hl;
       li.onmouseenter = () => { document.querySelectorAll(`.hz[data-layer="${id}"]`).forEach((z) => z.classList.add("hl")); highlight(id, true); };
       li.onmouseleave = () => { document.querySelectorAll(".hz.hl").forEach((z) => z.classList.remove("hl")); highlight(id, false); };
-      li.onclick = () => { if ($("heatToggle").getAttribute("aria-pressed") !== "true") toggleHeat(true); $("stage").scrollIntoView({ behavior: "smooth", block: "start" }); };
+      li.onclick = (e) => {
+        if (e.target.closest("[data-qfix]")) return;
+        e.stopPropagation();
+        if ($("heatToggle").getAttribute("aria-pressed") !== "true") toggleHeat(true);
+        $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
+        // 지도 위 그 글자 영역에서 설명 창을 열어요 (스크롤이 끝난 뒤 자리를 맞춰요)
+        setTimeout(() => { const z = document.querySelector(`#heat .hz[data-layer="${id}"]`); if (z) openFromMap(z, id); }, 350);
+      };
     });
+    $("heatList").querySelectorAll("[data-qfix]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); quickFix(+b.dataset.qfix); }));
     // 나란히 보기면 고친 모습 칸에도 고친 뒤 지도를 그려요
     const afterCheck = chosenFixes().length && S.afterCheck && S.fixedKey === JSON.stringify(chosenFixes()) ? S.afterCheck : S.check;
     const two = S.view === "both" && !!afterCheck;
     $("stageAfter").classList.toggle("heaton", on && two);
     $("heatAfter").hidden = !(on && two);
-    if (!on || !S.doc) { $("heatAfter").innerHTML = ""; return; }
+    if (!on || !S.doc) { $("heatAfter").innerHTML = ""; if (reanchor) closePop(); return; }
     drawZones(box, list);
+    if (reanchor) {
+      const z = box.querySelector(`.hz[data-layer="${reanchor}"]`);
+      if (z) { popFor = z; placePop(); } else closePop();
+    }
     if (two) drawZones($("heatAfter"), afterCheck.priority || []); else $("heatAfter").innerHTML = "";
   }
+  // 지도에서 바로 고치기: 그 글자의 추천 수정 중 '모두 적용'에 들어가는 것들
+  //   (기준에 못 미치는 수정, 키우면 겹치는 크기 수정은 빼요 → 설명 창에서 직접 고를 수 있어요)
+  function quickFixItems(layerId) {
+    const out = [];
+    S.items.forEach((x, i) => {
+      if (x.layerId !== layerId || !x.fix || x.fix.passes === false || x.fix.layoutWarning) return;
+      if (applyFixOf(i)) out.push(i);
+    });
+    return out;
+  }
+  function quickFix(layerId) {
+    const qi = quickFixItems(layerId);
+    if (!qi.length) return;
+    const on = !qi.every((i) => isApplied(applyFixOf(i)));
+    qi.forEach((i) => {
+      const f = applyFixOf(i);
+      [...S.chosen].forEach((j) => { const g = applyFixOf(j); if (g && slotOf(g) === slotOf(f) && j !== i) S.chosen.delete(j); });
+      if (on) S.chosen.add(i); else S.chosen.delete(i);
+    });
+    const l = layerOf(layerId);
+    $("status").textContent = on ? `“${short(l.text, 16)}”에 추천 수정 ${qi.length}개를 넣었어요: ${qi.map((i) => fixText(applyFixOf(i))).join(", ")}` : `“${short(l.text, 16)}”의 수정을 뺐어요.`;
+    if (on && S.view === "before") { refreshApplied(); setView("both"); } else refreshApplied();
+  }
+  // 지도 영역(또는 목록)에서 그 글자의 설명 창 열기
+  function openFromMap(anchor, layerId) {
+    if (popFor === anchor) { closePop(); return; }
+    const l = layerOf(layerId);
+    const m = markOf(layerId) || { n: "·", worst: "pass", layer: l, items: [] };
+    openPop(anchor, m);
+  }
+
   function toggleHeat(on) {
     $("heatToggle").setAttribute("aria-pressed", String(on));
     if (on) $("heatBox").open = true;
