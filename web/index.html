@@ -680,7 +680,7 @@
       S.view = "before";
       setView("before");
       runCheck();
-      setView(chosenFixes().length ? "both" : "before");
+      setView("both"); // 처음엔 항상 나란히
       $("startStatus").textContent = "";
     } catch (err) {
       console.error(err);
@@ -1255,7 +1255,8 @@
   const LEVEL_TEXT = { high: "먼저 검토", mid: "확인", low: "잘 보여요" };
   const WEAK_TEXT = { size: "글자가 작아서", contrast: "배경과 대비가 낮아서" };
   function heatData() {
-    const r = S.view === "after" && S.afterCheck ? S.afterCheck : S.check;
+    const fresh = chosenFixes().length && S.afterCheck && S.fixedKey === JSON.stringify(chosenFixes());
+    const r = S.view === "after" && fresh ? S.afterCheck : S.check;
     return r ? r.priority || [] : [];
   }
   // 영역 그리기 (원본 칸, 고친 모습 칸 공통)
@@ -1306,12 +1307,13 @@
       li.onclick = () => { if ($("heatToggle").getAttribute("aria-pressed") !== "true") toggleHeat(true); $("stage").scrollIntoView({ behavior: "smooth", block: "start" }); };
     });
     // 나란히 보기면 고친 모습 칸에도 고친 뒤 지도를 그려요
-    const two = S.view === "both" && !!S.afterCheck;
+    const afterCheck = chosenFixes().length && S.afterCheck && S.fixedKey === JSON.stringify(chosenFixes()) ? S.afterCheck : S.check;
+    const two = S.view === "both" && !!afterCheck;
     $("stageAfter").classList.toggle("heaton", on && two);
     $("heatAfter").hidden = !(on && two);
     if (!on || !S.doc) { $("heatAfter").innerHTML = ""; return; }
     drawZones(box, list);
-    if (two) drawZones($("heatAfter"), S.afterCheck.priority || []); else $("heatAfter").innerHTML = "";
+    if (two) drawZones($("heatAfter"), afterCheck.priority || []); else $("heatAfter").innerHTML = "";
   }
   function toggleHeat(on) {
     $("heatToggle").setAttribute("aria-pressed", String(on));
@@ -1322,7 +1324,9 @@
 
   const HINT_ONE = "번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
   // 보기: both = 원본 | 고친 모습 나란히 (기본), before = 원본만 크게, after = 고친 모습만 크게
+  let viewToken = 0; // 빠르게 여러 번 바뀌면 마지막 것만 그려요
   function setView(v) {
+    const token = ++viewToken;
     S.view = v;
     document.querySelector(`input[name=view][value=${v}]`).checked = true;
     const stage = $("stage"), two = v === "both";
@@ -1337,14 +1341,20 @@
       return;
     }
     if (!chosenFixes().length) {
-      $("status").textContent = two ? "적용할 수정이 없어서 원본만 보여요. 오른쪽에서 수정을 고르면 나란히 비교할 수 있어요." : "적용할 수정을 하나 이상 골라 주세요.";
-      setView("before");
+      // 고칠 게 없어도 나란히·고친 모습을 띄워요 (원본과 같은 그림)
+      if (two) { drawPoster(S.psd.imageData); drawAfter(S.psd.imageData); } else drawPoster(S.psd.imageData);
+      $("afterCapN").textContent = "(고친 곳 없음 · 원본과 같아요)";
+      $("status").textContent = "적용한 수정이 없어서 고친 모습이 원본과 같아요. 오른쪽 목록에서 수정을 켜거나 '고친 뒤' 그림을 누르면 바로 바뀌어요.";
+      $("hint").textContent = two ? "왼쪽은 원본, 오른쪽은 고친 모습이에요. 지금은 적용한 수정이 없어서 같아요." : "적용한 수정이 없어서 원본과 같아요.";
+      updateAfterBox();
+      renderHeat();
       return;
     }
     if (two) drawPoster(S.psd.imageData);
     const busy = two ? $("stageAfter") : stage;
     busy.classList.add("loading");
     setTimeout(() => {
+      if (token !== viewToken) { busy.classList.remove("loading"); return; } // 그사이 다시 바뀌었어요
       try {
         const r = ensureFixed();
         if (two) drawAfter(r.psd.imageData); else drawPoster(r.psd.imageData);
