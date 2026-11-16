@@ -68,6 +68,10 @@
       mediumLabel: base.label,
       distanceM: env.distanceM || base.distanceM,
       lighting: env.lighting || "normal",
+      // 누가 보나요: 일반 / 저시력(0.3) / 시각장애(0.2) / 심한 시각장애(0.06)
+      viewer: policies.viewers && policies.viewers[env.viewer] ? env.viewer : "general",
+      viewerLabel: policies.viewers ? (policies.viewers[env.viewer] || policies.viewers.general).label : "일반 시력",
+      acuity: policies.viewers && policies.viewers[env.viewer] ? policies.viewers[env.viewer].acuity : null,
       // SNS: 휴대폰 화면 너비에 맞춰 보이는 크기
       displayScaleMmPerPx: base.screenWidthMm ? base.screenWidthMm / doc.document.widthPx : null
     };
@@ -94,23 +98,38 @@
     var secondary = (S.secondaryRoles || []).indexOf(role) >= 0;
     var lowVisionArcmin = S.readableArcminAt1_0 / S.lowVisionAcuity;
     var passArcmin = secondary ? S.secondaryPassArcmin : S.lowVisionRequired ? Math.max(S.passArcmin, lowVisionArcmin) : S.passArcmin;
+    var warnArcmin = S.warnArcmin;
 
-    var status = angle >= passArcmin ? "pass" : secondary ? "advisory" : angle >= S.warnArcmin ? "warn" : "fail";
+    // 보는 사람이 저시력이면: 겨우 보이는 크기(5′ ÷ 시력) × 여유(2배)를 통과 기준으로
+    var V = env.acuity, LVR = P.lowVisionReading;
+    if (V && LVR) {
+      var threshold = S.readableArcminAt1_0 / V;
+      passArcmin = secondary ? Math.max(S.secondaryPassArcmin, threshold) : Math.max(S.passArcmin, threshold * LVR.acuityReserve);
+      warnArcmin = Math.max(S.warnArcmin, threshold);
+      lowVisionArcmin = threshold;
+    }
+
+    var status = angle >= passArcmin ? "pass" : secondary ? "advisory" : angle >= warnArcmin ? "warn" : "fail";
     if (status !== "pass" && pol.judge === "advisory") status = "advisory";
 
     var recommendedPt = ptForArcmin(passArcmin, env, P, doc);
     var lowVisionOk = angle >= lowVisionArcmin;
     var lowVisionPt = ptForArcmin(lowVisionArcmin, env, P, doc);
+    // 필요한 글자가 포스터에 비해 너무 크면 → 키우는 대신 큰 글씨 안내문
+    var needGlyphPx = ((recommendedPt * doc.document.ppi) / 72) * S.glyphHeightRatio;
+    var tooBig = !!(LVR && needGlyphPx > doc.document.heightPx * LVR.maxGlyphOfPosterHeight);
 
     var res = {
       check: "size",
       status: status,
-      metric: "글자 높이 " + round(glyphMm, 1) + "mm · " + env.distanceM + "m에서 " + round(angle, 1) + "′ (기준 " + round(passArcmin, 1) + "′" + (secondary ? ", 부가 정보" : "") + ")" +
-        // 저시력 참고는 통과한 글자에만 붙여요 (못 미치는 글자는 추천 크기가 먼저예요)
-        (status === "pass" && !lowVisionOk && !S.lowVisionRequired ? " · 참고: 저시력(" + S.lowVisionAcuity + ")까지 고려하면 " + lowVisionPt + "pt 이상" : ""),
+      metric: "글자 높이 " + round(glyphMm, 1) + "mm · " + env.distanceM + "m에서 " + round(angle, 1) + "′ (기준 " + round(passArcmin, 1) + "′" +
+        (secondary ? ", 부가 정보" : "") + (V ? ", " + env.viewerLabel : "") + ")" +
+        // 저시력 참고는 일반 시력으로 검사할 때, 통과한 글자에만 붙여요
+        (!V && status === "pass" && !lowVisionOk && !S.lowVisionRequired ? " · 참고: 저시력(" + S.lowVisionAcuity + ")까지 고려하면 " + lowVisionPt + "pt 이상" : ""),
       detail: {
         glyphMm: round(glyphMm, 2), arcmin: round(angle, 2), passArcmin: round(passArcmin, 2), recommendedPt: recommendedPt,
-        secondary: secondary, lowVisionReadable: lowVisionOk, lowVisionPt: lowVisionPt
+        secondary: secondary, viewer: env.viewer, acuity: V || null,
+        lowVisionReadable: lowVisionOk, lowVisionPt: lowVisionPt, tooBig: tooBig
       },
       fix: null
     };
@@ -118,8 +137,15 @@
       res.message = secondary && pol.judge !== "advisory"
         ? "주최·후원 같은 부가 정보라서 핵심 정보보다 덜 엄격하게 봐요. 그래도 읽히게 하려면 " + recommendedPt + "pt 이상을 권장해요."
         : pol.messages.size;
-      // '참고'인 부가 정보 수정은 '모두 추가'에 들어가지 않아요 (하나씩 추가는 가능)
-      if (pol.fix.allowSize) res.fix = { type: "size", valuePt: recommendedPt, strategy: pol.fix.strategy, passes: true };
+      if (tooBig && !secondary) {
+        // 포스터 글자만 키워서는 어려워요 → 큰 글씨 안내문·대체텍스트
+        res.message = (V ? env.viewerLabel + " 기준으로 " : "") + "읽으려면 글자가 " + recommendedPt + "pt(포스터 높이의 " +
+          Math.round((needGlyphPx / doc.document.heightPx) * 100) + "%)는 돼야 해요. 포스터 글자만 키워서는 어려워요. 큰 글씨 안내문이나 대체텍스트를 함께 제공해 주세요.";
+        res.alternative = { type: "largePrint", notice: "큰 글씨 안내문(A4, 고대비)을 만들어 포스터 옆에 붙이거나 QR로 연결해 주세요." };
+      } else if (pol.fix.allowSize) {
+        // '참고'인 부가 정보 수정은 '모두 추가'에 들어가지 않아요 (하나씩 추가는 가능)
+        res.fix = { type: "size", valuePt: recommendedPt, strategy: pol.fix.strategy, passes: true };
+      }
     }
     return res;
   }
@@ -184,6 +210,9 @@
     var large = l.sizePt >= P.contrast.largePt || (bold && l.sizePt >= P.contrast.largeBoldPt);
     var dim = env.lighting === "dim" && policyKey === "info";
     var target = large ? (dim ? P.contrast.dimLarge : P.contrast.large) : dim ? P.contrast.dimNormal : P.contrast.normal;
+    // 보는 사람이 저시력이면 정보 글자는 WCAG 1.4.6(AAA) 기준
+    var lowVisionContrast = !!(env.acuity && policyKey === "info" && P.lowVisionReading);
+    if (lowVisionContrast) target = Math.max(target, large ? P.lowVisionReading.contrastLarge : P.lowVisionReading.contrastNormal);
     var complexity = complexityOf(l, P);
     var multi = runs.length > 1;
 
@@ -193,7 +222,7 @@
     var res = {
       check: "contrast",
       status: status,
-      metric: "대비 " + round(worst, 1) + ":1 · 기준 " + target + ":1" + (large ? " (큰 글자)" : "") + " · " + COMPLEXITY_LABELS[complexity] +
+      metric: "대비 " + round(worst, 1) + ":1 · 기준 " + target + ":1" + (large ? " (큰 글자)" : "") + (lowVisionContrast ? " (저시력 기준)" : "") + " · " + COMPLEXITY_LABELS[complexity] +
         (multi ? " · 글자색 " + runs.length + "가지 중 가장 낮은 색 " + worstRun.color : ""),
       detail: {
         worst: round(worst, 2), min: round(worstRun.min, 2), target: target, large: large, complexity: complexity, dimLighting: dim,
@@ -252,6 +281,39 @@
       res.alternative = { type: "altText", draft: altText, notice: "포스터 아래나 SNS 본문에 같은 정보를 글로 함께 적어 주세요." };
     }
     return res;
+  }
+
+  // ---------------------------------------------------------------- ① 글꼴 가독성 (장식·좁은 글꼴, 기울임, 전부 대문자)
+  function checkFont(l, pol, P) {
+    var F = P.fontLegibility;
+    if (!F) return null;
+    var raw = (l.font && (l.font.postScriptName || l.font.name)) || "";
+    var name = raw.toLowerCase();
+    // "NanumBrushScript-Bold" → ["nanum", "brush", "script", "bold"]
+    var words = raw.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(/[^a-z0-9가-힣]+/).filter(Boolean);
+    function has(list) {
+      return !!name && list.some(function (k) {
+        k = k.toLowerCase();
+        return /[가-힣]/.test(k) ? name.indexOf(k) >= 0 : words.some(function (w) { return w.indexOf(k) === 0; });
+      });
+    }
+    var issues = [];
+    if (has(F.decorative)) issues.push({ key: "decorative", text: "장식·손글씨 글꼴" });
+    if (has(F.condensed)) issues.push({ key: "condensed", text: "폭이 좁은 글꼴" });
+    if (has(F.italic) || (l.font && l.font.fauxItalic)) issues.push({ key: "italic", text: "기울임 글꼴" });
+    var letters = String(l.text || "").replace(/[^A-Za-z]/g, "");
+    if ((l.font && l.font.caps === "all") || (letters.length >= F.allCapsMinLetters && letters === letters.toUpperCase())) {
+      issues.push({ key: "allCaps", text: "영문 전부 대문자" });
+    }
+    if (!issues.length) return null; // 문제가 있을 때만 결과를 만들어요
+    return {
+      check: "font",
+      status: pol.judge === "advisory" ? "advisory" : "warn",
+      metric: issues.map(function (i) { return i.text; }).join(" · ") + (l.font && l.font.name ? " (" + l.font.name + ")" : ""),
+      message: pol.messages.font,
+      detail: { issues: issues.map(function (i) { return i.key; }), fontName: l.font && l.font.name },
+      fix: null
+    };
   }
 
   // ---------------------------------------------------------------- ① 글자 굵기
@@ -568,6 +630,8 @@
       var contrast = Object.assign({}, common, checkContrast(l, env, pol, P, purpose, docPurpose, altText));
       perLayer[l.id] = { size: size, contrast: contrast };
       results.push(size, contrast);
+      var font = checkFont(l, pol, P);
+      if (font) results.push(Object.assign({}, common, font));
       var weight = checkWeight(l, pol, P);
       if (weight) results.push(Object.assign({}, common, weight));
       var spacing = checkSpacing(l, pol, P);
@@ -597,7 +661,8 @@
         counts: counts,
         applyAllAllowed: docPurpose !== "art",
         accessibleVersionRecommended: docPurpose !== "art" && needsWork,
-        alternativeRecommended: counts.conflict > 0 || (docPurpose === "art" && counts.advisory > 0)
+        alternativeRecommended: counts.conflict > 0 || (docPurpose === "art" && counts.advisory > 0),
+        largePrintRecommended: results.some(function (r) { return r.alternative && r.alternative.type === "largePrint"; })
       },
       altTextDraft: altText,
       roles: Object.keys(roles).reduce(function (o, id) { o[id] = roles[id].role; return o; }, {}),

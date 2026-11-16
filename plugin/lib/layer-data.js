@@ -14,7 +14,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var SCHEMA_VERSION = "0.3";
+  var SCHEMA_VERSION = "0.4";
   var MM_PER_INCH = 25.4;
 
   function round(n, digits) {
@@ -341,6 +341,9 @@
         postScriptName: input.fontPostScriptName || null,
         style: input.fontStyleName || null,
         fauxBold: !!input.fauxBold,
+        // v0.4: 기울임(가짜 기울임 포함), 대문자 설정 ("all" | "small" | null)
+        fauxItalic: !!input.fauxItalic,
+        caps: input.caps || null,
         weightGuess: guessWeight(input.fontPostScriptName || input.fontName, input.fontStyleName, input.fauxBold)
       },
       // 줄·글자 간격 (v0.3). 비율은 모두 '글자 크기의 몇 배'

@@ -159,6 +159,8 @@
             fontPostScriptName: st.font && st.font.name,
             fontStyleName: null,
             fauxBold: st.fauxBold,
+            fauxItalic: st.fauxItalic,
+            caps: st.fontCaps === 2 ? "all" : st.fontCaps === 1 ? "small" : null,
             sizePx: fontSize != null ? fontSize * scale : null,
             sizeSourcePx: fontSize,
             scale: scale,
