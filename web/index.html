@@ -110,7 +110,14 @@
   .stage { position: relative; background: #E9ECF1; border-radius: 8px; overflow: hidden; }
   .stage img { width: 100%; display: block; }
   /* 넓은 화면: 포스터 전체가 창 높이 안에 들어오게 (--ar = 가로/세로 비율) */
-  @media (min-width: 901px) { .stage { max-width: calc((100vh - 190px) * var(--ar, 0.7)); margin: 0 auto; } }
+  @media (min-width: 901px) { .stage { max-width: calc((100vh - 190px) * var(--ar, 0.7)); margin: 0 auto; } .stages.two .stage { max-width: calc((100vh - 215px) * var(--ar, 0.7)); } }
+  /* 나란히 보기: 원본 | 고친 모습 */
+  .sfig { margin: 0; min-width: 0; }
+  .stages.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 560px) { .stages.two { grid-template-columns: 1fr; } }
+  .scap { font-size: 13px; font-weight: 700; color: var(--sub); margin: 0 0 4px; text-align: center; }
+  .scap span { font-weight: 400; }
+  #stageAfter.heaton img { filter: grayscale(.7) brightness(.8); }
   /* 시야 손상 겹침 (황반변성·녹내장·얼룩): 마우스 위치를 '보는 곳'으로 따라가요 */
   .simfx { position: absolute; inset: 0; pointer-events: none; display: none; --fx: 50%; --fy: 40%; --r: 80px; }
   .simfx.amd { display: block; background: radial-gradient(circle at var(--fx) var(--fy), rgba(70,70,70,.97) 0, rgba(70,70,70,.92) calc(var(--r) * .6), rgba(70,70,70,.4) calc(var(--r) * .9), transparent calc(var(--r) * 1.15)); }
@@ -331,7 +338,8 @@
     <section class="card viewer" aria-label="포스터 미리보기">
       <div class="viewbar">
         <div class="seg" role="radiogroup" aria-label="보기">
-          <label><input type="radio" name="view" value="before" checked><span>원본</span></label>
+          <label><input type="radio" name="view" value="both" checked><span>나란히</span></label>
+          <label><input type="radio" name="view" value="before"><span>원본</span></label>
           <label><input type="radio" name="view" value="after"><span>고친 모습</span></label>
         </div>
         <button type="button" class="btn small heatbtn" id="heatToggle" aria-pressed="false">정보 전달 지도</button>
@@ -359,7 +367,12 @@
           </select>
           <button class="help" type="button" data-help="sim" aria-label="다른 눈으로 보기 설명">?</button></div>
       </div>
-      <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="simfx" id="simfx" aria-hidden="true"></div><div class="heat" id="heat" hidden></div><div class="busy">만드는 중…</div></div>
+      <div class="stages" id="stages">
+        <figure class="sfig"><figcaption class="scap" id="beforeCap" hidden>원본</figcaption>
+          <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="simfx" id="simfx" aria-hidden="true"></div><div class="heat" id="heat" hidden></div><div class="busy">만드는 중…</div></div></figure>
+        <figure class="sfig" id="afterFig" hidden><figcaption class="scap">고친 모습 <span id="afterCapN"></span></figcaption>
+          <div class="stage" id="stageAfter"><img id="posterAfter" alt="수정을 적용한 포스터"><div class="heat" id="heatAfter" hidden></div><div class="busy">만드는 중…</div></div></figure>
+      </div>
       <p class="hint simhint" id="simhint" hidden></p>
       <div class="heatlegend" id="heatLegend" hidden>
         <span><i class="hz-high"></i>먼저 검토 (중요한데 잘 안 보여요)</span>
@@ -656,11 +669,13 @@
       if (!S.doc.layers.length) throw new Error("글자 레이어를 찾지 못했어요. 글자가 이미지로 되어 있으면 검사할 수 없어요.");
       $("start").hidden = true; $("work").hidden = false;
       $("fileName").textContent = file.name;
-      $("stage").style.setProperty("--ar", String(S.doc.document.widthPx / S.doc.document.heightPx));
+      ["stage", "stageAfter"].forEach((id) => $(id).style.setProperty("--ar", String(S.doc.document.widthPx / S.doc.document.heightPx)));
       $("purpose").value = S.purposeInfo.document || "";
       $("docnote").textContent = S.doc.warnings.join(" ");
+      S.view = "before";
       setView("before");
       runCheck();
+      setView(chosenFixes().length ? "both" : "before");
       $("startStatus").textContent = "";
     } catch (err) {
       console.error(err);
@@ -707,7 +722,7 @@
     S.items.forEach((x, i) => { if (x.fix && x.layerId != null && x.fix.passes !== false && defaults.has(x.layerId + ":" + x.fix.type)) S.chosen.add(i); });
     numberMarks();
     renderSummary(); renderIssues(); renderMarks(); renderPurposeBox(); renderHeat();
-    if (S.view === "after") setView("before");
+    if (S.view !== "before") setView(S.view);
     $("altText").value = S.check.altTextDraft;
     if (!S.lpEdited) { $("lpText").value = LargePrint.draftText(S.doc.layers, S.check.roles, EngineRoles.speakDate); lpDirty(); }
     if (S.check.summary.largePrintRecommended) $("lpBox").open = true;
@@ -1177,7 +1192,7 @@
       b.textContent = isApplied(applyFixOf(+b.dataset.applyI)) ? "✓ 적용됨 · 빼기" : "이 수정 적용";
     });
     updateAfterBox();
-    if (S.view === "after") setView("after");
+    if (S.view !== "before") setView(S.view);
   }
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-apply-i]");
@@ -1224,6 +1239,27 @@
     const r = S.view === "after" && S.afterCheck ? S.afterCheck : S.check;
     return r ? r.priority || [] : [];
   }
+  // 영역 그리기 (원본 칸, 고친 모습 칸 공통)
+  function drawZones(box, list) {
+    const W = S.doc.document.widthPx, H = S.doc.document.heightPx;
+    box.innerHTML = "";
+    list.forEach((x, k) => {
+      const b = x.bounds, padX = Math.max(8, (b.bottom - b.top) * 0.4), padY = Math.max(4, (b.bottom - b.top) * 0.25);
+      const z = document.createElement("div");
+      z.className = "hz hz-" + x.level;
+      z.dataset.layer = x.layerId;
+      z.tabIndex = 0;
+      z.setAttribute("role", "img");
+      z.setAttribute("aria-label", `${k + 1}위 ${x.roleLabel}: ${LEVEL_TEXT[x.level]}, 식별 쉬움 ${Math.round(x.legibility * 100)}%`);
+      z.style.left = (Math.max(0, b.left - padX) / W) * 100 + "%";
+      z.style.top = (Math.max(0, b.top - padY) / H) * 100 + "%";
+      z.style.width = ((Math.min(W, b.right + padX) - Math.max(0, b.left - padX)) / W) * 100 + "%";
+      z.style.height = ((Math.min(H, b.bottom + padY) - Math.max(0, b.top - padY)) / H) * 100 + "%";
+      z.innerHTML = `<span class="hzlabel" aria-hidden="true">${k + 1}</span>`;
+      bindTip(z, () => heatTip(x, k + 1));
+      box.appendChild(z);
+    });
+  }
   function heatTip(x, rank) {
     const pct = (v) => Math.round(v * 100) + "%";
     return `<h4>${rank}. ${esc(x.roleLabel)} · “${esc(short(x.text, 24))}”</h4>
@@ -1250,24 +1286,13 @@
       li.onmouseleave = () => { document.querySelectorAll(".hz.hl").forEach((z) => z.classList.remove("hl")); highlight(id, false); };
       li.onclick = () => { if ($("heatToggle").getAttribute("aria-pressed") !== "true") toggleHeat(true); $("stage").scrollIntoView({ behavior: "smooth", block: "start" }); };
     });
-    if (!on || !S.doc) return;
-    const W = S.doc.document.widthPx, H = S.doc.document.heightPx;
-    list.forEach((x, k) => {
-      const b = x.bounds, padX = Math.max(8, (b.bottom - b.top) * 0.4), padY = Math.max(4, (b.bottom - b.top) * 0.25);
-      const z = document.createElement("div");
-      z.className = "hz hz-" + x.level;
-      z.dataset.layer = x.layerId;
-      z.tabIndex = 0;
-      z.setAttribute("role", "img");
-      z.setAttribute("aria-label", `${k + 1}위 ${x.roleLabel}: ${LEVEL_TEXT[x.level]}, 식별 쉬움 ${Math.round(x.legibility * 100)}%`);
-      z.style.left = (Math.max(0, b.left - padX) / W) * 100 + "%";
-      z.style.top = (Math.max(0, b.top - padY) / H) * 100 + "%";
-      z.style.width = ((Math.min(W, b.right + padX) - Math.max(0, b.left - padX)) / W) * 100 + "%";
-      z.style.height = ((Math.min(H, b.bottom + padY) - Math.max(0, b.top - padY)) / H) * 100 + "%";
-      z.innerHTML = `<span class="hzlabel" aria-hidden="true">${k + 1}</span>`;
-      bindTip(z, () => heatTip(x, k + 1));
-      box.appendChild(z);
-    });
+    // 나란히 보기면 고친 모습 칸에도 고친 뒤 지도를 그려요
+    const two = S.view === "both" && !!S.afterCheck;
+    $("stageAfter").classList.toggle("heaton", on && two);
+    $("heatAfter").hidden = !(on && two);
+    if (!on || !S.doc) { $("heatAfter").innerHTML = ""; return; }
+    drawZones(box, list);
+    if (two) drawZones($("heatAfter"), S.afterCheck.priority || []); else $("heatAfter").innerHTML = "";
   }
   function toggleHeat(on) {
     $("heatToggle").setAttribute("aria-pressed", String(on));
@@ -1276,34 +1301,47 @@
   }
   $("heatToggle").onclick = () => toggleHeat($("heatToggle").getAttribute("aria-pressed") !== "true");
 
+  const HINT_ONE = "번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
+  // 보기: both = 원본 | 고친 모습 나란히 (기본), before = 원본만 크게, after = 고친 모습만 크게
   function setView(v) {
     S.view = v;
     document.querySelector(`input[name=view][value=${v}]`).checked = true;
-    const stage = $("stage");
+    const stage = $("stage"), two = v === "both";
     stage.classList.toggle("after", v === "after");
-    if (v === "after") {
-      if (!chosenFixes().length) { $("status").textContent = "적용할 수정을 하나 이상 골라 주세요."; setView("before"); return; }
-      stage.classList.add("loading");
-      setTimeout(() => {
-        try {
-          const r = ensureFixed();
-          drawPoster(r.psd.imageData);
-          const notes = r.warnings.filter((w) => /줄 간격|밖으로|겹쳐/.test(w));
-          $("status").textContent = `수정 ${r.applied.length}개를 적용한 모습이에요.` + (notes.length ? " ⚠ " + notes.join(" ") : "");
-          $("hint").textContent = "고친 모습이에요. 번호는 원래 문제가 있던 곳이에요.";
-          updateAfterBox();
-          renderHeat();
-        } catch (e) { console.error(e); $("status").textContent = "고친 모습을 만들지 못했어요: " + e.message; }
-        stage.classList.remove("loading");
-      }, 30);
-    } else {
+    $("stages").classList.toggle("two", two);
+    $("afterFig").hidden = !two;
+    $("beforeCap").hidden = !two;
+    if (v === "before") {
       drawPoster(S.psd.imageData);
       renderHeat();
-      $("hint").textContent = "번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
+      $("hint").textContent = HINT_ONE;
+      return;
     }
+    if (!chosenFixes().length) {
+      $("status").textContent = two ? "적용할 수정이 없어서 원본만 보여요. 오른쪽에서 수정을 고르면 나란히 비교할 수 있어요." : "적용할 수정을 하나 이상 골라 주세요.";
+      setView("before");
+      return;
+    }
+    if (two) drawPoster(S.psd.imageData);
+    const busy = two ? $("stageAfter") : stage;
+    busy.classList.add("loading");
+    setTimeout(() => {
+      try {
+        const r = ensureFixed();
+        if (two) drawAfter(r.psd.imageData); else drawPoster(r.psd.imageData);
+        $("afterCapN").textContent = `(수정 ${r.applied.length}개)`;
+        const notes = r.warnings.filter((w) => /줄 간격|밖으로|겹쳐/.test(w));
+        $("status").textContent = `수정 ${r.applied.length}개를 적용한 모습이에요.` + (notes.length ? " ⚠ " + notes.join(" ") : "");
+        $("hint").textContent = two ? "왼쪽은 원본, 오른쪽은 고친 모습이에요. 원본의 번호를 누르면 설명이 떠요. 오른쪽 목록에서 수정을 켜고 끄면 고친 모습이 바로 바뀌어요."
+          : "고친 모습이에요. 번호는 원래 문제가 있던 곳이에요.";
+        updateAfterBox();
+        renderHeat();
+      } catch (e) { console.error(e); $("status").textContent = "고친 모습을 만들지 못했어요: " + e.message; }
+      busy.classList.remove("loading");
+    }, 30);
   }
   document.querySelectorAll("input[name=view]").forEach((r) => (r.onchange = () => setView(r.value)));
-  $("seeAfter").onclick = () => { setView("after"); $("stage").scrollIntoView({ behavior: "smooth", block: "start" }); };
+  $("seeAfter").onclick = () => { setView("both"); $("stages").scrollIntoView({ behavior: "smooth", block: "start" }); };
 
   // 다른 눈으로 보기 (근사)
   //   흐림·대비·색은 그림을 다시 계산하고, 황반변성·녹내장·얼룩은 그림 위에 겹쳐요 (마우스 위치를 따라가요)
@@ -1373,22 +1411,34 @@
   $("stage").addEventListener("touchmove", followGaze, { passive: true });
   function syncSimAcuity() { if ($("sim").value) $("sim").onchange(); }
 
-  let lastImg = null;
-  function drawPoster(imgData) {
-    lastImg = imgData;
-    if (!imgData) { $("poster").removeAttribute("src"); return; }
+  let lastImg = null, lastAfterImg = null;
+  // '다른 눈으로 보기'를 적용한 그림 주소
+  function simUrl(imgData) {
     const o = simOptions();
     const img = o ? Simulate.simulate(imgData, Object.assign({ ppi: S.doc.document.ppi, maxWidth: 1400 }, o)).image : imgData;
     const c = document.createElement("canvas");
     c.width = img.width; c.height = img.height;
     c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);
-    $("poster").src = c.toDataURL("image/jpeg", 0.9);
+    return c.toDataURL("image/jpeg", 0.9);
+  }
+  function drawPoster(imgData) {
+    lastImg = imgData;
+    if (!imgData) { $("poster").removeAttribute("src"); return; }
+    $("poster").src = simUrl(imgData);
     updateSimFx();
   }
+  function drawAfter(imgData) {
+    lastAfterImg = imgData;
+    if (imgData) $("posterAfter").src = simUrl(imgData);
+  }
   $("sim").onchange = () => {
-    const stage = $("stage");
-    stage.classList.add("loading");
-    setTimeout(() => { drawPoster(lastImg); stage.classList.remove("loading"); }, 30);
+    const stages = [$("stage"), $("stageAfter")];
+    stages.forEach((st) => st.classList.add("loading"));
+    setTimeout(() => {
+      drawPoster(lastImg);
+      if (S.view === "both" && lastAfterImg) drawAfter(lastAfterImg);
+      stages.forEach((st) => st.classList.remove("loading"));
+    }, 30);
   };
 
   // ------------------------------------------------------------------ 큰 글씨 안내문 (선택)
