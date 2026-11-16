@@ -28,7 +28,9 @@ const FILES = [
   ["samples/sample-poster-cmyk.psd", "samples/sample-poster-cmyk.psd"]
 ];
 
-// index.html 안의 경로 바꾸기: [원래 문자열, 바꿀 문자열]
+const PAGES = ["index.html", "dev.html"];
+
+// 페이지 안의 경로 바꾸기: [원래 문자열, 바꿀 문자열]
 const REWRITES = [
   ['src="../node_modules/ag-psd/dist/bundle.js"', 'src="./vendor/ag-psd.js"'],
   ['src="../plugin/lib/layer-data.js"', 'src="./lib/layer-data.js"'],
@@ -51,14 +53,17 @@ function main() {
     fs.copyFileSync(src, path.join(OUT, to));
   }
 
-  let html = fs.readFileSync(path.join(ROOT, "web/index.html"), "utf8");
-  for (const [a, b] of REWRITES) {
-    if (!html.includes(a)) throw new Error(`index.html 에서 '${a}' 를 찾지 못했어요. REWRITES 를 고쳐 주세요.`);
-    html = html.split(a).join(b);
+  // index.html = 클리어 뷰(사용자 화면), dev.html = 개발자 도구
+  for (const page of PAGES) {
+    let html = fs.readFileSync(path.join(ROOT, "web", page), "utf8");
+    for (const [a, b] of REWRITES) {
+      if (!html.includes(a)) throw new Error(`${page} 에서 '${a}' 를 찾지 못했어요. REWRITES 를 고쳐 주세요.`);
+      html = html.split(a).join(b);
+    }
+    const leftover = html.match(/src="\.\.\/[^"]+"/g);
+    if (leftover) throw new Error(page + " 에 바꾸지 않은 경로가 남아 있어요: " + leftover.join(", "));
+    fs.writeFileSync(path.join(OUT, page), html);
   }
-  const leftover = html.match(/src="\.\.\/[^"]+"/g);
-  if (leftover) throw new Error("바꾸지 않은 경로가 남아 있어요: " + leftover.join(", "));
-  fs.writeFileSync(path.join(OUT, "index.html"), html);
 
   // 정적 호스팅 설정: 큰 PSD는 오래 캐시
   fs.writeFileSync(

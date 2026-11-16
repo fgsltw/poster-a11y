@@ -1,4 +1,4 @@
-# 포스터 접근성 검수
+# 클리어 뷰 (ClearView) — 포스터 접근성 검수
 
 포스터 PSD의 글자를 읽고(기술 A), 목적에 따라 검사하고(기술 B 기준 구현), 고친 접근성 버전을 만드는 도구예요.
 
@@ -21,7 +21,8 @@ tools/
   make-sample-psd.js   테스트용 샘플 포스터 PSD 만들기
   serve.js             브라우저 변환 페이지 띄우기
   build-web.js         브라우저 페이지를 배포용 폴더(dist-web/)로 묶기
-web/index.html         브라우저 변환 페이지 (B·C용: PSD를 끌어다 놓으면 JSON)
+web/index.html         ★ 클리어 뷰 (사용자 화면): 올리기 → 포스터 위 번호·마우스 올리면 설명과 고친 모습 → 접근성 버전 받기
+web/dev.html           개발자 도구 (B·C용: 레이어 JSON, 검사 결과 원본, 수동 수정 목록)
 samples/               샘플 PSD (RGB, 인쇄용 CMYK), 변환 결과 JSON, 정답 값
 docs/
   layer-data.md        ★ A → B 데이터 형식 약속
@@ -45,13 +46,13 @@ npm install
 | `npm run apply -- 포스터.psd 수정목록.json` | 수정 적용 → `포스터.접근성버전.psd` (원본은 그대로) |
 | `npm run purpose -- 포스터.psd --doc mixed --group 3=art -o 결과.psd` | 목적 정보 저장 (인자 없이 쓰면 확인만) |
 | `npm test` | 샘플 PSD 변환 결과가 정답과 맞는지 확인 |
-| `npm run web` | 브라우저 변환 페이지 → http://localhost:5173/web/ |
+| `npm run web` | 클리어 뷰 → http://localhost:5173/web/ (개발자 도구는 `/web/dev.html`) |
 | `npm run build:web` | 배포용 폴더 `dist-web/` 만들기 → Vercel 등에 이 폴더만 올리면 돼요 |
 | `npm run sample` | 샘플 PSD 다시 만들기 (Windows 맑은 고딕 필요) |
 
 ## 웹 페이지 (배포됨)
 
-**https://poster-a11y-chi.vercel.app** — 설치 없이 링크만 열면 돼요. PSD는 방문자의 브라우저 안에서만 처리되고 서버로 올라가지 않아요.
+**https://poster-a11y-chi.vercel.app** — 클리어 뷰. 설치 없이 링크만 열면 돼요. 개발자 도구는 `/dev.html`. PSD는 방문자의 브라우저 안에서만 처리되고 서버로 올라가지 않아요.
 
 다시 배포하려면 (Vercel에 로그인한 사람만):
 

@@ -76,9 +76,14 @@
   /*
    * 레이어를 아래부터 '표준(normal)' 혼합으로 다시 합성해요.
    * 혼합 모드·레이어 효과·조정 레이어·클리핑 마스크는 계산하지 않아요 → warnings 에 적어요.
+   * region { left, top, right, bottom } 을 주면 그 부분만 합성해요 (항목별 전후 미리보기를 빠르게 만들 때).
    */
-  function compositePsd(psd) {
-    var W = psd.width, H = psd.height;
+  function compositePsd(psd, region) {
+    var ox = region ? Math.max(0, Math.floor(region.left)) : 0;
+    var oy = region ? Math.max(0, Math.floor(region.top)) : 0;
+    var W = region ? Math.min(psd.width, Math.ceil(region.right)) - ox : psd.width;
+    var H = region ? Math.min(psd.height, Math.ceil(region.bottom)) - oy : psd.height;
+    W = Math.max(1, W); H = Math.max(1, H);
     var out = new Float32Array(W * H * 4); // 0~1, 프리멀티플라이드
     var warnings = [];
 
@@ -87,12 +92,13 @@
       if (!img) return;
       var op = groupOpacity * (layer.opacity == null ? 1 : layer.opacity) * (layer.fillOpacity == null ? 1 : layer.fillOpacity);
       if (op <= 0) return;
-      for (var y = 0; y < img.height; y++) {
-        var dy = layer.top + y;
-        if (dy < 0 || dy >= H) continue;
-        for (var x = 0; x < img.width; x++) {
-          var dx = layer.left + x;
-          if (dx < 0 || dx >= W) continue;
+      // 결과 영역과 겹치는 부분만 돌아요
+      var y0 = Math.max(0, oy - layer.top), y1 = Math.min(img.height, oy + H - layer.top);
+      var x0 = Math.max(0, ox - layer.left), x1 = Math.min(img.width, ox + W - layer.left);
+      for (var y = y0; y < y1; y++) {
+        var dy = layer.top + y - oy;
+        for (var x = x0; x < x1; x++) {
+          var dx = layer.left + x - ox;
           var si = (y * img.width + x) * 4;
           var a = (img.data[si + 3] / 255) * op;
           if (a <= 0) continue;
@@ -430,7 +436,8 @@
     var applied = [], skipped = [], warnings = [];
 
     // 미리보기를 믿을 수 있는지: 원본을 다시 합성해서 저장된 합성 이미지와 비교
-    var recomposed = compositePsd(psd);
+    // opts.quick: 원본 비교와 전체 합성을 건너뛰어요 (항목별 미리보기용. 결과 psd.imageData 는 원본 그대로)
+    var recomposed = opts.quick ? { imageData: null, warnings: [] } : compositePsd(psd);
     var cmp = compareImageData(recomposed.imageData, psd.imageData);
     var previewMatchesOriginal = cmp ? cmp.meanDiff < 2 : null;
     if (cmp && !previewMatchesOriginal) warnings.push("이 PSD는 다시 합성한 결과가 원본과 달라요 (평균 차이 " + LD.round(cmp.meanDiff, 1) + "). 미리보기는 참고용이에요.");
@@ -465,7 +472,7 @@
 
     if (spacingNote) warnings.push("줄 간격·자간 변경은 미리보기에 보이지 않아요. 포토샵에서 파일을 열면 반영돼요.");
     warnings = warnings.concat(layoutWarnings(psd, sizedIds));
-    psd.imageData = compositePsd(psd).imageData;
+    if (!opts.quick) psd.imageData = compositePsd(psd).imageData;
     return { psd: psd, applied: applied, skipped: skipped, warnings: warnings, previewMatchesOriginal: previewMatchesOriginal };
   }
 
