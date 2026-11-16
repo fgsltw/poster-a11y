@@ -287,6 +287,77 @@
     return res;
   }
 
+  // ---------------------------------------------------------------- 색 의존 정보 (WCAG 1.4.1 색 사용)
+  //   한 글자 안에서 크기·굵기·기울임·밑줄은 같고 색만 다른 구간 = 색으로만 구분한 정보
+  //   그 두 색이 색각이상(적·녹·청색맹)으로 보면 거의 같아지면 '주의'
+  function checkColorOnly(l, pol, P) {
+    var CV = P.colorVision;
+    var runs = (l.styleRuns || []).filter(function (r) { return r.color && C.hexToRgb(r.color); });
+    if (!CV || runs.length < 2) return null;
+    var pairs = [];
+    for (var i = 0; i < runs.length; i++) {
+      for (var j = i + 1; j < runs.length; j++) {
+        var a = runs[i], b = runs[j];
+        if (a.color.toUpperCase() === b.color.toUpperCase()) continue;
+        var big = Math.max(a.sizePx || 0, b.sizePx || 0) || 1;
+        var sameShape = Math.abs((a.sizePx || 0) - (b.sizePx || 0)) <= big * CV.sameSizeRatio &&
+          !!a.bold === !!b.bold && !!a.italic === !!b.italic && !!a.underline === !!b.underline;
+        if (!sameShape) continue; // 모양으로도 구분돼요
+        var ra = C.hexToRgb(a.color), rb = C.hexToRgb(b.color);
+        var normal = C.deltaE(ra, rb);
+        if (normal < CV.minDeltaE) continue; // 원래도 거의 같은 색이면 강조가 아니에요
+        var lost = CV.types.filter(function (t) { return C.deltaE(C.simulateCvd(ra, t), C.simulateCvd(rb, t)) < CV.minDeltaE; });
+        pairs.push({ a: a.text.trim(), b: b.text.trim(), colors: [a.color, b.color], deltaE: round(normal, 3), lostFor: lost });
+      }
+    }
+    if (!pairs.length) return null;
+    var lostAll = [];
+    pairs.forEach(function (p) { p.lostFor.forEach(function (t) { if (lostAll.indexOf(t) < 0) lostAll.push(t); }); });
+    var p0 = pairs.filter(function (p) { return p.lostFor.length; })[0] || pairs[0];
+    var names = lostAll.map(function (t) { return CV.labels[t]; }).join("·");
+    return {
+      check: "colorOnly",
+      status: pol.judge === "advisory" || !lostAll.length ? "advisory" : "warn",
+      metric: "“" + short(p0.a) + "”, “" + short(p0.b) + "” 두 부분이 모양은 같고 색만 달라요 (" + p0.colors.join(" · ") + ")" +
+        (lostAll.length ? " · " + names + "이면 두 색이 거의 같아 보여요" : ""),
+      message: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1).",
+      detail: { pairs: pairs, lostFor: lostAll },
+      fix: null
+    };
+  }
+
+  // 일반 눈으로는 대비가 충분해도, 색각이상으로 보면 대비가 기준 밑으로 떨어지는지
+  function checkCvdContrast(l, contrastRes, pol, P) {
+    var CV = P.colorVision;
+    if (!CV || !contrastRes || contrastRes.status !== "pass") return null; // 원래 대비 문제는 대비 검사가 알려요
+    var bgs = backgroundRgbs(l);
+    var hexes = colorRunsOf(l);
+    if (!bgs || !hexes.length) return null;
+    var target = contrastRes.detail.target, alpha = l.opacity == null ? 1 : l.opacity;
+    var drops = [];
+    CV.types.forEach(function (t) {
+      var simBgs = bgs.map(function (bg) { return C.simulateCvd(bg, t); });
+      var worst = Infinity;
+      hexes.forEach(function (h) {
+        var cs = contrastsFor(C.simulateCvd(C.hexToRgb(h), t), simBgs, alpha);
+        worst = Math.min(worst, percentile(cs, P.contrast.worstPercentile));
+      });
+      if (worst < target) drops.push({ type: t, worst: round(worst, 2) });
+    });
+    if (!drops.length) return null;
+    drops.sort(function (a, b) { return a.worst - b.worst; });
+    var d0 = drops[0];
+    return {
+      check: "cvd",
+      status: pol.judge === "advisory" ? "advisory" : "warn",
+      metric: CV.labels[d0.type] + "으로 보면 대비 " + d0.worst + ":1 (기준 " + target + ":1) · 일반 눈 " + round(contrastRes.detail.worst, 1) + ":1" +
+        (drops.length > 1 ? " · " + drops.slice(1).map(function (d) { return CV.labels[d.type] + " " + d.worst + ":1"; }).join(", ") : ""),
+      message: "빨강·초록처럼 색은 다르지만 밝기가 비슷한 조합은 색각이상이 있으면 잘 안 보여요. 글자와 배경의 밝기 차이를 더 크게 해 주세요.",
+      detail: { drops: drops, target: target, normalWorst: contrastRes.detail.worst },
+      fix: null
+    };
+  }
+
   // ---------------------------------------------------------------- ① 글꼴 가독성 (장식·좁은 글꼴, 기울임, 전부 대문자)
   function checkFont(l, pol, P) {
     var F = P.fontLegibility;
@@ -716,6 +787,10 @@
       var contrast = Object.assign({}, common, checkContrast(l, env, pol, P, purpose, docPurpose, altText));
       perLayer[l.id] = { size: size, contrast: contrast };
       results.push(size, contrast);
+      var cvd = checkCvdContrast(l, contrast, pol, P);
+      if (cvd) results.push(Object.assign({}, common, cvd));
+      var colorOnly = checkColorOnly(l, pol, P);
+      if (colorOnly) results.push(Object.assign({}, common, colorOnly));
       var font = checkFont(l, pol, P);
       if (font) results.push(Object.assign({}, common, font));
       var weight = checkWeight(l, pol, P);

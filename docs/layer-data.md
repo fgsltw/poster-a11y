@@ -1,4 +1,4 @@
-# 레이어 데이터 형식 (A → B 약속) · v0.4
+# 레이어 데이터 형식 (A → B 약속) · v0.5
 
 포토샵 연동(기술 A)이 검사 엔진(기술 B)에 넘기는 데이터예요.
 **포토샵 플러그인**과 **PSD 변환기**가 똑같은 형식을 내보내요. 그래서 B와 C는 포토샵이 없어도 PSD 변환기 결과로 먼저 개발할 수 있어요.
@@ -11,6 +11,7 @@
 
 | 버전 | 바뀐 것 |
 | --- | --- |
+| 0.5 | `styleRuns` 추가: 글자 구간이 여러 개일 때 구간마다 `{ text, color, sizePx, fontName, bold, italic, underline }` — 색만 다른 강조(색 의존 정보) 검사용 |
 | 0.4 | `font.fauxItalic`(기울임), `font.caps`(`"all"` 전부 대문자 · `"small"` 작은 대문자 · `null`) 추가 — 글꼴 가독성 검사용 |
 | 0.3 | 레이어 `spacing`(줄 수·줄 간격·자간), `origin`(글자 기준점) 추가. 기존 필드는 그대로예요 |
 | 0.2 | CMYK 지원: `document.colorMode`, 레이어 `colorSource` 추가 · 목적 정보: `purposes`, 레이어 `groupIds`·`purposeSource`, 그룹 `purpose` 추가. **기존 필드는 그대로라 0.1 코드도 그대로 동작해요** |
@@ -20,7 +21,7 @@
 
 ```json
 {
-  "schemaVersion": "0.4",
+  "schemaVersion": "0.5",
   "source": "photoshop",
   "extractedAt": "2026-11-14T12:00:00.000Z",
   "document": {
@@ -104,6 +105,7 @@
 | `spacing` | `lineCount` 줄바꿈 기준 줄 수 · `lineHeightRatio` 줄 간격(글자 크기의 배수, 자동 줄 간격이면 포토샵 기본 1.2) · `letterSpacingEm` 자간(em, 포토샵 자간 ÷ 1000). 글상자 안에서 자동으로 넘어간 줄은 세지 않아요 | ④ 텍스트 간격 |
 | `origin` | 글자 기준점(베이스라인 왼쪽, 문서 px). 글자 크기를 바꾸면 이 점을 중심으로 커져요 | ③ 확대 후 잘림·겹침 |
 | `color` | 가장 긴 글자 구간의 색 (항상 RGB hex). 여러 색이면 `colorRuns`에 모두 | 3 대비 |
+| `styleRuns` | 글자 안에 색·크기·굵기가 다른 구간이 있을 때 구간 목록. 한 가지 스타일이면 `[]` | 색 의존 정보 |
 | `colorSource` | 원래 색 공간. CMYK면 디자이너가 보는 **CMYK % 값**도 같이 줘요 (`{ space: "rgb" }` 또는 `{ space: "cmyk", cmyk: {c,m,y,k} }`) | 5 수정 제안 표시 |
 | `opacity` | 레이어 불투명도 × 칠 불투명도 (0~1). 1보다 작으면 실제 색은 배경과 섞여요 | 3 |
 | `blendMode` | `normal`이 아니면 실제 보이는 색이 `color`와 달라요 | 3 (경고) |
