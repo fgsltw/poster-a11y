@@ -147,7 +147,7 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 | `advisory` 참고 | 예술 글자가 기준에 못 미쳐요 (디자이너 판단 존중) |
 | `conflict` 충돌 | 복합 목적에서 그림을 가리지 않고는 고칠 수 없어요 → 대체 정보 |
 
-`fix.passes: false`는 "가장 나은 수정이지만 기준에는 못 미친다"는 뜻이에요. `toApplyFixes`는 이런 수정과 예술 '참고' 수정을 기본으로 빼요 (`includeFailing`, `includeAdvisory` 옵션으로 넣을 수 있어요).
+`fix.passes: false`는 "가장 나은 수정이지만 기준에는 못 미친다"는 뜻이에요. 키우면 다른 글자와 겹치거나 포스터 밖으로 나가는 크기 수정(`fix.layoutWarning`)도 `toApplyFixes`가 기본으로 빼요 (`includeLayoutConflicts`로 넣을 수 있어요). 디자이너가 위치를 옮긴 뒤 켜는 게 맞아서예요. `toApplyFixes`는 이런 수정과 예술 '참고' 수정을 기본으로 빼요 (`includeFailing`, `includeAdvisory` 옵션으로 넣을 수 있어요).
 
 ## B 담당자에게 넘길 일
 
