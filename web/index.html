@@ -37,6 +37,21 @@
   #drop.over, #drop:hover { border-color: var(--brand); background: var(--brand-soft); }
   .samples { margin-top: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; align-items: center; color: var(--sub); font-size: 14px; }
   .privacy { margin-top: 20px; font-size: 13px; color: var(--sub); }
+  .usage { border: 0; margin: 0 0 20px; padding: 0; text-align: left; }
+  .usage legend, .steplabel { font-weight: 700; font-size: 16px; margin: 0 0 10px; padding: 0; display: flex; align-items: center; gap: 8px; }
+  .steplabel { justify-content: flex-start; text-align: left; }
+  .stepno { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--brand); color: #fff; font-size: 13px; }
+  .uses { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 600px) { .uses { grid-template-columns: 1fr; } }
+  .use { position: relative; display: block; cursor: pointer; }
+  .use input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .use span { display: block; height: 100%; background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .use b { display: block; font-size: 17px; margin-bottom: 4px; }
+  .use small { color: var(--sub); font-size: 13px; line-height: 1.5; display: block; }
+  .use:hover span { border-color: #9AB3D8; }
+  .use input:checked + span { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+  .use input:focus-visible + span { outline: 3px solid var(--brand); outline-offset: 2px; }
+  .use-unsure { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px; font-size: 14px; color: var(--sub); cursor: pointer; }
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; text-align: left; }
   .steps div { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; color: var(--sub); }
   .steps b { display: block; color: var(--ink); margin-bottom: 2px; }
@@ -153,6 +168,26 @@
   #tip { position: fixed; z-index: 50; max-width: 340px; background: #1D2430; color: #F1F4F8; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.55; box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s; }
   #tip.on { opacity: 1; transform: none; }
   #tip h4 { margin: 0 0 4px; font-size: 14px; color: #fff; }
+  #tip:empty { display: none; }
+
+  /* 번호를 누르면 열리는 설명 창 */
+  #pop { position: fixed; z-index: 45; width: 380px; max-height: calc(100vh - 16px); overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(20,30,50,.22); }
+  #pop[hidden] { display: none; }
+  .pophead { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 8px 16px; background: var(--card); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--sub); }
+  #popBody { padding: 4px 16px 4px; }
+  #popBody h3 { font-size: 16px; margin: 10px 0 6px; display: flex; gap: 8px; align-items: center; }
+  .pnum { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 12px; display: inline-grid; place-items: center; flex: none; background: #5C7390; }
+  .pnum.s-fail, .pnum.s-conflict { background: var(--fail); } .pnum.s-warn { background: #B87400; }
+  .pitem { border-top: 1px solid var(--line); padding: 12px 0; }
+  .pitem dl { display: grid; grid-template-columns: 40px 1fr; gap: 4px 8px; margin: 8px 0 0; font-size: 13px; }
+  .pitem dt { color: var(--sub); }
+  .pitem dd { margin: 0; }
+  .plabel { margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--brand); }
+  .pnone { margin: 8px 0 0; font-size: 12px; color: var(--sub); }
+  .popfoot { padding: 8px 16px 14px; border-top: 1px solid var(--line); }
+  @media (max-width: 600px) {
+    #pop { left: 0 !important; right: 0; bottom: 0; top: auto !important; width: auto; max-height: 75vh; border-radius: 16px 16px 0 0; }
+  }
   #tip .tchip { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-right: 6px; }
   #tip .row { margin-top: 6px; }
   #tip .lbl { color: #9FB0C6; }
@@ -174,8 +209,19 @@
 
 <!-- 1. 시작 -->
 <section class="start" id="start">
-  <h1>포스터 PSD를 올려 주세요</h1>
+  <h1>포스터 접근성을 확인해 볼까요?</h1>
   <p>글자 크기, 대비, 간격, 정보 배치를 검사하고 고칠 방법을 알려드려요.</p>
+  <fieldset class="usage">
+    <legend><span class="stepno">1</span> 이 포스터는 어떤 용도인가요?</legend>
+    <div class="uses">
+      <label class="use"><input type="radio" name="usage" value="art">
+        <span><b>예술적 표현</b><small>작품이나 공연의 분위기가 중요해요. 디자인을 최대한 지키고, 고칠 점은 참고로만 알려드려요.</small></span></label>
+      <label class="use"><input type="radio" name="usage" value="info">
+        <span><b>정보 전달</b><small>일시·장소 같은 정보가 잘 읽혀야 해요. 기준을 엄격하게 적용하고 고칠 방법을 알려드려요.</small></span></label>
+    </div>
+    <label class="use-unsure"><input type="radio" name="usage" value="" checked> 잘 모르겠어요 (글자마다 자동으로 추천해요)</label>
+  </fieldset>
+  <p class="steplabel"><span class="stepno">2</span> 포스터 파일을 올려 주세요</p>
   <button id="drop" type="button">
     <strong>PSD 파일을 끌어다 놓거나 눌러서 고르세요</strong>
     포토샵에서 저장할 때 '호환성 최대화'를 켜 주세요
@@ -188,8 +234,8 @@
   <p class="privacy">파일은 이 브라우저 안에서만 처리돼요. 서버로 올라가지 않아요.</p>
   <p class="status" id="startStatus" role="status"></p>
   <div class="steps">
-    <div><b>1. 올리기</b>PSD 파일을 넣으면 글자 레이어를 읽어요.</div>
-    <div><b>2. 확인하기</b>문제가 있는 곳에 번호가 붙어요. 번호에 마우스를 올리면 자세히 보여요.</div>
+    <div><b>1. 올리기</b>용도를 고르고 PSD 파일을 넣으면 글자 레이어를 읽어요.</div>
+    <div><b>2. 확인하기</b>문제가 있는 곳에 번호가 붙어요. 번호를 누르면 설명과 고친 모습이 함께 보여요.</div>
     <div><b>3. 고치기</b>고친 모습을 미리 보고, 접근성 버전을 PSD나 이미지로 받아요.</div>
   </div>
 </section>
@@ -220,7 +266,7 @@
           <button class="help" type="button" data-help="sim" aria-label="다른 눈으로 보기 설명">?</button></div>
       </div>
       <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="busy">만드는 중…</div></div>
-      <p class="hint" id="hint">번호에 마우스를 올리면 자세한 설명과 고친 모습이 보여요.</p>
+      <p class="hint" id="hint">번호를 누르면 설명과 고친 모습이 함께 보여요.</p>
       <p class="docnote" id="docnote"></p>
     </section>
 
@@ -284,6 +330,11 @@
 </div>
 
 <div id="tip" role="tooltip"></div>
+<div id="pop" role="dialog" hidden>
+  <div class="pophead"><span>설명과 고친 모습</span><button class="btn small" id="popClose" aria-label="설명 창 닫기">닫기 ✕</button></div>
+  <div id="popBody"></div>
+  <div class="popfoot"><button class="linkbtn" id="popList">오른쪽 목록에서 보기</button></div>
+</div>
 
 <script src="../node_modules/ag-psd/dist/bundle.js"></script>
 <script src="../plugin/lib/layer-data.js"></script>
@@ -433,6 +484,13 @@
       const psd = agPsd.readPsd(await file.arrayBuffer(), { useImageData: true });
       S.fileName = file.name; S.psd = psd;
       S.purposeInfo = PurposeStore.readFromPsd(psd) || PurposeStore.empty();
+      // 시작 화면에서 고른 용도가 있으면 그걸로 (PSD에 저장된 목적보다 우선)
+      const usage = document.querySelector("input[name=usage]:checked").value;
+      if (usage) {
+        S.purposeInfo.document = usage;
+        PurposeStore.writeToPsd(psd, S.purposeInfo); // 메모리의 PSD에만 반영
+        S.purposeInfo = PurposeStore.readFromPsd(psd);
+      }
       S.doc = PsdExtract.extractFromPsd(psd, { fileName: file.name });
       if (!S.doc.layers.length) throw new Error("글자 레이어를 찾지 못했어요. 글자가 이미지로 되어 있으면 검사할 수 없어요.");
       $("start").hidden = true; $("work").hidden = false;
@@ -474,6 +532,7 @@
     S.check = Engine.checkDocument(JSON.parse(JSON.stringify(S.doc)), {
       medium: medium(), distanceM: parseFloat($("dist").value) || undefined, lighting: $("dim").checked ? "dim" : "normal"
     });
+    closePop();
     S.previews.clear(); S.fixed = null; S.fixedKey = ""; S.afterCheck = null;
     // 기본으로 고르는 수정: 엔진이 '모두 적용'에 넣는 것과 같아요
     const defaults = new Set(Engine.toApplyFixes(S.check).map((f) => f.layerId + ":" + f.type));
@@ -597,14 +656,15 @@
       el.style.width = (b.width / d.widthPx) * 100 + "%";
       el.style.height = (b.height / d.heightPx) * 100 + "%";
       el.innerHTML = `<span class="pin" aria-hidden="true">${m.n}</span>`;
-      bindTip(el, () => tipHtml(m.items, false, m));
-      el.onclick = () => {
-        // 터치 화면에서도 쓸 수 있게: 오른쪽 목록의 해당 항목으로 이동
-        const card = document.querySelector(`.issue[data-layer="${m.layer.id}"]`);
-        if (!card) return;
+      el.setAttribute("aria-haspopup", "dialog");
+      bindTip(el, () => (popFor === el ? "" : tipHtml(m.items, false, m)));
+      el.onclick = (e) => {
+        e.stopPropagation();
+        hideTip(el);
+        if (popFor === el) { closePop(); return; }
+        openPop(el, m);
         document.querySelectorAll(".issue.hl").forEach((c) => c.classList.remove("hl"));
         document.querySelectorAll(`.issue[data-layer="${m.layer.id}"]`).forEach((c) => c.classList.add("hl"));
-        card.scrollIntoView({ behavior: "smooth", block: "center" });
       };
       stage.appendChild(el);
     });
@@ -621,10 +681,7 @@
           (x.fix ? `<br><span class="lbl">추천</span> ${esc(fixText(x.fix))}${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}` : "") +
           (x.alternative ? `<br><span class="lbl">대신</span> 대체텍스트로 같은 정보 함께 적기` : "") + `</div>`;
       });
-      const pf = list.map(previewFixOf).find(Boolean);
-      if (pf) html += compareHtml(pf);
-      html += `<div class="row lbl">자세한 설명은 오른쪽 목록 항목에 마우스를 올려 보세요.</div>`;
-      setTimeout(fillPreviews, 0);
+      html += `<div class="row lbl">번호를 누르면 설명과 고친 모습이 함께 보여요.</div>`;
       return html;
     }
     let html = `<h4>${esc(titleOf(first))}</h4>`;
@@ -643,6 +700,68 @@
     setTimeout(fillPreviews, 0);
     return html;
   }
+
+  // ------------------------------------------------------------------ 번호를 눌렀을 때 열리는 설명 창
+  //   항목마다: 문제 → 측정 → 왜 → 추천 → 바로 아래에 그 항목을 고친 모습
+  let popFor = null, popMark = null;
+  const pop = $("pop");
+  function popHtml(m) {
+    let html = `<h3 id="popTitle"><span class="pnum s-${m.worst}">${m.n}</span>“${esc(short(m.layer.text, 34))}”</h3>`;
+    m.items.forEach((x) => {
+      html += `<section class="pitem"><div><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <b>${esc(titleOf(x))}</b></div>
+        <dl><dt>측정</dt><dd>${esc(x.metric)}</dd>
+        ${x.message ? `<dt>설명</dt><dd>${esc(x.message)}</dd>` : ""}
+        <dt>왜?</dt><dd>${esc(why(x))}</dd>
+        ${x.fix ? `<dt>추천</dt><dd><b>${esc(fixText(x.fix))}</b>${x.fix.contrastAfter ? ` → 대비 ${x.fix.contrastAfter}:1` : ""}${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}</dd>` : ""}
+        ${x.alternative ? `<dt>대신</dt><dd>${esc(x.alternative.notice)} <button class="linkbtn" data-popalt>대체텍스트 보기</button></dd>` : ""}</dl>`;
+      const pf = previewFixOf(x);
+      if (pf) html += `<div class="plabel">${x.check === "layout" ? "추천 크기로 키운 모습" : "이 항목을 고친 모습"}</div>` + compareHtml(pf);
+      else if (!x.alternative) html += `<p class="pnone">이 항목은 자동으로 고칠 수 없어요. 디자인에서 직접 조정해 주세요.</p>`;
+      html += `</section>`;
+    });
+    return html;
+  }
+  function openPop(el, m) {
+    popFor = el; popMark = m;
+    $("popBody").innerHTML = popHtml(m);
+    pop.hidden = false;
+    pop.setAttribute("aria-labelledby", "popTitle");
+    placePop();
+    $("popBody").querySelectorAll("[data-popalt]").forEach((b) => (b.onclick = () => {
+      closePop(); $("altBox").open = true; $("altBox").scrollIntoView({ behavior: "smooth", block: "center" });
+    }));
+    $("popClose").focus({ preventScroll: true });
+    fillPreviews();
+  }
+  function closePop(returnFocus) {
+    if (!popFor) return;
+    const el = popFor;
+    pop.hidden = true; popFor = null; popMark = null;
+    document.querySelectorAll(".issue.hl").forEach((c) => c.classList.remove("hl"));
+    if (returnFocus) el.focus({ preventScroll: true });
+  }
+  function placePop() {
+    if (!popFor || pop.hidden) return;
+    if (window.matchMedia("(max-width: 600px)").matches) { pop.style.left = pop.style.top = ""; return; } // 휴대폰: 아래에서 올라오는 창
+    const r = popFor.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight, gap = 12;
+    let left = r.right + gap;
+    if (left + w > vw - 8) left = r.left - w - gap;
+    if (left < 8) left = Math.max(8, Math.min(vw - w - 8, r.left));
+    let top = Math.min(Math.max(8, r.top - 20), vh - h - 8);
+    pop.style.left = left + "px"; pop.style.top = Math.max(8, top) + "px";
+  }
+  $("popClose").onclick = () => closePop(true);
+  $("popList").onclick = () => {
+    const id = popMark && popMark.layer.id;
+    closePop();
+    const card = document.querySelector(`.issue[data-layer="${id}"]`);
+    if (card) { document.querySelectorAll(`.issue[data-layer="${id}"]`).forEach((c) => c.classList.add("hl")); card.scrollIntoView({ behavior: "smooth", block: "center" }); card.focus({ preventScroll: true }); }
+  };
+  document.addEventListener("click", (e) => { if (popFor && !pop.contains(e.target) && !e.target.closest(".mark")) closePop(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && popFor) closePop(true); });
+  window.addEventListener("scroll", placePop, { passive: true });
+  window.addEventListener("resize", placePop);
 
   // ------------------------------------------------------------------ 항목별 전후 미리보기
   // 이 항목의 수정을 보여줄 fix (확대·배치 경고는 같은 글자의 크기 수정을 보여줘요)
@@ -678,6 +797,7 @@
         el.outerHTML = compareHtml(JSON.parse(key));
       });
       if (tipFor) placeTip(tipFor);
+      placePop();
       filling = false;
       fillPreviews();
     }, 30);
@@ -781,7 +901,7 @@
       }, 30);
     } else {
       drawPoster(S.psd.imageData);
-      $("hint").textContent = "번호에 마우스를 올리면 자세한 설명과 고친 모습이 보여요.";
+      $("hint").textContent = "번호를 누르면 설명과 고친 모습이 함께 보여요.";
     }
   }
   document.querySelectorAll("input[name=view]").forEach((r) => (r.onchange = () => setView(r.value)));
