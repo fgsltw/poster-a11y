@@ -29,8 +29,28 @@
     return ri.horizontalResolutionUnit === "PPCM" ? ri.horizontalResolution * 2.54 : ri.horizontalResolution;
   }
 
+  /*
+   * PSD 객체 깊은 복사.
+   * 포토샵에서 저장한 PSD는 썸네일 등이 브라우저 canvas 로 읽혀서 structuredClone 이 실패해요
+   * ("HTMLCanvasElement object could not be cloned"). 그런 객체는 복사하지 않고 그대로 같이 써요 (수정하지 않는 부분이에요).
+   */
   function clone(obj) {
-    return typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj));
+    if (typeof structuredClone === "function") {
+      try { return structuredClone(obj); } catch (e) { /* 아래 방법으로 */ }
+    }
+    return deepCopy(obj);
+  }
+  function deepCopy(v) {
+    if (v === null || typeof v !== "object") return v;
+    if (ArrayBuffer.isView(v)) return v.slice();
+    if (v instanceof ArrayBuffer) return v.slice(0);
+    if (v instanceof Date) return new Date(v.getTime());
+    if (Array.isArray(v)) return v.map(deepCopy);
+    var proto = Object.getPrototypeOf(v);
+    if (proto !== Object.prototype && proto !== null) return v; // canvas, ImageBitmap 같은 브라우저 객체
+    var out = {};
+    for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k)) out[k] = deepCopy(v[k]);
+    return out;
   }
 
   // 레이어 ID로 레이어와 그 레이어가 들어 있는 목록(부모)을 찾아요.

@@ -72,6 +72,10 @@
       viewer: policies.viewers && policies.viewers[env.viewer] ? env.viewer : "general",
       viewerLabel: policies.viewers ? (policies.viewers[env.viewer] || policies.viewers.general).label : "일반 시력",
       acuity: policies.viewers && policies.viewers[env.viewer] ? policies.viewers[env.viewer].acuity : null,
+      // 시야: 보통 / 좁음(10°) / 아주 좁음(5°)
+      field: policies.visualField && policies.visualField.levels[env.field] ? env.field : "normal",
+      fieldLabel: policies.visualField ? (policies.visualField.levels[env.field] || policies.visualField.levels.normal).label : "보통 시야",
+      fieldDeg: policies.visualField && policies.visualField.levels[env.field] ? policies.visualField.levels[env.field].deg : null,
       // SNS: 휴대폰 화면 너비에 맞춰 보이는 크기
       displayScaleMmPerPx: base.screenWidthMm ? base.screenWidthMm / doc.document.widthPx : null
     };
@@ -554,6 +558,52 @@
     return out;
   }
 
+  // ---------------------------------------------------------------- 시야가 좁은 사람: 핵심 정보가 한눈에 들어오나
+  //   관람 거리에서 한 번에 보이는 지름 = 2 × 거리 × tan(시야 반지름)
+  //   핵심 정보(일시·장소·가격·접근성)를 그 지름 안에 몇 묶음으로 나눠 봐야 하는지 = 시선을 옮기는 횟수
+  function checkField(doc, roles, env, docPurpose, P) {
+    var VF = P.visualField;
+    if (!VF || !env.fieldDeg) return [];
+    var mmPerPx = env.displayScaleMmPerPx || 25.4 / doc.document.ppi;
+    var viewMm = 2 * env.distanceM * 1000 * Math.tan((env.fieldDeg * Math.PI) / 180);
+    var viewPx = viewMm / mmPerPx;
+    var items = doc.layers.filter(function (l) {
+      return l.visible !== false && l.bounds && VF.roles.indexOf(roles[l.id] && roles[l.id].role) >= 0;
+    }).sort(function (a, b) { return a.bounds.top - b.bounds.top || a.bounds.left - b.bounds.left; });
+    if (items.length < 2) return [];
+
+    // 위에서부터 묶어요: 묶음 상자의 대각선이 한 번에 보이는 지름 안이면 같은 묶음
+    var clusters = [];
+    items.forEach(function (l) {
+      var b = l.bounds, placed = false;
+      for (var i = 0; i < clusters.length && !placed; i++) {
+        var c = clusters[i];
+        var u = { left: Math.min(c.box.left, b.left), top: Math.min(c.box.top, b.top), right: Math.max(c.box.right, b.right), bottom: Math.max(c.box.bottom, b.bottom) };
+        if (Math.hypot(u.right - u.left, u.bottom - u.top) <= viewPx) { c.box = u; c.ids.push(l.id); placed = true; }
+      }
+      if (!placed) clusters.push({ box: { left: b.left, top: b.top, right: b.right, bottom: b.bottom }, ids: [l.id] });
+    });
+    var n = clusters.length;
+    var bad = docPurpose === "art" ? "advisory" : n >= 3 ? "fail" : "warn";
+    var whole = items.reduce(function (u, l) {
+      var b = l.bounds;
+      return { left: Math.min(u.left, b.left), top: Math.min(u.top, b.top), right: Math.max(u.right, b.right), bottom: Math.max(u.bottom, b.bottom) };
+    }, { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
+    return [{
+      layerId: null,
+      check: "field",
+      status: n === 1 ? "pass" : bad,
+      metric: env.fieldLabel + " · " + env.distanceM + "m에서 한 번에 보이는 지름 약 " + Math.round(viewMm / 10) + "cm · 핵심 정보가 " + n + "군데" + (n === 1 ? " (한눈에 보여요)" : "로 흩어져 있어요"),
+      message: n === 1 ? undefined : "시야가 좁은 사람은 한 번에 지름 " + Math.round(viewMm / 10) + "cm만 보여요. 핵심 정보를 보려면 시선을 " + n + "번 옮겨 찾아야 해요. 일시·장소·가격·접근성 정보를 한곳에 모아 주세요.",
+      detail: {
+        fieldDeg: env.fieldDeg, viewMm: round(viewMm), viewPx: round(viewPx), clusterCount: n,
+        clusters: clusters.map(function (c) { return { box: c.box, ids: c.ids }; }),
+        spreadMm: round(Math.hypot(whole.right - whole.left, whole.bottom - whole.top) * mmPerPx),
+        layerIds: items.map(function (l) { return l.id; })
+      }
+    }];
+  }
+
   function checkHierarchy(doc, roles, layerResults, docPurpose, P) {
     var out = [];
     var visible = doc.layers.filter(function (l) { return l.visible !== false; });
@@ -640,6 +690,7 @@
     results = results.concat(checkLayout(doc, layers, perLayer, P));
     results = results.concat(checkHierarchy(doc, roles, perLayer, docPurpose, P));
     results = results.concat(checkGrouping(doc, roles, docPurpose, P));
+    results = results.concat(checkField(doc, roles, env, docPurpose, P));
     results.forEach(function (r) { r.statusLabel = STATUS_LABELS[r.status]; });
     results.sort(function (a, b) { return STATUS_ORDER[a.status] - STATUS_ORDER[b.status]; });
 

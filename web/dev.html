@@ -221,7 +221,7 @@
     $("status").textContent = "읽는 중…";
     try {
       const buf = await file.arrayBuffer();
-      const psd = agPsd.readPsd(buf, { useImageData: true });
+      const psd = agPsd.readPsd(buf, { useImageData: true, useRawThumbnail: true });
       psdOriginal = psd; psdFixed = null; fixes = []; selectedId = null; fixedIsCurrent = false;
       purposeInfo = PurposeStore.readFromPsd(psd) || PurposeStore.empty();
       result = PsdExtract.extractFromPsd(psd, { fileName: file.name });
