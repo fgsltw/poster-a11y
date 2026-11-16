@@ -143,7 +143,11 @@
   .after-box.on { display: block; }
 
   .group-h { font-size: 14px; margin: 18px 0 8px; color: var(--sub); font-weight: 600; display: flex; gap: 6px; align-items: center; }
-  .issue { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: grid; grid-template-columns: 26px 1fr auto; gap: 4px 10px; align-items: start; }
+  .issue { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: block; }
+  .ihead { display: grid; grid-template-columns: 26px 1fr auto; gap: 4px 10px; align-items: start; }
+  .ihead h3 { display: inline; }
+  .idetail { margin-left: 36px; }
+  @media (max-width: 600px) { .idetail { margin-left: 0; } }
   .issue:hover, .issue.hl { border-color: var(--brand); background: #FAFCFF; }
   .issue .num { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; background: #8A96A8; }
   .issue.s-fail .num, .issue.s-conflict .num { background: var(--fail); } .issue.s-warn .num { background: #B87400; } .issue.s-advisory .num { background: #5C7390; }
@@ -155,7 +159,6 @@
   .issue .apply { display: flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; cursor: pointer; }
   .issue .apply input { width: 18px; height: 18px; }
   .issue .more { grid-column: 2 / 4; display: flex; gap: 8px; flex-wrap: wrap; }
-  .issue .inline { grid-column: 1 / 4; }
   .linkbtn { background: none; border: 0; padding: 0; color: var(--brand); font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
   .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
@@ -209,9 +212,9 @@
   .pnum { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 12px; display: inline-grid; place-items: center; flex: none; background: #5C7390; }
   .pnum.s-fail, .pnum.s-conflict { background: var(--fail); } .pnum.s-warn { background: #B87400; }
   .pitem { border-top: 1px solid var(--line); padding: 12px 0; }
-  .pitem dl { display: grid; grid-template-columns: 40px 1fr; gap: 4px 8px; margin: 8px 0 0; font-size: 13px; }
-  .pitem dt { color: var(--sub); }
-  .pitem dd { margin: 0; }
+  .dlist { display: grid; grid-template-columns: 40px 1fr; gap: 4px 8px; margin: 8px 0 0; font-size: 13px; }
+  .dlist dt { color: var(--sub); }
+  .dlist dd { margin: 0; }
   .plabel { margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--brand); }
   .pnone { margin: 8px 0 0; font-size: 12px; color: var(--sub); }
   .popfoot { padding: 8px 16px 14px; border-top: 1px solid var(--line); }
@@ -325,7 +328,7 @@
       </div>
       <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="simfx" id="simfx" aria-hidden="true"></div><div class="busy">만드는 중…</div></div>
       <p class="hint simhint" id="simhint" hidden></p>
-      <p class="hint" id="hint">번호를 누르면 설명과 고친 모습이 함께 보여요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
+      <p class="hint" id="hint">번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
       <p class="docnote" id="docnote"></p>
     </section>
 
@@ -717,35 +720,23 @@
         const m = x.layerId != null ? markOf(x.layerId) : null;
         const num = m ? `<span class="num">${m.n}</span>` : `<span class="num doc" aria-hidden="true">·</span>`;
         const target = x.text ? `“${esc(short(x.text, 28))}”` : "포스터 전체";
-        const fix = x.fix ? `<div class="fix">추천: <b>${esc(fixText(x.fix))}</b>${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}</div>`
-          : x.alternative ? `<div class="fix">추천: <b>${x.alternative.type === "largePrint" ? "큰 글씨 안내문 함께 제공하기" : "대체텍스트로 같은 정보 함께 적기"}</b></div>` : "";
         const af = applyFixOf(i);
         const apply = af ? `<label class="apply"><input type="checkbox" data-pick="${i}"${isApplied(af) ? " checked" : ""}> 적용</label>` : "<span></span>";
-        const more = [];
-        more.push(`<button class="linkbtn" data-cmp="${i}" aria-expanded="false">${cmpLabel(x)}</button>`);
-        if (x.alternative) more.push(x.alternative.type === "largePrint" ? `<button class="linkbtn" data-lp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-alt>대체텍스트 보기</button>`);
-        html += `<article class="issue s-${x.status}" data-i="${i}" data-layer="${x.layerId == null ? "" : x.layerId}" tabindex="0" aria-label="${esc(titleOf(x))}">
-          ${num}<div><h3>${esc(titleOf(x))}</h3><div class="what">${target}</div>${fix}</div>${apply}
-          ${more.length ? `<div class="more">${more.join("")}</div>` : ""}<div class="inline" hidden></div></article>`;
+        html += `<article class="issue s-${x.status}" data-i="${i}" data-layer="${x.layerId == null ? "" : x.layerId}" tabindex="0" aria-labelledby="it${i}">
+          <div class="ihead">${num}<div><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <h3 id="it${i}">${esc(titleOf(x))}</h3><div class="what">${target}</div></div>${apply}</div>
+          <div class="idetail">${detailHtml(x, i)}</div></article>`;
       });
     });
     $("issues").innerHTML = html || '<p style="color:var(--pass);font-weight:600">모든 검사를 통과했어요.</p>';
 
     $("issues").querySelectorAll(".issue").forEach((el) => {
       const x = S.items[+el.dataset.i];
-      bindTip(el, () => tipHtml([x], true));
+      // 설명이 이미 다 펼쳐져 있어서 마우스 툴팁은 띄우지 않아요. 포스터의 번호만 강조해요.
       el.addEventListener("mouseenter", () => highlight(x.layerId, true));
       el.addEventListener("mouseleave", () => highlight(x.layerId, false));
     });
     $("issues").querySelectorAll("[data-pick]").forEach((cb) => (cb.onchange = () => setApplied(+cb.dataset.pick, cb.checked)));
-    $("issues").querySelectorAll("[data-cmp]").forEach((b) => (b.onclick = () => {
-      const box = b.closest(".issue").querySelector(".inline");
-      const open = box.hidden;
-      box.hidden = !open; b.setAttribute("aria-expanded", String(open)); b.textContent = open ? "닫기" : cmpLabel(S.items[+b.dataset.cmp]);
-      if (open) { box.innerHTML = compareHtml(previewSpecOf(S.items[+b.dataset.cmp]), +b.dataset.cmp); fillPreviews(); }
-    }));
-    $("issues").querySelectorAll("[data-alt]").forEach((b) => (b.onclick = () => { $("altBox").open = true; $("altBox").scrollIntoView({ behavior: "smooth", block: "center" }); }));
-    $("issues").querySelectorAll("[data-lp]").forEach((b) => (b.onclick = openLargePrint));
+    fillPreviews(); // 모든 카드의 '지금 / 고친 뒤' 그림을 차례로 만들어요
 
     const passes = S.check.results.filter((x) => x.status === "pass");
     $("passSummary").textContent = `잘 된 점 (${passes.length})`;
@@ -821,17 +812,21 @@
   //   항목마다: 문제 → 측정 → 왜 → 추천 → 바로 아래에 그 항목을 고친 모습
   let popFor = null, popMark = null;
   const pop = $("pop");
+  // 항목 하나의 설명: 측정 → 설명 → 왜? → 목적 → 추천 → (대신) → 지금 / 고친 뒤
+  function detailHtml(x, i) {
+    return `<dl class="dlist"><dt>측정</dt><dd>${esc(x.metric)}</dd>
+        ${x.message ? `<dt>설명</dt><dd>${esc(x.message)}</dd>` : ""}
+        <dt>왜?</dt><dd>${esc(why(x))}</dd>
+        ${x.purpose ? `<dt>목적</dt><dd>${PL[x.purpose]}${x.purposeSource === "suggested" ? " (자동 추천)" : ""}</dd>` : ""}
+        ${x.fix ? `<dt>추천</dt><dd><b>${esc(fixText(x.fix))}</b>${x.fix.contrastAfter ? ` → 대비 ${x.fix.contrastAfter}:1` : ""}${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}</dd>` : ""}
+        ${x.alternative ? `<dt>대신</dt><dd>${esc(x.alternative.notice)} ${x.alternative.type === "largePrint" ? `<button class="linkbtn" data-golp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-goalt>대체텍스트 보기</button>`}</dd>` : ""}</dl>` +
+      compareHtml(previewSpecOf(x), i);
+  }
   function popHtml(m) {
     let html = `<h3 id="popTitle"><span class="pnum s-${m.worst}">${m.n}</span>“${esc(short(m.layer.text, 34))}”</h3>`;
     m.items.forEach((x) => {
-      html += `<section class="pitem"><div><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <b>${esc(titleOf(x))}</b></div>
-        <dl><dt>측정</dt><dd>${esc(x.metric)}</dd>
-        ${x.message ? `<dt>설명</dt><dd>${esc(x.message)}</dd>` : ""}
-        <dt>왜?</dt><dd>${esc(why(x))}</dd>
-        ${x.fix ? `<dt>추천</dt><dd><b>${esc(fixText(x.fix))}</b>${x.fix.contrastAfter ? ` → 대비 ${x.fix.contrastAfter}:1` : ""}${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}</dd>` : ""}
-        ${x.alternative ? `<dt>대신</dt><dd>${esc(x.alternative.notice)} ${x.alternative.type === "largePrint" ? `<button class="linkbtn" data-poplp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-popalt>대체텍스트 보기</button>`}</dd>` : ""}</dl>`;
-      html += compareHtml(previewSpecOf(x), S.items.indexOf(x));
-      html += `</section>`;
+      html += `<section class="pitem"><div><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <b>${esc(titleOf(x))}</b></div>` +
+        detailHtml(x, S.items.indexOf(x)) + `</section>`;
     });
     return html;
   }
@@ -841,10 +836,6 @@
     pop.hidden = false;
     pop.setAttribute("aria-labelledby", "popTitle");
     placePop();
-    $("popBody").querySelectorAll("[data-poplp]").forEach((b) => (b.onclick = () => { closePop(); openLargePrint(); }));
-    $("popBody").querySelectorAll("[data-popalt]").forEach((b) => (b.onclick = () => {
-      closePop(); $("altBox").open = true; $("altBox").scrollIntoView({ behavior: "smooth", block: "center" });
-    }));
     $("popClose").focus({ preventScroll: true });
     fillPreviews();
   }
@@ -1152,7 +1143,8 @@
       $("status").textContent = isApplied(f) ? `수정을 적용 목록에 넣었어요: ${fixText(f)}. '고친 모습 보기'로 전체를 확인하세요.` : `수정을 적용 목록에서 뺐어요: ${fixText(f)}`;
       return;
     }
-    if (e.target.closest("[data-open-lp]")) { closePop(); openLargePrint(); }
+    if (e.target.closest("[data-open-lp], [data-golp]")) { closePop(); openLargePrint(); return; }
+    if (e.target.closest("[data-goalt]")) { closePop(); $("altBox").open = true; $("altBox").scrollIntoView({ behavior: "smooth", block: "center" }); }
   });
 
   function ensureFixed() {
@@ -1201,7 +1193,7 @@
       }, 30);
     } else {
       drawPoster(S.psd.imageData);
-      $("hint").textContent = "번호를 누르면 설명과 고친 모습이 함께 보여요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
+      $("hint").textContent = "번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
     }
   }
   document.querySelectorAll("input[name=view]").forEach((r) => (r.onchange = () => setView(r.value)));
