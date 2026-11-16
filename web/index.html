@@ -102,7 +102,11 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
   .viewer { padding: 14px; position: sticky; top: 72px; }
   @media (max-width: 900px) { .viewer { position: static; } }
-  .viewbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .viewbar { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .layout > * { min-width: 0; }
+  .viewbar .field { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+  .viewbar .field select { flex: 1 1 140px; min-width: 0; }
+  select { max-width: 100%; }
   .stage { position: relative; background: #E9ECF1; border-radius: 8px; overflow: hidden; }
   .stage img { width: 100%; display: block; }
   /* 넓은 화면: 포스터 전체가 창 높이 안에 들어오게 (--ar = 가로/세로 비율) */
@@ -129,6 +133,32 @@
   .mark.s-advisory .pin { background: #5C7390; }
   .mark.hl { box-shadow: 0 0 0 4px rgba(31,95,191,.35); }
   .stage.after .mark { opacity: .25; }
+  /* 정보 전달 지도 */
+  .heat { position: absolute; inset: 0; }
+  .stage.heaton img { filter: grayscale(.7) brightness(.8); }
+  .stage.heaton .mark { display: none; }
+  .hz { position: absolute; border-radius: 10px; cursor: help; }
+  .hz::before { content: ""; position: absolute; inset: 0; border-radius: inherit; filter: blur(8px); }
+  .hz-high::before, i.hz-high { background: rgba(225, 29, 46, .62); }
+  .hz-mid::before, i.hz-mid { background: rgba(245, 158, 11, .55); }
+  .hz-low::before, i.hz-low { background: rgba(22, 163, 74, .42); }
+  /* 순위 동그라미: 영역 왼쪽 끝(포스터 여백 쪽)에 두어 촘촘한 줄끼리 겹치지 않게 */
+  .hz .hzlabel { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); z-index: 1; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .hz-high .hzlabel { background: #C8102E; } .hz-mid .hzlabel { background: #B86E00; } .hz-low .hzlabel { background: #15803D; }
+  .hz.hl { outline: 3px solid #FFD400; outline-offset: 2px; }
+  .heatbtn[aria-pressed="true"] { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .heatlegend { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .heatlegend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; }
+  .heatlegend p { flex-basis: 100%; margin: 2px 0 0; color: var(--sub); font-size: 12px; }
+  .prank { margin: 0; padding: 0; list-style: none; }
+  .prank li { display: grid; grid-template-columns: 22px 1fr 70px; gap: 2px 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
+  .prank li:hover, .prank li.hl { background: var(--brand-soft); }
+  .prank .rk { font-weight: 700; color: var(--sub); text-align: center; }
+  .prank .bar { grid-column: 2 / 4; height: 6px; background: #E5E9EF; border-radius: 3px; overflow: hidden; }
+  .prank .bar span { display: block; height: 100%; }
+  .prank .lv { font-size: 11px; font-weight: 700; text-align: right; }
+  .lv-high { color: var(--fail); } .lv-mid { color: var(--warn); } .lv-low { color: var(--pass); }
+  .bar .b-high { background: #E11D2E; } .bar .b-mid { background: #F59E0B; } .bar .b-low { background: #16A34A; }
   .stage.after .mark:hover, .stage.after .mark:focus-visible { opacity: 1; }
 
   /* 결과 */
@@ -145,7 +175,8 @@
   .group-h { font-size: 14px; margin: 18px 0 8px; color: var(--sub); font-weight: 600; display: flex; gap: 6px; align-items: center; }
   .issue { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: block; }
   .ihead { display: grid; grid-template-columns: 26px 1fr auto; gap: 4px 10px; align-items: start; }
-  .ihead h3 { display: inline; }
+  .ihead h3 { display: inline; overflow-wrap: anywhere; }
+  .ihead > div { min-width: 0; }
   .idetail { margin-left: 36px; }
   @media (max-width: 600px) { .idetail { margin-left: 0; } }
   .issue:hover, .issue.hl { border-color: var(--brand); background: #FAFCFF; }
@@ -303,6 +334,8 @@
           <label><input type="radio" name="view" value="before" checked><span>원본</span></label>
           <label><input type="radio" name="view" value="after"><span>고친 모습</span></label>
         </div>
+        <button type="button" class="btn small heatbtn" id="heatToggle" aria-pressed="false">정보 전달 지도</button>
+        <button class="help" type="button" data-help="heat" aria-label="정보 전달 지도 설명">?</button>
         <div class="field"><label for="sim">다른 눈으로 보기</label>
           <select id="sim">
             <option value="">그대로</option>
@@ -326,14 +359,25 @@
           </select>
           <button class="help" type="button" data-help="sim" aria-label="다른 눈으로 보기 설명">?</button></div>
       </div>
-      <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="simfx" id="simfx" aria-hidden="true"></div><div class="busy">만드는 중…</div></div>
+      <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="simfx" id="simfx" aria-hidden="true"></div><div class="heat" id="heat" hidden></div><div class="busy">만드는 중…</div></div>
       <p class="hint simhint" id="simhint" hidden></p>
+      <div class="heatlegend" id="heatLegend" hidden>
+        <span><i class="hz-high"></i>먼저 검토 (중요한데 잘 안 보여요)</span>
+        <span><i class="hz-mid"></i>확인</span>
+        <span><i class="hz-low"></i>잘 보여요</span>
+        <p>실제 시선을 잰 히트맵이 아니라 <b>글자 크기 · 대비 · 위치 · 정보 중요도</b>로 만든 검토 우선순위 지도예요. 영역에 마우스를 올리면 점수가 보여요.</p>
+      </div>
       <p class="hint" id="hint">번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
       <p class="docnote" id="docnote"></p>
     </section>
 
     <section class="card panel" aria-label="검사 결과">
       <div class="summary" id="summary" aria-live="polite"></div>
+      <details class="more-box heatbox" id="heatBox">
+        <summary>정보 전달 지도 · 어디부터 볼까요?</summary>
+        <div class="body"><ol class="prank" id="heatList"></ol>
+          <p class="note" style="margin:6px 0 0;color:var(--sub);font-size:12px">우선순위 = 정보 중요도 × (1 − 식별 쉬움). 식별 쉬움 = 크기·대비 중 약한 쪽 × 위치. 실제 시선 측정은 아니에요.</p></div>
+      </details>
       <div id="issues"></div>
       <div class="actions">
         <button class="btn primary" id="seeAfter">고친 모습 보기</button>
@@ -540,6 +584,7 @@
     dlJpg: "<h4>JPG 이미지로 받기</h4>파일이 작아서 SNS에 바로 올리기 좋아요.<div class='row'>크기를 키운 글자는 미리보기처럼 조금 흐릴 수 있어요.</div>",
     viewer: "<h4>누가 보나요?</h4>보는 사람의 시력(좋은 눈, 안경을 쓴 시력)에 맞춰 기준을 정해요.<div class='row'><b>저시력 0.3</b>: WHO가 중등도 시각손상으로 보는 시작점(6/18)</div><div class='row'><b>시각장애 0.2</b>: 한국 장애정도판정기준 '심하지 않은 장애'</div><div class='row'><b>심한 시각장애 0.06</b>: 같은 기준의 '심한 장애'</div><div class='row'>저시력을 고르면 글자는 '겨우 보이는 크기의 2배', 정보 글자 대비는 7:1(WCAG AAA)로 봐요.</div>",
     field: "<h4>시야</h4>시야가 좁으면 한 번에 보이는 범위가 작아요.<div class='row'><b>좁음 10°</b>: 두 눈의 시야가 각각 모든 방향에서 10도 이하 = 시각장애(심하지 않은 장애)</div><div class='row'><b>아주 좁음 5°</b>: 5도 이하 = 심한 장애</div><div class='row'>관람 거리에서 한 번에 보이는 지름 안에 핵심 정보가 모여 있는지 검사하고, 녹내장 미리보기도 이 범위로 보여줘요.</div>",
+    heat: "<h4>정보 전달 지도</h4>중요한 정보가 어디에 있고 얼마나 알아보기 쉬운지 색으로 보여줘요.<div class='row'><b>빨강</b>: 중요한데 잘 안 보여요 (먼저 검토) · <b>주황</b>: 확인 · <b>초록</b>: 잘 보여요</div><div class='row'>실제 사람의 시선을 잰 것이 아니라, 글자 크기·대비·위치·정보 중요도(일시·장소가 가장 중요)를 조합한 <b>검토 우선순위</b>예요.</div><div class='row'>'고친 모습'을 고르면 고친 뒤의 지도가 보여요.</div>",
     largePrint: "<h4>큰 글씨 안내문</h4>A4 세로, 300ppi로 만들어요. 줄 간격은 글자 크기의 1.5배예요.<div class='row'>저시력자는 검은 바탕에 노랑·흰 글씨를 더 편하게 느끼는 경우가 많아요. 받는 분께 맞는 색을 고르세요.</div><div class='row'>PDF는 그림으로 된 PDF예요. 화면낭독기용으로는 대체텍스트를 함께 주세요.</div>",
     sim: "<h4>다른 눈으로 보기</h4>저시력, 색각이상, 어두운 조명에서 포스터가 어떻게 보이는지 근사로 보여줘요. 판정은 오른쪽 검사 결과가 해요.<div class='row'><b>황반변성·녹내장</b>: 마우스를 움직이면 '보고 있는 곳'이 따라가요.</div>"
   };
@@ -661,7 +706,7 @@
     S.chosen = new Set();
     S.items.forEach((x, i) => { if (x.fix && x.layerId != null && x.fix.passes !== false && defaults.has(x.layerId + ":" + x.fix.type)) S.chosen.add(i); });
     numberMarks();
-    renderSummary(); renderIssues(); renderMarks(); renderPurposeBox();
+    renderSummary(); renderIssues(); renderMarks(); renderPurposeBox(); renderHeat();
     if (S.view === "after") setView("before");
     $("altText").value = S.check.altTextDraft;
     if (!S.lpEdited) { $("lpText").value = LargePrint.draftText(S.doc.layers, S.check.roles, EngineRoles.speakDate); lpDirty(); }
@@ -1172,6 +1217,65 @@
     box.classList.add("on");
   }
 
+  // ------------------------------------------------------------------ 정보 전달 지도 (검토 우선순위)
+  const LEVEL_TEXT = { high: "먼저 검토", mid: "확인", low: "잘 보여요" };
+  const WEAK_TEXT = { size: "글자가 작아서", contrast: "배경과 대비가 낮아서" };
+  function heatData() {
+    const r = S.view === "after" && S.afterCheck ? S.afterCheck : S.check;
+    return r ? r.priority || [] : [];
+  }
+  function heatTip(x, rank) {
+    const pct = (v) => Math.round(v * 100) + "%";
+    return `<h4>${rank}. ${esc(x.roleLabel)} · “${esc(short(x.text, 24))}”</h4>
+      <div class="row"><span class="tchip c-${x.level === "high" ? "fail" : x.level === "mid" ? "warn" : "pass"}">${LEVEL_TEXT[x.level]}</span>우선순위 ${pct(x.score)}</div>
+      <div class="row"><span class="lbl">중요도</span> ${pct(x.importance)} (${esc(x.roleLabel)})</div>
+      <div class="row"><span class="lbl">식별 쉬움</span> ${pct(x.legibility)} = 크기 ${pct(x.parts.size)} · 대비 ${pct(x.parts.contrast)} 중 약한 쪽${x.parts.atEdge ? " × 가장자리 감점" : ""}</div>
+      ${x.level !== "low" ? `<div class="row">${WEAK_TEXT[x.weakest]} 잘 안 보여요.${x.parts.atEdge ? " 포스터 가장자리에 붙어 있어 눈에 덜 띄어요." : ""}</div>` : ""}`;
+  }
+  function renderHeat() {
+    const on = $("heatToggle").getAttribute("aria-pressed") === "true";
+    const box = $("heat"), stage = $("stage");
+    stage.classList.toggle("heaton", on);
+    box.hidden = !on; $("heatLegend").hidden = !on;
+    box.innerHTML = "";
+    const list = heatData();
+    // 오른쪽 순위 목록 (지도를 켜지 않아도 볼 수 있어요)
+    $("heatList").innerHTML = list.map((x, k) => `<li data-hl="${x.layerId}"><span class="rk">${k + 1}</span>
+      <span>${esc(x.roleLabel)} · “${esc(short(x.text, 18))}”</span><span class="lv lv-${x.level}">${LEVEL_TEXT[x.level]}</span>
+      <span></span><span class="bar" title="식별 쉬움 ${Math.round(x.legibility * 100)}%"><span class="b-${x.level}" style="width:${Math.max(4, Math.round(x.legibility * 100))}%"></span></span></li>`).join("") ||
+      '<li><span></span><span>글자가 없어요.</span></li>';
+    $("heatList").querySelectorAll("[data-hl]").forEach((li) => {
+      const id = +li.dataset.hl;
+      li.onmouseenter = () => { document.querySelectorAll(`.hz[data-layer="${id}"]`).forEach((z) => z.classList.add("hl")); highlight(id, true); };
+      li.onmouseleave = () => { document.querySelectorAll(".hz.hl").forEach((z) => z.classList.remove("hl")); highlight(id, false); };
+      li.onclick = () => { if ($("heatToggle").getAttribute("aria-pressed") !== "true") toggleHeat(true); $("stage").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    });
+    if (!on || !S.doc) return;
+    const W = S.doc.document.widthPx, H = S.doc.document.heightPx;
+    list.forEach((x, k) => {
+      const b = x.bounds, padX = Math.max(8, (b.bottom - b.top) * 0.4), padY = Math.max(4, (b.bottom - b.top) * 0.25);
+      const z = document.createElement("div");
+      z.className = "hz hz-" + x.level;
+      z.dataset.layer = x.layerId;
+      z.tabIndex = 0;
+      z.setAttribute("role", "img");
+      z.setAttribute("aria-label", `${k + 1}위 ${x.roleLabel}: ${LEVEL_TEXT[x.level]}, 식별 쉬움 ${Math.round(x.legibility * 100)}%`);
+      z.style.left = (Math.max(0, b.left - padX) / W) * 100 + "%";
+      z.style.top = (Math.max(0, b.top - padY) / H) * 100 + "%";
+      z.style.width = ((Math.min(W, b.right + padX) - Math.max(0, b.left - padX)) / W) * 100 + "%";
+      z.style.height = ((Math.min(H, b.bottom + padY) - Math.max(0, b.top - padY)) / H) * 100 + "%";
+      z.innerHTML = `<span class="hzlabel" aria-hidden="true">${k + 1}</span>`;
+      bindTip(z, () => heatTip(x, k + 1));
+      box.appendChild(z);
+    });
+  }
+  function toggleHeat(on) {
+    $("heatToggle").setAttribute("aria-pressed", String(on));
+    if (on) $("heatBox").open = true;
+    renderHeat();
+  }
+  $("heatToggle").onclick = () => toggleHeat($("heatToggle").getAttribute("aria-pressed") !== "true");
+
   function setView(v) {
     S.view = v;
     document.querySelector(`input[name=view][value=${v}]`).checked = true;
@@ -1188,11 +1292,13 @@
           $("status").textContent = `수정 ${r.applied.length}개를 적용한 모습이에요.` + (notes.length ? " ⚠ " + notes.join(" ") : "");
           $("hint").textContent = "고친 모습이에요. 번호는 원래 문제가 있던 곳이에요.";
           updateAfterBox();
+          renderHeat();
         } catch (e) { console.error(e); $("status").textContent = "고친 모습을 만들지 못했어요: " + e.message; }
         stage.classList.remove("loading");
       }, 30);
     } else {
       drawPoster(S.psd.imageData);
+      renderHeat();
       $("hint").textContent = "번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
     }
   }

@@ -604,6 +604,42 @@
     }];
   }
 
+  // ---------------------------------------------------------------- 정보 전달 지도 (검토 우선순위)
+  //   글자마다: 중요도(역할) × (1 − 식별 쉬움). 식별 쉬움 = min(크기, 대비) × 위치
+  //   판정(통과·실패)이 아니라 '어디부터 고칠지' 보여주는 지도예요.
+  function clamp01(n) { return Math.max(0, Math.min(1, n)); }
+  function priorityMap(doc, roles, perLayer, P) {
+    var M = P.priorityMap;
+    if (!M) return [];
+    var W = doc.document.widthPx, H = doc.document.heightPx;
+    var out = [];
+    doc.layers.forEach(function (l) {
+      if (l.visible === false || !l.text || !l.text.trim() || !l.bounds) return;
+      var r = perLayer[l.id] || {};
+      var role = roles[l.id] ? roles[l.id].role : "other";
+      var importance = M.importance[role] != null ? M.importance[role] : M.importance.other;
+      var sd = r.size && r.size.detail, cd = r.contrast && r.contrast.detail;
+      var size = sd && sd.passArcmin ? clamp01(sd.arcmin / sd.passArcmin) : 0.5;
+      var contrast = cd && cd.target && cd.worst != null ? clamp01((cd.worst - 1) / (cd.target - 1)) : 0.5;
+      var b = l.bounds, band = M.edgeBand;
+      var atEdge = b.left < W * band || b.top < H * band || b.right > W * (1 - band) || b.bottom > H * (1 - band);
+      var position = atEdge ? M.edgeFactor : 1;
+      var legibility = Math.min(size, contrast) * position;
+      var score = importance * (1 - legibility);
+      out.push({
+        layerId: l.id, text: l.text, role: role, roleLabel: R.LABELS[role],
+        importance: round(importance, 2),
+        legibility: round(legibility, 2),
+        parts: { size: round(size, 2), contrast: round(contrast, 2), position: position, atEdge: atEdge },
+        weakest: size <= contrast ? "size" : "contrast",
+        score: round(score, 3),
+        level: score >= M.levels.high ? "high" : score >= M.levels.mid ? "mid" : "low",
+        bounds: { left: b.left, top: b.top, right: b.right, bottom: b.bottom }
+      });
+    });
+    return out.sort(function (a, b) { return b.score - a.score; });
+  }
+
   function checkHierarchy(doc, roles, layerResults, docPurpose, P) {
     var out = [];
     var visible = doc.layers.filter(function (l) { return l.visible !== false; });
@@ -716,6 +752,7 @@
         largePrintRecommended: results.some(function (r) { return r.alternative && r.alternative.type === "largePrint"; })
       },
       altTextDraft: altText,
+      priority: priorityMap(doc, roles, perLayer, P),
       roles: Object.keys(roles).reduce(function (o, id) { o[id] = roles[id].role; return o; }, {}),
       results: results
     };
