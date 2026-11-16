@@ -169,3 +169,50 @@ test("PDF: JPEG 쪽들을 A4 PDF로 묶고, 위치표(xref)가 맞는다", () =>
     assert.equal(text.slice(off, off + `${i + 1} 0 obj`.length), `${i + 1} 0 obj`, `객체 ${i + 1}`);
   });
 });
+
+// ---------------------------------------------------------------- 시야가 좁은 사람 (근접성)
+test("시야 단계는 장애정도 판정기준의 10°·5°예요", () => {
+  assert.equal(P.visualField.levels.narrow.deg, 10);
+  assert.equal(P.visualField.levels.veryNarrow.deg, 5);
+});
+
+test("보통 시야면 시야 검사를 하지 않는다", () => {
+  const r = E.checkDocument(fresh(), { medium: "wall" });
+  assert.equal(r.results.filter((x) => x.check === "field").length, 0);
+});
+
+test("벽 포스터 2m에서는 핵심 정보가 한눈에 들어오고, 전단 40cm·5°에서는 여러 군데로 흩어진다", () => {
+  const wall = E.checkDocument(fresh(), { medium: "wall", field: "narrow" }).results.find((x) => x.check === "field");
+  assert.equal(wall.status, "pass");
+  assert.equal(wall.detail.clusterCount, 1);
+  // 2m에서 10° → 지름 2 × 2000 × tan(10°) ≈ 705mm
+  assert.ok(Math.abs(wall.detail.viewMm - 705.3) < 1, String(wall.detail.viewMm));
+  const flyer = E.checkDocument(fresh(), { medium: "flyer", field: "veryNarrow" }).results.find((x) => x.check === "field");
+  assert.ok(flyer.detail.clusterCount >= 3);
+  assert.equal(flyer.status, "fail");
+  assert.match(flyer.message, /한곳에 모아/);
+});
+
+test("핵심 정보를 한곳에 모으면 묶음이 줄어든다", () => {
+  const d = fresh();
+  const far = E.checkDocument(d, { medium: "flyer", field: "narrow" }).results.find((x) => x.check === "field");
+  // 일시·장소·가격·접근성을 장소 옆으로 바짝 모아요
+  const base = d.layers.find((l) => l.id === 8).bounds;
+  let y = base.top;
+  for (const id of [5, 6, 8, 9, 10]) {
+    const l = d.layers.find((x) => x.id === id);
+    const h = 20;
+    l.bounds = Object.assign({}, l.bounds, { left: base.left, right: base.left + 300, top: y, bottom: y + h, width: 300, height: h });
+    y += h + 4;
+  }
+  const near = E.checkDocument(d, { medium: "flyer", field: "narrow" }).results.find((x) => x.check === "field");
+  assert.ok(near.detail.clusterCount < far.detail.clusterCount || far.detail.clusterCount === 1, `${far.detail.clusterCount} → ${near.detail.clusterCount}`);
+  assert.equal(near.status, "pass");
+});
+
+test("예술 문서에서는 시야 검사도 '참고'", () => {
+  const d = fresh();
+  d.document.purpose = "art";
+  const x = E.checkDocument(d, { medium: "flyer", field: "veryNarrow" }).results.find((y) => y.check === "field");
+  assert.equal(x.status, "advisory");
+});

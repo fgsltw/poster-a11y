@@ -131,3 +131,15 @@ test("quick 옵션은 원본 비교·전체 합성을 건너뛰고 수정만 적
   const rect = { left: 140, top: 1490, right: 340, bottom: 1530 };
   assert.ok(compareImageData(compositePsd(r.psd, rect).imageData, compositePsd(original, rect).imageData).maxDiff > 50);
 });
+
+test("복사할 수 없는 브라우저 객체(canvas 썸네일 등)가 있어도 수정을 적용한다", () => {
+  // 브라우저에서 포토샵 PSD를 읽으면 썸네일이 canvas 로 들어와요. Node 에선 비슷한 '클래스 객체'로 흉내 내요.
+  class FakeCanvas { constructor() { this.width = 10; this.height = 10; this.getContext = () => null; } }
+  const src = agPsd.readPsd(fs.readFileSync(file), { useImageData: true });
+  src.imageResources = Object.assign({}, src.imageResources, { thumbnail: new FakeCanvas() });
+  const r = applyFixes(src, [{ layerId: 6, type: "color", value: "#222222" }]);
+  assert.equal(r.applied.length, 1);
+  assert.equal(r.psd.imageResources.thumbnail, src.imageResources.thumbnail, "canvas 는 그대로 같이 써요");
+  assert.notEqual(r.psd.children, src.children, "레이어는 복사본");
+  assert.equal(findLayer(src.children, 6).layer.text.style.fillColor.r !== 0x22, true, "원본은 그대로");
+});
