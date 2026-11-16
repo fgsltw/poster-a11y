@@ -158,11 +158,23 @@
   .heatlegend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; }
   .heatlegend p { flex-basis: 100%; margin: 2px 0 0; color: var(--sub); font-size: 12px; }
   .prank { margin: 0; padding: 0; list-style: none; }
-  .prank li { display: grid; grid-template-columns: 22px 1fr 76px; gap: 2px 8px; align-items: center; padding: 7px 4px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
-  .prank .ptxt { min-width: 0; overflow-wrap: anywhere; }
-  .prank .pact { grid-column: 2 / 4; display: flex; justify-content: flex-end; }
-  .prank .pdelta { grid-column: 2 / 4; font-size: 12px; color: var(--pass); }
-  .prank .pact:empty { display: none; }
+  .prank li { display: block; padding: 9px 6px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
+  .prank .phead { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; }
+  .prank .ptxt { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+  .prank .pact .btn { padding: 3px 10px; font-size: 12px; white-space: nowrap; }
+  .prank .pstate { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 5px 0 4px 30px; font-size: 12px; }
+  .prank .sl, .psum .sl { color: var(--sub); }
+  .prank .arr { color: var(--sub); }
+  .prank .ppct { margin-left: auto; color: var(--sub); }
+  .prank .ppct b { color: var(--ink); }
+  .lvchip { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .lc-high { background: var(--fail-bg); color: var(--fail); } .lc-mid { background: var(--warn-bg); color: var(--warn); } .lc-low { background: var(--pass-bg); color: var(--pass); }
+  .prank .lbar2 { position: relative; height: 6px; margin-left: 30px; background: #E5E9EF; border-radius: 3px; overflow: hidden; }
+  .prank .lbar2 span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+  .prank .lbar2 .b0 { opacity: .35; }
+  .prank .pwhy { margin: 5px 0 0 30px; font-size: 12px; color: var(--ink); }
+  .muted { color: var(--sub); font-weight: 400; font-size: 12px; }
+  .psum { display: grid; gap: 2px; padding: 8px 10px; margin: 8px 0 4px; background: var(--bg); border-radius: 8px; font-size: 13px; }
   .qfix.on { background: var(--pass-bg); color: var(--pass); border-color: var(--pass); font-weight: 700; }
   .hz { cursor: pointer; }
   .prank li:hover, .prank li.hl { background: var(--brand-soft); }
@@ -171,7 +183,7 @@
   .prank .lbar span { display: block; height: 100%; }
   .prank .lv { font-size: 11px; font-weight: 700; text-align: right; }
   .lv-high { color: var(--fail); } .lv-mid { color: var(--warn); } .lv-low { color: var(--pass); }
-  .lbar .b-high { background: #E11D2E; } .lbar .b-mid { background: #F59E0B; } .lbar .b-low { background: #16A34A; }
+  .lbar .b-high, .lbar2 .b-high { background: #E11D2E; } .lbar .b-mid, .lbar2 .b-mid { background: #F59E0B; } .lbar .b-low, .lbar2 .b-low { background: #16A34A; }
   .stage.after .mark:hover, .stage.after .mark:focus-visible { opacity: 1; }
 
   /* 결과 */
@@ -384,7 +396,7 @@
       <div class="heatlegend" id="heatLegend" hidden>
         <span><i class="hz-high"></i>먼저 검토 (중요한데 잘 안 보여요)</span>
         <span><i class="hz-mid"></i>확인</span>
-        <span><i class="hz-low"></i>잘 보여요</span>
+        <span><i class="hz-low"></i>괜찮아요 (잘 보이거나 덜 중요한 정보)</span>
         <p>실제 시선을 잰 히트맵이 아니라 <b>글자 크기 · 대비 · 위치 · 정보 중요도</b>로 만든 검토 우선순위 지도예요. 영역에 마우스를 올리면 점수가 보여요.</p>
       </div>
       <p class="hint" id="hint">번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
@@ -395,8 +407,8 @@
       <div class="summary" id="summary" aria-live="polite"></div>
       <details class="more-box heatbox" id="heatBox">
         <summary>정보 전달 지도 · 어디부터 볼까요?</summary>
-        <p class="note" style="margin:8px 0 0;color:var(--sub);font-size:12px">줄을 누르면 지도 위에서 설명과 고치기가 열려요. '바로 고치기'는 그 글자의 추천 수정을 한 번에 넣어요.</p>
-        <div class="body"><ol class="prank" id="heatList"></ol>
+        <p class="note" style="margin:8px 0 0;color:var(--sub);font-size:12px">줄마다 <b>지금 → 고친 뒤</b>를 보여줘요. '바로 고치기'는 그 글자의 추천 수정을 한 번에 넣고, '직접 고르기'(또는 줄 누르기)는 지도 위에서 설명 창을 열어요.</p>
+        <div class="body"><div class="psum" id="heatSum"></div><ol class="prank" id="heatList"></ol>
           <p class="note" style="margin:6px 0 0;color:var(--sub);font-size:12px">우선순위 = 정보 중요도 × (1 − 식별 쉬움). 식별 쉬움 = 크기·대비 중 약한 쪽 × 위치. 실제 시선 측정은 아니에요.</p></div>
       </details>
       <div id="issues"></div>
@@ -609,7 +621,7 @@
     dlJpg: "<h4>JPG 이미지로 받기</h4>파일이 작아서 SNS에 바로 올리기 좋아요.<div class='row'>크기를 키운 글자는 미리보기처럼 조금 흐릴 수 있어요.</div>",
     viewer: "<h4>누가 보나요?</h4>보는 사람의 시력(좋은 눈, 안경을 쓴 시력)에 맞춰 기준을 정해요.<div class='row'><b>저시력 0.3</b>: WHO가 중등도 시각손상으로 보는 시작점(6/18)</div><div class='row'><b>시각장애 0.2</b>: 한국 장애정도판정기준 '심하지 않은 장애'</div><div class='row'><b>심한 시각장애 0.06</b>: 같은 기준의 '심한 장애'</div><div class='row'>저시력을 고르면 글자는 '겨우 보이는 크기의 2배', 정보 글자 대비는 7:1(WCAG AAA)로 봐요.</div>",
     field: "<h4>시야</h4>시야가 좁으면 한 번에 보이는 범위가 작아요.<div class='row'><b>좁음 10°</b>: 두 눈의 시야가 각각 모든 방향에서 10도 이하 = 시각장애(심하지 않은 장애)</div><div class='row'><b>아주 좁음 5°</b>: 5도 이하 = 심한 장애</div><div class='row'>관람 거리에서 한 번에 보이는 지름 안에 핵심 정보가 모여 있는지 검사하고, 녹내장 미리보기도 이 범위로 보여줘요.</div>",
-    heat: "<h4>정보 전달 지도</h4>중요한 정보가 어디에 있고 얼마나 알아보기 쉬운지 색으로 보여줘요.<div class='row'><b>빨강</b>: 중요한데 잘 안 보여요 (먼저 검토) · <b>주황</b>: 확인 · <b>초록</b>: 잘 보여요</div><div class='row'>실제 사람의 시선을 잰 것이 아니라, 글자 크기·대비·위치·정보 중요도(일시·장소가 가장 중요)를 조합한 <b>검토 우선순위</b>예요.</div><div class='row'>'고친 모습'을 고르면 고친 뒤의 지도가 보여요.</div>",
+    heat: "<h4>정보 전달 지도</h4>중요한 정보가 어디에 있고 얼마나 알아보기 쉬운지 색으로 보여줘요.<div class='row'><b>빨강</b>: 중요한데 잘 안 보여요 (먼저 검토) · <b>주황</b>: 확인 · <b>초록</b>: 괜찮아요 (잘 보이거나 덜 중요한 정보)</div><div class='row'>실제 사람의 시선을 잰 것이 아니라, 글자 크기·대비·위치·정보 중요도(일시·장소가 가장 중요)를 조합한 <b>검토 우선순위</b>예요.</div><div class='row'>'고친 모습'을 고르면 고친 뒤의 지도가 보여요.</div>",
     largePrint: "<h4>큰 글씨 안내문</h4>A4 세로, 300ppi로 만들어요. 줄 간격은 글자 크기의 1.5배예요.<div class='row'>저시력자는 검은 바탕에 노랑·흰 글씨를 더 편하게 느끼는 경우가 많아요. 받는 분께 맞는 색을 고르세요.</div><div class='row'>PDF는 그림으로 된 PDF예요. 화면낭독기용으로는 대체텍스트를 함께 주세요.</div>",
     sim: "<h4>다른 눈으로 보기</h4>저시력, 색각이상, 어두운 조명에서 포스터가 어떻게 보이는지 근사로 보여줘요. 판정은 오른쪽 검사 결과가 해요.<div class='row'><b>황반변성·녹내장</b>: 마우스를 움직이면 '보고 있는 곳'이 따라가요.</div>"
   };
@@ -1260,7 +1272,8 @@
   }
 
   // ------------------------------------------------------------------ 정보 전달 지도 (검토 우선순위)
-  const LEVEL_TEXT = { high: "먼저 검토", mid: "확인", low: "잘 보여요" };
+  // 단계 = 검토 우선순위 (중요도 × 알아보기 어려운 정도). '괜찮아요' = 잘 보이거나, 덜 중요한 정보
+  const LEVEL_TEXT = { high: "먼저 검토", mid: "확인", low: "괜찮아요" };
   const WEAK_TEXT = { size: "글자가 작아서", contrast: "배경과 대비가 낮아서" };
   function heatData() {
     const fresh = chosenFixes().length && S.afterCheck && S.fixedKey === JSON.stringify(chosenFixes());
@@ -1308,28 +1321,56 @@
     const reanchor = popFor && popFor.classList && popFor.classList.contains("hz") ? popFor.dataset.layer : null;
     box.innerHTML = "";
     const list = heatData();
-    // 오른쪽 순위 목록 (지도를 켜지 않아도 볼 수 있어요)
-    // 고친 뒤 지도 (수정을 적용했으면) — 목록에 '먼저 검토 → 잘 보여요'처럼 보여줘요
+    // 오른쪽 순위 목록 — 모든 줄이 같은 틀이에요 (지도를 켜지 않아도 볼 수 있어요)
+    //   1줄: 순위 · 글자 · 버튼   2줄: 지금 [단계] → 고친 뒤 [단계] · 식별 쉬움 %→%   막대: 옅게 지금 / 진하게 고친 뒤
+    //   '괜찮아요'가 아니면: 남은 문제 한 줄
+    const nowList = S.check ? S.check.priority || [] : [];
     const freshAfter = chosenFixes().length && S.afterCheck && S.fixedKey === JSON.stringify(chosenFixes()) ? S.afterCheck : null;
-    $("heatList").innerHTML = list.map((x, k) => {
-      const qi = quickFixItems(x.layerId), done = qi.length && qi.every((i) => isApplied(applyFixOf(i)));
-      const some = !done && qi.some((i) => isApplied(applyFixOf(i)));
-      const aft = freshAfter && S.view !== "after" ? (freshAfter.priority || []).find((y) => y.layerId === x.layerId) : null;
-      const btn = qi.length ? `<button type="button" class="btn small qfix${done ? " on" : ""}" data-qfix="${x.layerId}" aria-pressed="${!!done}">${done ? "✓ 고침" : some ? "더 고치기" : "바로 고치기"}</button>`
-        : x.level !== "low" && (markOf(x.layerId) || {}).items ? `<button type="button" class="btn small" data-qopen="${x.layerId}">설명 보기</button>` : "";
-      return `<li data-hl="${x.layerId}"><span class="rk">${k + 1}</span>
-      <span class="ptxt">${esc(x.roleLabel)} · “${esc(short(x.text, 18))}”</span>
-      <span class="lv lv-${x.level}">${LEVEL_TEXT[x.level]}${aft && aft.level !== x.level ? `<br><span class="lv-${aft.level}">→ ${LEVEL_TEXT[aft.level]}</span>` : ""}</span>
-      ${aft && Math.abs(aft.legibility - x.legibility) >= 0.05 ? `<span class="pdelta">고친 뒤 식별 쉬움 ${Math.round(x.legibility * 100)}% → <b>${Math.round(aft.legibility * 100)}%</b></span>` : ""}
-      <span></span><span class="lbar" title="식별 쉬움 ${Math.round(x.legibility * 100)}%"><span class="b-${x.level}" style="width:${Math.max(4, Math.round(x.legibility * 100))}%"></span></span>
-      <span class="pact">${btn}</span></li>`;
-    }).join("") || '<li><span></span><span>글자가 없어요.</span></li>';
+    const afterRes = freshAfter || S.check;
+    const afterOf = (id) => ((afterRes && afterRes.priority) || []).find((y) => y.layerId === id);
+    const chip = (lv) => `<span class="lvchip lc-${lv}">${LEVEL_TEXT[lv]}</span>`;
+    const pct = (v) => Math.round(v * 100) + "%";
+    const count = (arr) => ["high", "mid", "low"].map((lv) => `${LEVEL_TEXT[lv]} ${arr.filter((x) => x.level === lv).length}`).join(" · ");
+    const afterAll = nowList.map((x) => afterOf(x.layerId) || x);
+    $("heatSum").innerHTML = nowList.length ? `<div><span class="sl">지금</span> ${count(nowList)}</div><div><span class="sl">고친 뒤</span> <b>${count(afterAll)}</b>${freshAfter ? "" : " <span class=\"muted\">(적용한 수정 없음)</span>"}</div>` : "";
+    $("heatList").innerHTML = nowList.map((x, k) => {
+      const a = afterOf(x.layerId) || x;
+      const qi = quickFixItems(x.layerId);
+      const applied = qi.filter((i) => isApplied(applyFixOf(i))).length;
+      const manual = S.items.some((y, i) => y.layerId === x.layerId && applyFixOf(i) && !qi.includes(i));
+      const hasItems = S.items.some((y) => y.layerId === x.layerId);
+      // 버튼은 네 가지 중 하나
+      const btn = qi.length && applied === qi.length ? `<button type="button" class="btn small qfix on" data-qfix="${x.layerId}" aria-pressed="true">✓ 고침 · 빼기</button>`
+        : qi.length ? `<button type="button" class="btn small qfix" data-qfix="${x.layerId}" aria-pressed="false">바로 고치기${applied ? ` (${applied}/${qi.length})` : ""}</button>`
+        : manual || hasItems ? `<button type="button" class="btn small" data-qopen="${x.layerId}">직접 고르기</button>`
+        : `<span class="muted">고칠 것 없음</span>`;
+      // 고친 뒤에도 '괜찮아요'가 아니면 왜 남았는지
+      let why = "";
+      if (a.level !== "low") {
+        const left = ((afterRes && afterRes.results) || []).filter((r) => r.layerId === x.layerId && r.status !== "pass" && ["size", "contrast", "weight", "font", "cvd", "colorOnly"].includes(r.check));
+        const names = [...new Set(left.map(titleOf))];
+        const notes = [];
+        const sizeBefore = S.check.results.find((r) => r.layerId === x.layerId && r.check === "size" && r.fix && r.fix.layoutWarning);
+        if (sizeBefore && !isApplied(applyFixOf(S.items.indexOf(sizeBefore)))) notes.push("키우면 다른 글자와 겹쳐서 자동으로 키우지 않았어요");
+        if (left.some((r) => r.status === "conflict")) notes.push("그림 위 글자라 그림을 가리지 않고는 못 고쳐요 → 대체텍스트·큰 글씨 안내문");
+        if (left.some((r) => r.alternative && r.alternative.type === "largePrint")) notes.push("포스터 글자로는 너무 커야 해요 → 큰 글씨 안내문");
+        if (names.length || notes.length) why = `<div class="pwhy">남은 문제: ${esc(names.join(", ") || "알아보기 어려워요")}${notes.length ? ` <span class="muted">(${esc(notes.join(" · "))})</span>` : ""}</div>`;
+        else why = `<div class="pwhy">남은 문제: ${esc(WEAK_TEXT[a.weakest])} 잘 안 보여요${a.parts && a.parts.atEdge ? " · 가장자리에 있어요" : ""}</div>`;
+      }
+      const b0 = Math.max(3, Math.round(x.legibility * 100)), b1 = Math.max(3, Math.round(a.legibility * 100));
+      return `<li data-hl="${x.layerId}">
+        <div class="phead"><span class="rk">${k + 1}</span><span class="ptxt">${esc(x.roleLabel)} · “${esc(short(x.text, 18))}”</span><span class="pact">${btn}</span></div>
+        <div class="pstate"><span class="sl">지금</span>${chip(x.level)}<span class="arr">→</span><span class="sl">고친 뒤</span>${chip(a.level)}
+          <span class="ppct">식별 쉬움 ${pct(x.legibility)} → <b>${pct(a.legibility)}</b></span></div>
+        <div class="lbar2" title="식별 쉬움 지금 ${pct(x.legibility)}, 고친 뒤 ${pct(a.legibility)}"><span class="b0 b-${x.level}" style="width:${b0}%"></span><span class="b1 b-${a.level}" style="width:${b1}%"></span></div>
+        ${why}</li>`;
+    }).join("") || '<li><span class="muted">글자가 없어요.</span></li>';
     $("heatList").querySelectorAll("[data-hl]").forEach((li) => {
       const id = +li.dataset.hl;
       li.onmouseenter = () => { document.querySelectorAll(`.hz[data-layer="${id}"]`).forEach((z) => z.classList.add("hl")); highlight(id, true); };
       li.onmouseleave = () => { document.querySelectorAll(".hz.hl").forEach((z) => z.classList.remove("hl")); highlight(id, false); };
       li.onclick = (e) => {
-        if (e.target.closest("[data-qfix]")) return;
+        if (e.target.closest("[data-qfix]")) return; // '직접 고르기'·줄 누르기 → 설명 창
         e.stopPropagation();
         if ($("heatToggle").getAttribute("aria-pressed") !== "true") toggleHeat(true);
         $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1338,6 +1379,7 @@
       };
     });
     $("heatList").querySelectorAll("[data-qfix]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); quickFix(+b.dataset.qfix); }));
+    // '직접 고르기'는 줄을 누른 것과 같아요 (지도 위 설명 창)
     // 나란히 보기면 고친 모습 칸에도 고친 뒤 지도를 그려요
     const afterCheck = chosenFixes().length && S.afterCheck && S.fixedKey === JSON.stringify(chosenFixes()) ? S.afterCheck : S.check;
     const two = S.view === "both" && !!afterCheck;
