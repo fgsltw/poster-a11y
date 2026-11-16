@@ -5,6 +5,8 @@
  *   - 글자 색 바꾸기          { layerId, type: "color", value: "#524D42" }
  *   - 글자 크기 바꾸기        { layerId, type: "size", valuePt: 18 }
  *   - 글자 뒤 배경 띠 넣기    { layerId, type: "backplate", color: "#FFFFFF", opacity: 0.85, paddingMm: 1.5 }
+ *   - 굵게 (가짜 굵게)        { layerId, type: "weight", fauxBold: true }
+ *   - 줄 간격·자간            { layerId, type: "spacing", lineHeight: 1.5, letterSpacingEm: 0 }
  *   - 레이어를 다시 합성해서 미리보기(합성 이미지)를 새로 만들기
  *
  * 원본 PSD 객체는 건드리지 않고 복사본을 고쳐서 돌려줘요.
@@ -250,6 +252,78 @@
     return "글자 크기 → " + LD.round(valuePt, 1) + "pt (×" + LD.round(factor, 2) + ")";
   }
 
+  // 굵게: 포토샵 '가짜 굵게(Faux Bold)'를 켜요. 미리보기는 글자 모양을 조금 두껍게(팽창) 그려서 근사해요.
+  function applyWeight(layer) {
+    setTextStyle(layer.text, function (s) { s.fauxBold = true; });
+    var img = layer.imageData;
+    var px = effectiveFontPx(layer.text) || 20;
+    var r = Math.max(1, Math.round(px * 0.025));
+    if (img) {
+      var W = img.width, H = img.height, nw = W + 2 * r, nh = H + 2 * r;
+      var out = new Uint8ClampedArray(nw * nh * 4);
+      for (var y = 0; y < nh; y++) {
+        for (var x = 0; x < nw; x++) {
+          var best = -1, bi = 0;
+          for (var dy = -r; dy <= r; dy++) {
+            var sy = y - r + dy;
+            if (sy < 0 || sy >= H) continue;
+            for (var dx = -r; dx <= r; dx++) {
+              if (dx * dx + dy * dy > r * r) continue;
+              var sx = x - r + dx;
+              if (sx < 0 || sx >= W) continue;
+              var si = (sy * W + sx) * 4;
+              if (img.data[si + 3] > best) { best = img.data[si + 3]; bi = si; }
+            }
+          }
+          if (best <= 0) continue;
+          var o = (y * nw + x) * 4;
+          out[o] = img.data[bi]; out[o + 1] = img.data[bi + 1]; out[o + 2] = img.data[bi + 2]; out[o + 3] = best;
+        }
+      }
+      layer.imageData = { width: nw, height: nh, data: out };
+      layer.left -= r; layer.top -= r; layer.right = layer.left + nw; layer.bottom = layer.top + nh;
+    }
+    return "가짜 굵게(Faux Bold) 켜기 — 더 굵은 글꼴(Regular·Medium)로 바꾸면 더 좋아요";
+  }
+
+  // 줄 간격(글자 크기의 배수)·자간(em). 미리보기에는 반영하지 못해요 → 포토샵에서 열면 반영돼요.
+  function applySpacing(layer, fix) {
+    var parts = [];
+    var base = layer.text.style && layer.text.style.fontSize;
+    setTextStyle(layer.text, function (s) {
+      var size = s.fontSize != null ? s.fontSize : base;
+      if (fix.lineHeight != null && size) { s.autoLeading = false; s.leading = size * fix.lineHeight; }
+      if (fix.letterSpacingEm != null) s.tracking = Math.round(fix.letterSpacingEm * 1000);
+    });
+    if (fix.lineHeight != null) parts.push("줄 간격 → 글자 크기의 " + fix.lineHeight + "배");
+    if (fix.letterSpacingEm != null) parts.push("자간 → " + Math.round(fix.letterSpacingEm * 1000) + " (" + fix.letterSpacingEm + "em)");
+    if (!parts.length) throw new Error("lineHeight 나 letterSpacingEm 이 필요해요.");
+    return parts.join(", ");
+  }
+
+  // 글자 크기를 키운 뒤: 포스터 밖으로 나가거나 다른 글자와 겹치는지
+  function layoutWarnings(psd, sizedIds) {
+    var texts = [];
+    (function walk(list) {
+      list.forEach(function (l) {
+        if (l.children) walk(l.children);
+        else if (l.text && !l.hidden && l.right > l.left) texts.push(l);
+      });
+    })(psd.children || []);
+    var out = [];
+    texts.forEach(function (l) {
+      if (sizedIds.indexOf(l.id) < 0) return;
+      var name = "'" + (l.name || l.id) + "'";
+      if (l.left < 0 || l.top < 0 || l.right > psd.width || l.bottom > psd.height) out.push(name + " 글자를 키웠더니 포스터 밖으로 나가요. 위치를 옮기거나 여러 줄로 나눠 주세요.");
+      texts.forEach(function (o) {
+        if (o === l) return;
+        var w = Math.min(l.right, o.right) - Math.max(l.left, o.left), h = Math.min(l.bottom, o.bottom) - Math.max(l.top, o.top);
+        if (w > 2 && h > 2) out.push(name + " 글자를 키웠더니 '" + (o.name || o.id) + "'와(과) 겹쳐요. 위치나 간격을 조정해 주세요.");
+      });
+    });
+    return out;
+  }
+
   function applyBackplate(found, fix, ppi, newId, isCmyk) {
     var layer = found.layer;
     var rgb = LD.hexToRgb(fix.color || "#FFFFFF");
@@ -303,6 +377,7 @@
     warnings = warnings.concat(recomposed.warnings);
 
     var nextId = maxId(psd.children || []) + 1;
+    var sizedIds = [], spacingNote = false;
     // 배경 띠는 레이어 순서를 바꾸니까 맨 마지막에 처리해요
     var ordered = fixes.filter(function (f) { return f.type !== "backplate"; }).concat(fixes.filter(function (f) { return f.type === "backplate"; }));
 
@@ -313,7 +388,12 @@
       if (!found.layer.text) { skipped.push({ fix: f, reason: "텍스트 레이어가 아니에요." }); continue; }
       try {
         if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f.value, psd.colorMode === 4) });
-        else if (f.type === "size") applied.push({ fix: f, message: applySize(found.layer, f.valuePt, ppi) });
+        else if (f.type === "size") { applied.push({ fix: f, message: applySize(found.layer, f.valuePt, ppi) }); sizedIds.push(f.layerId); }
+        else if (f.type === "weight") applied.push({ fix: f, message: applyWeight(found.layer) });
+        else if (f.type === "spacing") {
+          applied.push({ fix: f, message: applySpacing(found.layer, f) });
+          spacingNote = true;
+        }
         else if (f.type === "backplate") {
           var r = applyBackplate(found, f, ppi, nextId++, psd.colorMode === 4);
           applied.push({ fix: f, message: r.message, createdLayerId: r.layerId });
@@ -323,6 +403,8 @@
       }
     }
 
+    if (spacingNote) warnings.push("줄 간격·자간 변경은 미리보기에 보이지 않아요. 포토샵에서 파일을 열면 반영돼요.");
+    warnings = warnings.concat(layoutWarnings(psd, sizedIds));
     psd.imageData = compositePsd(psd).imageData;
     return { psd: psd, applied: applied, skipped: skipped, warnings: warnings, previewMatchesOriginal: previewMatchesOriginal };
   }

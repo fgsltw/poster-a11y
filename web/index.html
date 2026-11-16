@@ -164,6 +164,10 @@
         불투명도 <input type="number" id="fxPlateOp" value="85" min="10" max="100" style="width:60px">%
         여백 <input type="number" id="fxPad" value="1.5" step="0.5" min="0" style="width:60px">mm
         <button id="addPlate">목록에 추가</button></div>
+      <div class="row"><button id="addBold">굵게 (가짜 굵게)</button>
+        줄 간격 <input type="number" id="fxLead" value="1.5" step="0.1" min="0.8" style="width:60px">배
+        자간 <input type="number" id="fxTrack" value="0" step="0.01" style="width:60px">em
+        <button id="addSpacing">간격 목록에 추가</button></div>
       <div class="row"><button id="loadFixes">수정 목록 JSON 불러오기</button><input id="fixesFile" type="file" accept=".json" hidden>
         <span class="meta">검사 엔진(B) 결과를 docs/apply-fixes.md 형식으로</span></div>
       <ol id="fixlist" class="meta"><li>아직 수정이 없어요.</li></ol>
@@ -383,7 +387,7 @@
   // ---------------- 검사 (B 엔진)
   let lastCheck = null;
   const STATUS_CLASS = { pass: "st-pass", warn: "st-warn", fail: "st-fail", advisory: "st-adv", conflict: "st-conf" };
-  const CHECK_LABELS = { size: "글자 크기", contrast: "대비", hierarchy: "핵심 정보" };
+  const CHECK_LABELS = { size: "글자 크기", contrast: "대비", weight: "글자 굵기", spacing: "텍스트 간격", layout: "확대·배치", hierarchy: "정보 계층" };
   $("envMedium").onchange = () => { $("envDist").value = EnginePolicies.environments[$("envMedium").value].distanceM; };
 
   function engineFixToApply(r) {
@@ -423,7 +427,7 @@
       if (!list.length) return "";
       return `<h3>${label} <span class="meta">${list.length}건</span></h3>` + list.map((x) => {
         const i = r.results.indexOf(x);
-        const fix = x.fix ? `<div class="meta">제안: ${esc(fixText(x.fix))}${x.fix.contrastAfter ? ` → 대비 ${x.fix.contrastAfter}:1` : ""}${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}</div>` : "";
+        const fix = x.fix ? `<div class="meta">제안: ${esc(fixText(x.fix))}${x.fix.contrastAfter ? ` → 대비 ${x.fix.contrastAfter}:1` : ""}${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}${x.fix.layoutWarning ? `<br>⚠ ${esc(x.fix.layoutWarning)}${x.fix.maxFitPt ? ` (겹치지 않는 최대 ${x.fix.maxFitPt}pt)` : ""}` : ""}</div>` : "";
         const add = x.fix ? `<button data-add="${i}">수정 목록에 추가</button>` : "";
         return `<div class="res" data-layer="${x.layerId == null ? "" : x.layerId}">
           <span class="st ${STATUS_CLASS[x.status]}">${x.statusLabel}</span> <b>${CHECK_LABELS[x.check]}</b> ${x.text ? "· " + esc(x.text.slice(0, 22)) : ""}
@@ -464,6 +468,8 @@
     if (f.type === "color") return `글자색 ${f.value}`;
     if (f.type === "size") return `글자 크기 ${f.valuePt}pt`;
     if (f.type === "backplate") return `글자 뒤 배경 띠 ${f.color} · ${Math.round(f.opacity * 100)}%`;
+    if (f.type === "weight") return "굵게 (가짜 굵게 켜기)";
+    if (f.type === "spacing") return spacingText(f);
     return f.type;
   }
 
@@ -521,6 +527,14 @@
     paddingMm: Math.max(0, parseFloat($("fxPad").value) || 0)
   });
 
+  $("addBold").onclick = () => needLayer() && addFix({ layerId: selectedId, type: "weight", fauxBold: true });
+  $("addSpacing").onclick = () => {
+    if (!needLayer()) return;
+    const lh = parseFloat($("fxLead").value), ls = parseFloat($("fxTrack").value);
+    if (!(lh > 0) || isNaN(ls)) { $("fixstatus").textContent = "줄 간격과 자간을 숫자로 넣어 주세요."; return; }
+    addFix({ layerId: selectedId, type: "spacing", lineHeight: lh, letterSpacingEm: ls });
+  };
+
   $("loadFixes").onclick = () => needDoc() && $("fixesFile").click();
   $("fixesFile").onchange = async () => {
     const f = $("fixesFile").files[0];
@@ -539,7 +553,15 @@
     if (f.type === "color") return `글자색 ${f.value}`;
     if (f.type === "size") return `크기 ${f.valuePt}pt`;
     if (f.type === "backplate") return `배경 띠 ${f.color} · ${Math.round(f.opacity * 100)}% · 여백 ${f.paddingMm}mm`;
+    if (f.type === "weight") return "굵게";
+    if (f.type === "spacing") return spacingText(f);
     return f.type;
+  }
+  function spacingText(f) {
+    const p = [];
+    if (f.lineHeight != null) p.push(`줄 간격 ${f.lineHeight}배`);
+    if (f.letterSpacingEm != null) p.push(`자간 ${f.letterSpacingEm}em`);
+    return p.join(" · ");
   }
   function renderFixes() {
     const ol = $("fixlist");
