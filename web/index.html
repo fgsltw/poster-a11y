@@ -465,7 +465,7 @@
   }
 
   function fixText(f) {
-    if (f.type === "color") return `글자색 ${f.value}`;
+    if (f.type === "color") return colorText(f);
     if (f.type === "size") return `글자 크기 ${f.valuePt}pt`;
     if (f.type === "backplate") return `글자 뒤 배경 띠 ${f.color} · ${Math.round(f.opacity * 100)}%`;
     if (f.type === "weight") return "굵게 (가짜 굵게 켜기)";
@@ -550,12 +550,17 @@
   };
 
   function describe(f) {
-    if (f.type === "color") return `글자색 ${f.value}`;
+    if (f.type === "color") return colorText(f);
     if (f.type === "size") return `크기 ${f.valuePt}pt`;
     if (f.type === "backplate") return `배경 띠 ${f.color} · ${Math.round(f.opacity * 100)}% · 여백 ${f.paddingMm}mm`;
     if (f.type === "weight") return "굵게";
     if (f.type === "spacing") return spacingText(f);
     return f.type;
+  }
+  // 색 구간만 바꾸는 수정이면 어떤 색을 바꾸는지 보여줘요 (나머지 색은 그대로)
+  function colorText(f) {
+    if (f.runs && f.runs.length) return "글자색 " + f.runs.map((r) => `${r.from}→${r.value}`).join(", ") + " (나머지 색은 그대로)";
+    return `글자색 ${f.value}`;
   }
   function spacingText(f) {
     const p = [];

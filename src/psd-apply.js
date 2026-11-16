@@ -3,6 +3,7 @@
  *
  * 하는 일
  *   - 글자 색 바꾸기          { layerId, type: "color", value: "#524D42" }
+ *     (색 구간만)             { layerId, type: "color", value: "#524D42", runs: [{ from: "#8A8478", value: "#524D42" }] }
  *   - 글자 크기 바꾸기        { layerId, type: "size", valuePt: 18 }
  *   - 글자 뒤 배경 띠 넣기    { layerId, type: "backplate", color: "#FFFFFF", opacity: 0.85, paddingMm: 1.5 }
  *   - 굵게 (가짜 굵게)        { layerId, type: "weight", fauxBold: true }
@@ -164,35 +165,94 @@
     (text.styleRuns || []).forEach(function (r) { fn(r.style); });
   }
 
-  function applyColor(layer, hex, isCmyk) {
+  // 글자 스타일의 채우기 색 → RGB hex (psd-extract 의 colorToHex 와 같은 계산)
+  function fillHex(c) {
+    if (!c) return null;
+    if ("c" in c && "m" in c && "y" in c && "k" in c) {
+      var x = LD.cmykToRgb(c.c / 255, c.m / 255, c.y / 255, c.k / 255);
+      return LD.toHex(x.r, x.g, x.b).toUpperCase();
+    }
+    if ("r" in c && "g" in c && "b" in c) return LD.toHex(c.r, c.g, c.b).toUpperCase();
+    if ("fr" in c) {
+      var s = c.fr > 1 || c.fg > 1 || c.fb > 1 ? 1 : 255;
+      return LD.toHex(c.fr * s, c.fg * s, c.fb * s).toUpperCase();
+    }
+    return null;
+  }
+
+  // 넣을 색 준비: CMYK 문서에는 CMYK 글자색으로 (디자이너가 보는 값처럼 % 단위로 반올림)
+  function prepareColor(hex, isCmyk) {
     var rgb = LD.hexToRgb(hex);
     if (!rgb) throw new Error("색 형식이 잘못됐어요: " + hex);
-    var note = "";
-    if (isCmyk) {
-      // CMYK 문서에는 CMYK 글자색으로 넣어요. 디자이너가 보는 값처럼 % 단위로 반올림해요.
-      var ink = LD.rgbToCmyk(rgb.r, rgb.g, rgb.b);
-      var pct = LD.cmykPercent(ink);
-      var printable = LD.cmykToRgb(pct.c / 100, pct.m / 100, pct.y / 100, pct.k / 100);
-      setTextStyle(layer.text, function (s) {
-        s.fillColor = { c: (pct.c / 100) * 255, m: (pct.m / 100) * 255, y: (pct.y / 100) * 255, k: (pct.k / 100) * 255 };
-      });
-      note = " (CMYK " + pct.c + "/" + pct.m + "/" + pct.y + "/" + pct.k + ")";
-      if (ink.error > 6) note += " ⚠ 인쇄로 낼 수 없는 색이라 가장 가까운 색 " + LD.toHex(printable.r, printable.g, printable.b) + "로 바꿨어요";
-      rgb = printable;
-    } else {
-      setTextStyle(layer.text, function (s) { s.fillColor = { r: rgb.r, g: rgb.g, b: rgb.b }; });
-    }
-    // 미리보기: 글자 모양(알파)은 그대로 두고 색만 바꿔요 → 정확해요
+    if (!isCmyk) return { fill: { r: rgb.r, g: rgb.g, b: rgb.b }, rgb: rgb, note: "" };
+    var ink = LD.rgbToCmyk(rgb.r, rgb.g, rgb.b);
+    var pct = LD.cmykPercent(ink);
+    var printable = LD.cmykToRgb(pct.c / 100, pct.m / 100, pct.y / 100, pct.k / 100);
+    var note = " (CMYK " + pct.c + "/" + pct.m + "/" + pct.y + "/" + pct.k + ")";
+    if (ink.error > 6) note += " ⚠ 인쇄로 낼 수 없는 색이라 가장 가까운 색 " + LD.toHex(printable.r, printable.g, printable.b) + "로 바꿨어요";
+    return { fill: { c: (pct.c / 100) * 255, m: (pct.m / 100) * 255, y: (pct.y / 100) * 255, k: (pct.k / 100) * 255 }, rgb: printable, note: note };
+  }
+
+  /*
+   * fix.value 만 있으면 글자 전체를 그 색으로,
+   * fix.runs: [{ from: "#8A8478", value: "#6F6A5E" }] 가 있으면 그 색 구간만 바꾸고 나머지(강조색 등)는 그대로 둬요.
+   */
+  function applyColor(layer, fix, isCmyk) {
     var img = layer.imageData;
+    if (!fix.runs || !fix.runs.length) {
+      var one = prepareColor(fix.value, isCmyk);
+      setTextStyle(layer.text, function (s) { s.fillColor = one.fill; });
+      // 미리보기: 글자 모양(알파)은 그대로 두고 색만 바꿔요 → 정확해요
+      if (img) {
+        for (var i = 0; i < img.data.length; i += 4) {
+          if (img.data[i + 3] === 0) continue;
+          img.data[i] = one.rgb.r;
+          img.data[i + 1] = one.rgb.g;
+          img.data[i + 2] = one.rgb.b;
+        }
+      }
+      return "글자색 → " + fix.value.toUpperCase() + one.note;
+    }
+
+    // 색 구간별로 바꾸기
+    var map = {};
+    fix.runs.forEach(function (r) { map[String(r.from).toUpperCase()] = { value: r.value.toUpperCase(), to: prepareColor(r.value, isCmyk) }; });
+    // 바꾸기 전 글자에 있던 색들 (미리보기에서 픽셀이 어느 색 구간인지 고를 때 써요)
+    var palette = [];
+    setTextStyle(layer.text, function (s) {
+      var h = fillHex(s.fillColor);
+      if (h && palette.indexOf(h) < 0) palette.push(h);
+    });
+    var matched = {};
+    setTextStyle(layer.text, function (s) {
+      var h = fillHex(s.fillColor);
+      if (h && map[h]) { s.fillColor = map[h].to.fill; matched[h] = true; }
+    });
+    var missing = Object.keys(map).filter(function (h) { return !matched[h]; });
+    if (missing.length === Object.keys(map).length) throw new Error("바꿀 색 구간을 찾지 못했어요: " + missing.join(", "));
+
+    // 미리보기: 픽셀마다 가장 가까운 원래 색을 찾아서, 바꾸는 색이면 새 색으로 (안티앨리어싱은 알파라서 색은 그대로예요)
     if (img) {
-      for (var i = 0; i < img.data.length; i += 4) {
-        if (img.data[i + 3] === 0) continue;
-        img.data[i] = rgb.r;
-        img.data[i + 1] = rgb.g;
-        img.data[i + 2] = rgb.b;
+      var pal = palette.map(function (h) { return { hex: h, rgb: LD.hexToRgb(h) }; });
+      for (var j = 0; j < img.data.length; j += 4) {
+        if (img.data[j + 3] === 0) continue;
+        var best = null, bd = Infinity;
+        for (var k = 0; k < pal.length; k++) {
+          var dr = img.data[j] - pal[k].rgb.r, dg = img.data[j + 1] - pal[k].rgb.g, db = img.data[j + 2] - pal[k].rgb.b;
+          var d = dr * dr + dg * dg + db * db;
+          if (d < bd) { bd = d; best = pal[k].hex; }
+        }
+        var m = best && map[best];
+        if (!m) continue;
+        img.data[j] = m.to.rgb.r;
+        img.data[j + 1] = m.to.rgb.g;
+        img.data[j + 2] = m.to.rgb.b;
       }
     }
-    return "글자색 → " + hex.toUpperCase() + note;
+    var kept = palette.filter(function (h) { return !map[h]; });
+    return "글자색 " + Object.keys(matched).map(function (h) { return h + " → " + map[h].value + map[h].to.note; }).join(", ") +
+      (kept.length ? " (그대로 둔 색: " + kept.join(", ") + ")" : "") +
+      (missing.length ? " ⚠ 찾지 못한 색: " + missing.join(", ") : "");
   }
 
   // 양선형 보간으로 크기를 바꿔요 (프리멀티플라이드로 계산해서 가장자리 색 번짐을 막아요)
@@ -387,7 +447,7 @@
       if (!found) { skipped.push({ fix: f, reason: "레이어를 찾지 못했어요." }); continue; }
       if (!found.layer.text) { skipped.push({ fix: f, reason: "텍스트 레이어가 아니에요." }); continue; }
       try {
-        if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f.value, psd.colorMode === 4) });
+        if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f, psd.colorMode === 4) });
         else if (f.type === "size") { applied.push({ fix: f, message: applySize(found.layer, f.valuePt, ppi) }); sizedIds.push(f.layerId); }
         else if (f.type === "weight") applied.push({ fix: f, message: applyWeight(found.layer) });
         else if (f.type === "spacing") {

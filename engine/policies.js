@@ -39,7 +39,14 @@
       passArcmin: 15, // 이 이상이면 통과
       warnArcmin: 10, // 이 이상이면 주의, 미만이면 실패
       lowVisionAcuity: 0.3, // 저시력(시력 0.3)에서도 읽히는지 함께 알려줘요
-      readableArcminAt1_0: 5 // 시력 1.0이 읽을 수 있는 최소 글자 각도
+      readableArcminAt1_0: 5, // 시력 1.0이 읽을 수 있는 최소 글자 각도
+      // 저시력 기준을 판정에 넣을지: false 면 '참고 정보'로만 보여주고, true 면 통과·추천 크기를 저시력 기준(5′ ÷ 0.3 ≈ 16.7′)까지 올려요
+      lowVisionRequired: false,
+
+      // 역할별 기준: 주최·후원·저작권 표기처럼 '그 외' 글자는 핵심 정보보다 덜 엄격하게 봐요
+      //   secondaryRoles 의 글자는 secondaryPassArcmin 이상이면 통과, 미만이면 '참고' (자동 수정 목록에 넣지 않음)
+      secondaryRoles: ["other"],
+      secondaryPassArcmin: 10
     },
 
     // 대비: WCAG 2.x 기준 (1.4.3). 큰 글자 = 18pt 이상 또는 14pt 이상 굵은 글자

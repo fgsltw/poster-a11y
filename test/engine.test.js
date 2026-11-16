@@ -138,6 +138,7 @@ test("정책 파일만 바꿔도 판정이 바뀐다", () => {
   const loose = JSON.parse(JSON.stringify(P));
   loose.size.passArcmin = 4;
   loose.size.warnArcmin = 3;
+  loose.size.secondaryPassArcmin = 3;
   const r = E.checkDocument(fresh(), { medium: "wall" }, loose);
   assert.ok(r.results.filter((x) => x.check === "size").every((x) => x.status === "pass"));
 });
