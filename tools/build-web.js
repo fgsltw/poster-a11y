@@ -20,6 +20,7 @@ const FILES = [
   ["src/psd-extract.js", "lib/psd-extract.js"],
   ["src/psd-apply.js", "lib/psd-apply.js"],
   ["src/simulate.js", "lib/simulate.js"],
+  ["src/large-print.js", "lib/large-print.js"],
   ["engine/policies.js", "engine/policies.js"],
   ["engine/color.js", "engine/color.js"],
   ["engine/roles.js", "engine/roles.js"],
@@ -38,6 +39,7 @@ const REWRITES = [
   ['src="../src/psd-extract.js"', 'src="./lib/psd-extract.js"'],
   ['src="../src/psd-apply.js"', 'src="./lib/psd-apply.js"'],
   ['src="../src/simulate.js"', 'src="./lib/simulate.js"'],
+  ['src="../src/large-print.js"', 'src="./lib/large-print.js"'],
   ['src="../engine/', 'src="./engine/'],
   ['const SAMPLE_BASE = "../samples/";', 'const SAMPLE_BASE = "./samples/";']
 ];
@@ -54,16 +56,20 @@ function main() {
   }
 
   // index.html = 클리어 뷰(사용자 화면), dev.html = 개발자 도구
+  const used = new Set();
   for (const page of PAGES) {
     let html = fs.readFileSync(path.join(ROOT, "web", page), "utf8");
     for (const [a, b] of REWRITES) {
-      if (!html.includes(a)) throw new Error(`${page} 에서 '${a}' 를 찾지 못했어요. REWRITES 를 고쳐 주세요.`);
+      if (!html.includes(a)) continue; // 페이지마다 쓰는 스크립트가 달라요
+      used.add(a);
       html = html.split(a).join(b);
     }
     const leftover = html.match(/src="\.\.\/[^"]+"/g);
     if (leftover) throw new Error(page + " 에 바꾸지 않은 경로가 남아 있어요: " + leftover.join(", "));
     fs.writeFileSync(path.join(OUT, page), html);
   }
+  const unused = REWRITES.filter(([a]) => !used.has(a)).map(([a]) => a);
+  if (unused.length) throw new Error("어느 페이지에서도 찾지 못한 경로예요. REWRITES 를 고쳐 주세요: " + unused.join(", "));
 
   // 정적 호스팅 설정: 큰 PSD는 오래 캐시
   fs.writeFileSync(

@@ -165,10 +165,23 @@
     return img;
   }
 
+  // 백내장: 수정체가 누렇게 변해서 파란빛이 줄어들고 전체가 누렇게 보여요 (근사)
+  function applyYellowing(img, amount) {
+    var d = img.data, a = Math.min(1, Math.max(0, amount));
+    var kr = 1, kg = 1 - 0.12 * a, kb = 1 - 0.55 * a;
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] = d[i] * kr;
+      d[i + 1] = d[i + 1] * kg;
+      d[i + 2] = d[i + 2] * kb;
+    }
+    return img;
+  }
+
   /*
    * opts: {
    *   colorVision: null | "protan" | "deutan" | "tritan",
    *   contrastLoss: 0~0.8,
+   *   yellowing: 0~1 (백내장의 누런 빛),
    *   lighting: "normal" | "dim" | "dark",
    *   distanceM: 관람 거리(m), acuity: 소수 시력(예 1.0, 0.3, 0.1), ppi: 문서 해상도,
    *   maxWidth: 미리보기 최대 너비(px, 기본 1200)
@@ -188,6 +201,10 @@
       applyContrastLoss(out, Math.min(0.9, Math.max(0, opts.contrastLoss)));
       desc.push("대비 저하 " + Math.round(opts.contrastLoss * 100) + "%");
     }
+    if (opts.yellowing) {
+      applyYellowing(out, opts.yellowing);
+      desc.push("누렇게 보임");
+    }
     if (opts.lighting && opts.lighting !== "normal") {
       applyLighting(out, opts.lighting);
       desc.push(LABELS.lighting[opts.lighting]);
@@ -205,6 +222,7 @@
     applyColorVision: applyColorVision,
     applyContrastLoss: applyContrastLoss,
     applyLighting: applyLighting,
+    applyYellowing: applyYellowing,
     applyBlur: applyBlur,
     blurSigmaPx: blurSigmaPx,
     downscale: downscale,

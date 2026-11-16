@@ -1,4 +1,4 @@
-# 레이어 데이터 형식 (A → B 약속) · v0.3
+# 레이어 데이터 형식 (A → B 약속) · v0.4
 
 포토샵 연동(기술 A)이 검사 엔진(기술 B)에 넘기는 데이터예요.
 **포토샵 플러그인**과 **PSD 변환기**가 똑같은 형식을 내보내요. 그래서 B와 C는 포토샵이 없어도 PSD 변환기 결과로 먼저 개발할 수 있어요.
@@ -11,6 +11,7 @@
 
 | 버전 | 바뀐 것 |
 | --- | --- |
+| 0.4 | `font.fauxItalic`(기울임), `font.caps`(`"all"` 전부 대문자 · `"small"` 작은 대문자 · `null`) 추가 — 글꼴 가독성 검사용 |
 | 0.3 | 레이어 `spacing`(줄 수·줄 간격·자간), `origin`(글자 기준점) 추가. 기존 필드는 그대로예요 |
 | 0.2 | CMYK 지원: `document.colorMode`, 레이어 `colorSource` 추가 · 목적 정보: `purposes`, 레이어 `groupIds`·`purposeSource`, 그룹 `purpose` 추가. **기존 필드는 그대로라 0.1 코드도 그대로 동작해요** |
 | 0.1 | 처음 버전 |
@@ -19,7 +20,7 @@
 
 ```json
 {
-  "schemaVersion": "0.3",
+  "schemaVersion": "0.4",
   "source": "photoshop",
   "extractedAt": "2026-11-14T12:00:00.000Z",
   "document": {
@@ -62,7 +63,7 @@
   "sizePx": 29,
   "sizeMm": 4.91,
   "sizeDetail": { "sourcePx": 29, "transformScale": 1, "note": "..." },
-  "font": { "name": "MalgunGothic", "postScriptName": "MalgunGothic", "style": null, "fauxBold": false, "weightGuess": "regular" },
+  "font": { "name": "MalgunGothic", "postScriptName": "MalgunGothic", "style": null, "fauxBold": false, "fauxItalic": false, "caps": null, "weightGuess": "regular" },
   "color": "#8A8478",
   "colorSource": { "space": "cmyk", "cmyk": { "c": 14, "m": 16, "y": 25, "k": 46 } },
   "colorRuns": ["#8A8478"],

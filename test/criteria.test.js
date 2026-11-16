@@ -7,6 +7,7 @@ const path = require("path");
 const agPsd = require("ag-psd");
 const E = require("../engine/engine.js");
 const { extractFromPsd } = require("../src/psd-extract.js");
+const LD_VERSION = require("../plugin/lib/layer-data.js").SCHEMA_VERSION;
 const { applyFixes, findLayer, WRITE_OPTIONS } = require("../src/psd-apply.js");
 
 agPsd.initializeCanvas(
@@ -33,7 +34,7 @@ function move(l, dx, dy) {
 
 test("레이어 데이터 v0.3: 기준점과 줄·글자 간격을 담는다", () => {
   const d = fresh();
-  assert.equal(d.schemaVersion, "0.3");
+  assert.equal(d.schemaVersion, LD_VERSION);
   const l = layer(d, 6);
   assert.deepEqual(l.origin, { x: 150, y: 1520 });
   assert.equal(l.spacing.lineCount, 1);

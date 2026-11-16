@@ -21,7 +21,8 @@ tools/
   make-sample-psd.js   테스트용 샘플 포스터 PSD 만들기
   serve.js             브라우저 변환 페이지 띄우기
   build-web.js         브라우저 페이지를 배포용 폴더(dist-web/)로 묶기
-web/index.html         ★ 클리어 뷰 (사용자 화면): 올리기 → 포스터 위 번호·마우스 올리면 설명과 고친 모습 → 접근성 버전 받기
+web/index.html         ★ 클리어 뷰 (사용자 화면): 용도·보는 사람(저시력 단계) 고르기 → 올리기 → 번호를 누르면 설명과 고친 모습 → 접근성 버전·큰 글씨 안내문 받기
+src/large-print.js     큰 글씨 안내문 (A4 고대비) 글·배치·PDF 만들기
 web/dev.html           개발자 도구 (B·C용: 레이어 JSON, 검사 결과 원본, 수동 수정 목록)
 samples/               샘플 PSD (RGB, 인쇄용 CMYK), 변환 결과 JSON, 정답 값
 docs/
