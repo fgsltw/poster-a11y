@@ -160,6 +160,14 @@
 
   .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
   .compare figure { margin: 0; }
+  /* '고친 뒤' 그림 = 누르면 적용되는 버튼 */
+  .applyfig { display: block; width: 100%; margin: 0; padding: 3px; border: 2px dashed #9AB3D8; border-radius: 8px; background: var(--card); cursor: pointer; font: inherit; }
+  .applyfig:hover { border-style: solid; border-color: var(--brand); background: var(--brand-soft); }
+  .applyfig img { width: 100%; display: block; border-radius: 5px; }
+  .applyfig .figcap { display: block; font-size: 11px; margin-top: 3px; color: var(--brand); font-weight: 600; }
+  .applyfig.on { border: 3px solid var(--pass); background: var(--pass-bg); }
+  .applyfig.on .figcap { color: var(--pass); font-weight: 700; }
+  #tip .applyfig { background: transparent; }
   .compare img { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); background: #E9ECF1; }
   .compare figcaption { font-size: 11px; color: var(--sub); margin-top: 2px; text-align: center; }
   .compare .wait.side { grid-column: auto; display: grid; place-items: center; text-align: left; }
@@ -317,7 +325,7 @@
       </div>
       <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="simfx" id="simfx" aria-hidden="true"></div><div class="busy">만드는 중…</div></div>
       <p class="hint simhint" id="simhint" hidden></p>
-      <p class="hint" id="hint">번호를 누르면 설명과 고친 모습이 함께 보여요.</p>
+      <p class="hint" id="hint">번호를 누르면 설명과 고친 모습이 함께 보여요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
       <p class="docnote" id="docnote"></p>
     </section>
 
@@ -648,7 +656,7 @@
     const defaults = new Set(Engine.toApplyFixes(S.check).map((f) => f.layerId + ":" + f.type));
     S.items = S.check.results.filter((x) => x.status !== "pass");
     S.chosen = new Set();
-    S.items.forEach((x, i) => { if (x.fix && x.layerId != null && defaults.has(x.layerId + ":" + x.fix.type)) S.chosen.add(i); });
+    S.items.forEach((x, i) => { if (x.fix && x.layerId != null && x.fix.passes !== false && defaults.has(x.layerId + ":" + x.fix.type)) S.chosen.add(i); });
     numberMarks();
     renderSummary(); renderIssues(); renderMarks(); renderPurposeBox();
     if (S.view === "after") setView("before");
@@ -711,8 +719,8 @@
         const target = x.text ? `“${esc(short(x.text, 28))}”` : "포스터 전체";
         const fix = x.fix ? `<div class="fix">추천: <b>${esc(fixText(x.fix))}</b>${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}</div>`
           : x.alternative ? `<div class="fix">추천: <b>${x.alternative.type === "largePrint" ? "큰 글씨 안내문 함께 제공하기" : "대체텍스트로 같은 정보 함께 적기"}</b></div>` : "";
-        const can = x.fix && x.layerId != null && x.fix.passes !== false;
-        const apply = can ? `<label class="apply"><input type="checkbox" data-pick="${i}"${S.chosen.has(i) ? " checked" : ""}> 적용</label>` : "<span></span>";
+        const af = applyFixOf(i);
+        const apply = af ? `<label class="apply"><input type="checkbox" data-pick="${i}"${isApplied(af) ? " checked" : ""}> 적용</label>` : "<span></span>";
         const more = [];
         more.push(`<button class="linkbtn" data-cmp="${i}" aria-expanded="false">${cmpLabel(x)}</button>`);
         if (x.alternative) more.push(x.alternative.type === "largePrint" ? `<button class="linkbtn" data-lp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-alt>대체텍스트 보기</button>`);
@@ -729,16 +737,12 @@
       el.addEventListener("mouseenter", () => highlight(x.layerId, true));
       el.addEventListener("mouseleave", () => highlight(x.layerId, false));
     });
-    $("issues").querySelectorAll("[data-pick]").forEach((cb) => (cb.onchange = () => {
-      if (cb.checked) S.chosen.add(+cb.dataset.pick); else S.chosen.delete(+cb.dataset.pick);
-      updateAfterBox();
-      if (S.view === "after") setView("after");
-    }));
+    $("issues").querySelectorAll("[data-pick]").forEach((cb) => (cb.onchange = () => setApplied(+cb.dataset.pick, cb.checked)));
     $("issues").querySelectorAll("[data-cmp]").forEach((b) => (b.onclick = () => {
       const box = b.closest(".issue").querySelector(".inline");
       const open = box.hidden;
       box.hidden = !open; b.setAttribute("aria-expanded", String(open)); b.textContent = open ? "닫기" : cmpLabel(S.items[+b.dataset.cmp]);
-      if (open) { box.innerHTML = compareHtml(previewSpecOf(S.items[+b.dataset.cmp])); fillPreviews(); }
+      if (open) { box.innerHTML = compareHtml(previewSpecOf(S.items[+b.dataset.cmp]), +b.dataset.cmp); fillPreviews(); }
     }));
     $("issues").querySelectorAll("[data-alt]").forEach((b) => (b.onclick = () => { $("altBox").open = true; $("altBox").scrollIntoView({ behavior: "smooth", block: "center" }); }));
     $("issues").querySelectorAll("[data-lp]").forEach((b) => (b.onclick = openLargePrint));
@@ -826,7 +830,7 @@
         <dt>왜?</dt><dd>${esc(why(x))}</dd>
         ${x.fix ? `<dt>추천</dt><dd><b>${esc(fixText(x.fix))}</b>${x.fix.contrastAfter ? ` → 대비 ${x.fix.contrastAfter}:1` : ""}${x.fix.passes === false ? " (기준에는 못 미쳐요)" : ""}</dd>` : ""}
         ${x.alternative ? `<dt>대신</dt><dd>${esc(x.alternative.notice)} ${x.alternative.type === "largePrint" ? `<button class="linkbtn" data-poplp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-popalt>대체텍스트 보기</button>`}</dd>` : ""}</dl>`;
-      html += compareHtml(previewSpecOf(x));
+      html += compareHtml(previewSpecOf(x), S.items.indexOf(x));
       html += `</section>`;
     });
     return html;
@@ -922,16 +926,32 @@
   const cmpLabel = (x) => (["none", "field"].includes((previewSpecOf(x) || {}).kind) ? "지금 모습 보기" : "고친 모습 비교");
 
   function fig(src, cap) { return `<figure><img src="${src}" alt="${esc(cap)}"><figcaption>${esc(cap)}</figcaption></figure>`; }
-  function compareHtml(spec) {
+  // '고친 뒤' 그림: 누르면 이 수정을 적용 목록에 넣고 빼요
+  function applyFig(src, cap, i) {
+    const f = applyFixOf(i), on = f && isApplied(f);
+    return `<button type="button" class="applyfig${on ? " on" : ""}" data-apply-i="${i}" aria-pressed="${on}" data-cap="${esc(cap)}">` +
+      `<img src="${src}" alt="${esc(cap)}"><span class="figcap">${on ? "✓ 적용됨 · 눌러서 빼기" : esc(cap) + " · 눌러서 적용"}</span></button>`;
+  }
+  function compareHtml(spec, i) {
     if (!spec) return "";
     const key = JSON.stringify(spec);
     const p = S.previews.get(key);
     const label = spec.label ? `<div class="plabel">${esc(spec.label)}</div>` : "";
-    if (!p) return `<div class="cmpwrap" data-pending="${esc(key)}">${label}<div class="compare"><div class="wait">고친 모습을 만드는 중…</div></div></div>`;
+    const idx = i == null || i < 0 ? null : i;
+    const canApply = idx != null && !!applyFixOf(idx);
+    if (!p) return `<div class="cmpwrap" data-pending="${esc(key)}"${idx != null ? ` data-i="${idx}"` : ""}>${label}<div class="compare"><div class="wait">고친 모습을 만드는 중…</div></div></div>`;
     let h = `<div class="cmpwrap">${label}<div class="compare">`;
     if (p.before) h += fig(p.before, p.beforeCaption || "지금");
-    if (p.after) h += fig(p.after, p.afterCaption || "고친 뒤");
-    if (p.note) h += `<div class="wait${p.before && !p.after ? " side" : ""}">${esc(p.note)}</div>`;
+    if (p.after) {
+      if (canApply) h += applyFig(p.after, p.afterCaption || "고친 뒤", idx);
+      else if (spec.kind === "handout" && idx != null) h += `<button type="button" class="applyfig" data-open-lp><img src="${p.after}" alt="큰 글씨 안내문"><span class="figcap">${esc(p.afterCaption || "큰 글씨 안내문")} · 눌러서 만들기</span></button>`;
+      else h += fig(p.after, p.afterCaption || "고친 뒤");
+    }
+    if (p.note) {
+      // 그림으로 보여줄 수 없는 수정(줄 간격·자간)도 버튼으로 적용할 수 있어요
+      const btn = canApply && !p.after ? `<br><button type="button" class="btn small applybtn" data-apply-i="${idx}">${isApplied(applyFixOf(idx)) ? "✓ 적용됨 · 빼기" : "이 수정 적용"}</button>` : "";
+      h += `<div class="wait${p.before && !p.after ? " side" : ""}">${esc(p.note)}${btn}</div>`;
+    }
     return h + `</div></div>`;
   }
 
@@ -947,7 +967,7 @@
       catch (e) { console.error(e); S.previews.set(key, { note: "미리보기를 만들지 못했어요: " + e.message }); }
       document.querySelectorAll(`[data-pending]`).forEach((el) => {
         if (el.dataset.pending !== key) return;
-        el.outerHTML = compareHtml(JSON.parse(key));
+        el.outerHTML = compareHtml(JSON.parse(key), el.dataset.i != null ? +el.dataset.i : null);
       });
       if (tipFor) placeTip(tipFor);
       placePop();
@@ -1080,16 +1100,60 @@
   }
 
   // ------------------------------------------------------------------ 전체 보기 (원본 / 고친 모습)
+  // 항목 i 를 적용하면 넣을 수정 (비교 그림에서 보여준 바로 그 수정)
+  function applyFixOf(i) {
+    const x = S.items[i];
+    if (!x) return null;
+    const spec = previewSpecOf(x);
+    return spec && spec.kind === "fix" ? spec.fix : null;
+  }
+  const fixKey = (f) => JSON.stringify(f);
+  const slotOf = (f) => f.layerId + ":" + f.type; // 한 글자에 같은 종류 수정은 하나만
   function chosenFixes() {
     const seen = new Set(), out = [];
     [...S.chosen].sort((a, b) => a - b).forEach((i) => {
-      Engine.toApplyFixes({ results: [S.items[i]] }, { includeAdvisory: true }).forEach((f) => {
-        const k = f.layerId + ":" + f.type;
-        if (!seen.has(k)) { seen.add(k); out.push(f); }
-      });
+      const f = applyFixOf(i);
+      if (f && !seen.has(slotOf(f))) { seen.add(slotOf(f)); out.push(f); }
     });
     return out;
   }
+  function isApplied(f) { return !!f && chosenFixes().some((c) => fixKey(c) === fixKey(f)); }
+  // 항목 i 의 수정을 넣거나 빼요. 같은 글자의 같은 종류 수정(예: 크기)은 새 것으로 바꿔요.
+  function setApplied(i, on) {
+    const f = applyFixOf(i);
+    if (!f) return;
+    [...S.chosen].forEach((j) => {
+      const g = applyFixOf(j);
+      if (g && slotOf(g) === slotOf(f) && (on ? j !== i : true)) S.chosen.delete(j);
+    });
+    if (on) S.chosen.add(i);
+    refreshApplied();
+  }
+  function refreshApplied() {
+    document.querySelectorAll("[data-pick]").forEach((cb) => { cb.checked = isApplied(applyFixOf(+cb.dataset.pick)); });
+    document.querySelectorAll(".applyfig[data-apply-i]").forEach((b) => {
+      const on = isApplied(applyFixOf(+b.dataset.applyI));
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", String(on));
+      b.querySelector(".figcap").textContent = on ? "✓ 적용됨 · 눌러서 빼기" : b.dataset.cap + " · 눌러서 적용";
+    });
+    document.querySelectorAll(".applybtn[data-apply-i]").forEach((b) => {
+      b.textContent = isApplied(applyFixOf(+b.dataset.applyI)) ? "✓ 적용됨 · 빼기" : "이 수정 적용";
+    });
+    updateAfterBox();
+    if (S.view === "after") setView("after");
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-apply-i]");
+    if (b) {
+      const i = +b.dataset.applyI;
+      setApplied(i, !isApplied(applyFixOf(i)));
+      const f = applyFixOf(i);
+      $("status").textContent = isApplied(f) ? `수정을 적용 목록에 넣었어요: ${fixText(f)}. '고친 모습 보기'로 전체를 확인하세요.` : `수정을 적용 목록에서 뺐어요: ${fixText(f)}`;
+      return;
+    }
+    if (e.target.closest("[data-open-lp]")) { closePop(); openLargePrint(); }
+  });
 
   function ensureFixed() {
     const fixes = chosenFixes();
@@ -1137,7 +1201,7 @@
       }, 30);
     } else {
       drawPoster(S.psd.imageData);
-      $("hint").textContent = "번호를 누르면 설명과 고친 모습이 함께 보여요.";
+      $("hint").textContent = "번호를 누르면 설명과 고친 모습이 함께 보여요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
     }
   }
   document.querySelectorAll("input[name=view]").forEach((r) => (r.onchange = () => setView(r.value)));
