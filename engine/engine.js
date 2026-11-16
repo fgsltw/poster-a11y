@@ -762,6 +762,8 @@
    * 검사 결과 → A 의 수정 목록 (docs/apply-fixes.md)
    *   기본: 실패·주의·충돌 중 기준을 넘는 수정(passes: true)만. 예술 '참고'는 opts.includeAdvisory 로.
    *   한 레이어에 같은 종류 수정이 여럿이면 처음 것만.
+   *   키우면 다른 글자와 겹치거나 포스터 밖으로 나가는 크기 수정(fix.layoutWarning)은 기본으로 빼요.
+   *     → 디자이너가 위치를 옮긴 뒤 직접 켜도록. 넣으려면 opts.includeLayoutConflicts.
    */
   function toApplyFixes(result, opts) {
     opts = opts || {};
@@ -771,6 +773,7 @@
       if (r.fix.passes === false && !opts.includeFailing) return;
       if (r.status === "pass") return;
       if (r.status === "advisory" && !opts.includeAdvisory) return;
+      if (r.fix.layoutWarning && !opts.includeLayoutConflicts) return;
       var key = r.layerId + ":" + r.fix.type;
       if (seen[key]) return;
       seen[key] = true;

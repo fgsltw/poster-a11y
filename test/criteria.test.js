@@ -213,3 +213,16 @@ test("검사 → 굵게·간격 수정 적용 → 다시 검사하면 해당 '�
   assert.equal(of(again, 6, "weight").length, 0);
   assert.equal(of(again, 10, "spacing").length, 0);
 });
+
+test("③ 키우면 겹치는 크기 수정은 '모두 적용' 기본 목록에서 빠지고, 옵션으로 넣을 수 있다", () => {
+  const d = fresh();
+  move(layer(d, 8), 0, -50); // 장소를 일시 바로 아래로 → 둘 다 키우면 겹쳐요
+  const r = E.checkDocument(d, { medium: "wall" });
+  const warned = r.results.filter((x) => x.check === "size" && x.fix && x.fix.layoutWarning).map((x) => x.layerId);
+  assert.ok(warned.length > 0);
+  const def = E.toApplyFixes(r).filter((f) => f.type === "size").map((f) => f.layerId);
+  for (const id of warned) assert.ok(!def.includes(id), `겹치는 레이어 ${id}는 기본에서 빠져요`);
+  assert.ok(def.length > 0, "겹치지 않는 크기 수정은 그대로");
+  const all = E.toApplyFixes(r, { includeLayoutConflicts: true }).filter((f) => f.type === "size").map((f) => f.layerId);
+  for (const id of warned) assert.ok(all.includes(id));
+});
