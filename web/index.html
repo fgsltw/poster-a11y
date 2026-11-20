@@ -29,6 +29,41 @@
   .top p { margin: 0; color: var(--sub); font-size: 14px; flex: 1; min-width: 200px; }
   .top a.dev { color: var(--sub); font-size: 13px; }
 
+  /* 홈 화면 */
+  .home { max-width: 1040px; margin: 0 auto; padding: 40px 16px 56px; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 40px; align-items: center; }
+  @media (max-width: 820px) { .hero { grid-template-columns: 1fr; gap: 24px; } }
+  @media (max-width: 600px) { .hero h1 { font-size: 26px; } .home { padding-top: 24px; } }
+  .hero h1 { font-size: 34px; line-height: 1.3; margin: 0 0 12px; letter-spacing: -0.03em; }
+  .hero .lead { font-size: 17px; color: var(--sub); margin: 0 0 24px; }
+  .hero .cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .hero .cta .btn, .home .end .btn { padding: 12px 22px; font-size: 16px; border-radius: 10px; }
+  .hero .fine { margin: 14px 0 0; font-size: 13px; color: var(--sub); }
+  .demo { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; min-width: 0; }
+  .demo .eyes { display: flex; gap: 6px; margin-bottom: 10px; }
+  .cmp { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 720 / 1018; background: #DDE1E7; user-select: none; touch-action: pan-y; }
+  .cmp img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+  .cmp .after { clip-path: inset(0 0 0 var(--cut, 50%)); }
+  .cmp .divider { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 3px; margin-left: -1.5px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); pointer-events: none; }
+  .cmp .knob { position: absolute; top: 50%; left: var(--cut, 50%); width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: #fff; border: 2px solid var(--brand); display: grid; place-items: center; color: var(--brand); font-weight: 700; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .cmp .tag { position: absolute; top: 10px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: rgba(29,36,48,.85); color: #fff; pointer-events: none; }
+  .cmp .tag.l { left: 10px; } .cmp .tag.r { right: 10px; background: var(--pass); }
+  .cmp input[type=range] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+  .cmp:has(input:focus-visible) { outline: 4px solid #0B3D91; outline-offset: 2px; box-shadow: 0 0 0 8px #FFD400; }
+  .demo .cap { margin: 10px 2px 0; font-size: 14px; color: var(--sub); }
+  .demo .cap b { color: var(--ink); }
+  .home h2 { font-size: 22px; margin: 56px 0 6px; letter-spacing: -0.02em; }
+  .home .sub2 { color: var(--sub); margin: 0 0 18px; }
+  .who { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .who div, .how li { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+  .who b, .how b { display: block; font-size: 17px; margin-bottom: 4px; }
+  .who p, .how p { margin: 0; color: var(--sub); font-size: 14px; }
+  .who .num { display: block; font-size: 13px; color: var(--brand); font-weight: 700; margin-bottom: 6px; }
+  .how { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; counter-reset: how; }
+  .how li { counter-increment: how; }
+  .how li::before { content: counter(how); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 700; margin-bottom: 8px; }
+  .home .end { margin-top: 40px; text-align: center; }
+
   /* 시작 화면 */
   .start { max-width: 640px; margin: 48px auto; padding: 0 16px; text-align: center; }
   .start h1 { font-size: 26px; margin: 0 0 8px; letter-spacing: -0.02em; }
@@ -64,10 +99,6 @@
   .fieldrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; flex-wrap: wrap; }
   .fieldrow > span:first-child { color: var(--sub); }
   .use-unsure { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px; font-size: 14px; color: var(--sub); cursor: pointer; }
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; text-align: left; }
-  .steps div { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; color: var(--sub); }
-  .steps b { display: block; color: var(--ink); margin-bottom: 2px; }
-  @media (max-width: 600px) { .steps { grid-template-columns: 1fr; } }
 
   /* 버튼 */
   .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; }
@@ -297,8 +328,55 @@
   <a class="dev" href="./dev.html">개발자 도구</a>
 </header>
 
+<!-- 0. 홈 -->
+<main class="home" id="home">
+  <section class="hero" aria-labelledby="homeTitle">
+    <div>
+      <h1 id="homeTitle">이 포스터,<br>누구나 읽을 수 있나요?</h1>
+      <p class="lead">눈이 잘 안 보이는 사람에게 포스터가 어떻게 보이는지 확인하고, 읽히도록 고쳐 드려요. 포토샵 파일(PSD)을 올리면 돼요.</p>
+      <div class="cta">
+        <button class="btn primary" type="button" id="goStart">내 포스터 확인하기</button>
+        <button class="btn" type="button" id="goSample">샘플로 해보기</button>
+      </div>
+      <p class="fine">설치 없이 브라우저에서 바로 써요. 파일은 서버로 올라가지 않아요.</p>
+    </div>
+    <figure class="demo" aria-labelledby="demoCap">
+      <div class="eyes seg" role="radiogroup" aria-label="어떤 눈으로 볼까요">
+        <label><input type="radio" name="demoEye" value="low" checked><span>저시력자 눈으로</span></label>
+        <label><input type="radio" name="demoEye" value="normal"><span>보통 눈으로</span></label>
+      </div>
+      <div class="cmp" id="cmp">
+        <img id="demoBefore" src="home/before-low.jpg" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜와 영문 제목이 흐려서 읽기 어려워요.">
+        <img id="demoAfter" class="after" src="home/after-low.jpg" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜가 커지고 제목 뒤에 배경 띠가 생겨 읽을 수 있어요.">
+        <span class="divider"></span><span class="knob" aria-hidden="true">⇆</span>
+        <span class="tag l">원본</span><span class="tag r">고친 뒤</span>
+        <input type="range" id="cmpRange" min="0" max="100" value="50" aria-label="원본과 고친 뒤 비교. 왼쪽으로 밀면 고친 뒤가 더 보여요">
+      </div>
+      <figcaption class="cap" id="demoCap"><b>가운데 손잡이를 좌우로 밀어 보세요.</b> <span id="demoNote">시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜(“11월 8일 단 하루”)와 영문 제목이 흐려서 안 읽혀요. 고치면 읽혀요.</span></figcaption>
+    </figure>
+  </section>
+
+  <h2>누구를 위한 건가요?</h2>
+  <p class="sub2">포스터는 많은 사람이 보지만, 모두에게 똑같이 보이지는 않아요.</p>
+  <div class="who">
+    <div><span class="num">시력 0.3 이하</span><b>저시력인 사람</b><p>안경을 써도 잘 안 보여요. 글자가 작거나 배경과 색이 비슷하면 가까이 가도 못 읽어요.</p></div>
+    <div><span class="num">색을 다르게 봐요</span><b>색각이상인 사람</b><p>빨강과 초록처럼 색만 다르게 강조한 정보는 구분하지 못할 수 있어요.</p></div>
+    <div><span class="num">시야 10° 이하</span><b>시야가 좁은 사람</b><p>한 번에 보이는 범위가 좁아요. 정보가 흩어져 있으면 찾다가 놓쳐요.</p></div>
+    <div><span class="num">만드는 사람</span><b>디자이너</b><p>접근성 기준을 몰라도 괜찮아요. 어디를 얼마나 고치면 되는지 고친 모습으로 보여드려요.</p></div>
+  </div>
+
+  <h2>이렇게 진행돼요</h2>
+  <p class="sub2">3단계면 끝나요.</p>
+  <ol class="how">
+    <li><b>올리기</b><p>포스터 용도와 보는 사람을 고르고 PSD를 올려요.</p></li>
+    <li><b>고치기</b><p>잘 안 보이는 글자를 알려드려요. 고친 모습을 원본 옆에서 보고 골라요.</p></li>
+    <li><b>받기</b><p>고친 포스터를 PSD·이미지로 받아요. 필요하면 큰 글씨 안내문도 만들어요.</p></li>
+  </ol>
+  <div class="end"><button class="btn primary" type="button" id="goStart2">내 포스터 확인하기</button></div>
+</main>
+
 <!-- 1. 시작 -->
-<section class="start" id="start">
+<section class="start" id="start" hidden>
   <h1>포스터 접근성을 확인해 볼까요?</h1>
   <p>글자 크기, 대비, 간격, 정보 배치를 검사하고 고칠 방법을 알려드려요.</p>
   <fieldset class="usage">
@@ -340,11 +418,6 @@
   </div>
   <p class="privacy">파일은 이 브라우저 안에서만 처리돼요. 서버로 올라가지 않아요.</p>
   <p class="status" id="startStatus" role="status"></p>
-  <div class="steps">
-    <div><b>1. 올리기</b>용도를 고르고 PSD 파일을 넣으면 글자 레이어를 읽어요.</div>
-    <div><b>2. 확인하기</b>문제가 있는 곳에 번호가 붙어요. 번호를 누르면 설명과 고친 모습이 함께 보여요.</div>
-    <div><b>3. 고치기</b>고친 모습을 미리 보고, 접근성 버전을 PSD나 이미지로 받아요.</div>
-  </div>
 </section>
 
 <!-- 2. 검사 화면 -->
@@ -656,6 +729,35 @@
   window.addEventListener("scroll", () => hideTip(), { passive: true });
   document.querySelectorAll("[data-help]").forEach((b) => bindTip(b, () => HELP[b.dataset.help]));
 
+  // ------------------------------------------------------------------ 홈
+  // 주소 끝이 #start 면 시작 화면, 아니면 홈 (뒤로 가기로 홈에 돌아올 수 있어요)
+  function route() {
+    if (!$("work").hidden) return; // 검사 중에는 그대로
+    const start = location.hash === "#start";
+    $("home").hidden = start; $("start").hidden = !start;
+    window.scrollTo(0, 0);
+    if (start) $("start").querySelector("h1").focus({ preventScroll: true });
+  }
+  window.addEventListener("hashchange", route);
+  $("start").querySelector("h1").tabIndex = -1;
+  const goStart = () => { if (location.hash === "#start") route(); else location.hash = "start"; };
+  $("goStart").onclick = goStart; $("goStart2").onclick = goStart;
+  $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-poster.psd"]').click(); };
+  route();
+  // 원본 ↔ 고친 뒤 비교 손잡이
+  const cmpSet = () => $("cmp").style.setProperty("--cut", $("cmpRange").value + "%");
+  $("cmpRange").addEventListener("input", cmpSet); cmpSet();
+  const DEMO = {
+    low: { note: "시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜(“11월 8일 단 하루”)와 영문 제목이 흐려서 안 읽혀요. 고치면 읽혀요.", before: "원본 포스터를 시력 0.3인 사람이 본 모습. 날짜와 영문 제목이 흐려서 읽기 어려워요.", after: "고친 포스터를 시력 0.3인 사람이 본 모습. 날짜가 커지고 제목 뒤에 배경 띠가 생겨 읽을 수 있어요." },
+    normal: { note: "보통 눈으로 보면 차이가 작아요. 디자인은 거의 그대로 두고, 글자 크기·밝기·배경 띠만 조금 바꿨어요.", before: "원본 포스터", after: "고친 포스터. 날짜가 커지고 제목 뒤에 배경 띠가 생겼어요." }
+  };
+  document.querySelectorAll("input[name=demoEye]").forEach((r) => (r.onchange = () => {
+    const d = DEMO[r.value], sfx = r.value === "low" ? "-low" : "";
+    $("demoBefore").src = `home/before${sfx}.jpg`; $("demoBefore").alt = d.before;
+    $("demoAfter").src = `home/after${sfx}.jpg`; $("demoAfter").alt = d.after;
+    $("demoNote").textContent = d.note;
+  }));
+
   // ------------------------------------------------------------------ 파일 읽기
   const drop = $("drop"), input = $("file");
   drop.onclick = () => input.click();
@@ -691,7 +793,7 @@
       }
       S.doc = PsdExtract.extractFromPsd(psd, { fileName: file.name });
       if (!S.doc.layers.length) throw new Error("글자 레이어를 찾지 못했어요. 글자가 이미지로 되어 있으면 검사할 수 없어요.");
-      $("start").hidden = true; $("work").hidden = false;
+      $("home").hidden = true; $("start").hidden = true; $("work").hidden = false;
       $("fileName").textContent = file.name;
       ["stage", "stageAfter"].forEach((id) => $(id).style.setProperty("--ar", String(S.doc.document.widthPx / S.doc.document.heightPx)));
       $("purpose").value = S.purposeInfo.document || "";
