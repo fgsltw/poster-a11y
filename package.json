@@ -9,7 +9,8 @@
     "web": "node tools/serve.js",
     "apply": "node tools/apply-fixes.js",
     "purpose": "node tools/set-purpose.js",
-    "build:web": "node tools/build-web.js"
+    "build:web": "node tools/build-web.js",
+    "home-demo": "node tools/make-home-demo.js"
   },
   "type": "commonjs",
   "dependencies": {

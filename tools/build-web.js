@@ -26,7 +26,11 @@ const FILES = [
   ["engine/roles.js", "engine/roles.js"],
   ["engine/engine.js", "engine/engine.js"],
   ["samples/sample-poster.psd", "samples/sample-poster.psd"],
-  ["samples/sample-poster-cmyk.psd", "samples/sample-poster-cmyk.psd"]
+  ["samples/sample-poster-cmyk.psd", "samples/sample-poster-cmyk.psd"],
+  ["web/home/before.jpg", "home/before.jpg"],
+  ["web/home/after.jpg", "home/after.jpg"],
+  ["web/home/before-low.jpg", "home/before-low.jpg"],
+  ["web/home/after-low.jpg", "home/after-low.jpg"]
 ];
 
 const PAGES = ["index.html", "dev.html"];
