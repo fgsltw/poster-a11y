@@ -183,7 +183,7 @@
   .mark.fixed .pin::after { content: "✓"; position: absolute; right: -8px; top: -8px; width: 16px; height: 16px; border-radius: 50%; background: #fff; color: var(--pass); font-size: 11px; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
   /* 처음 한 번: 1번 옆에 '눌러 보세요' 말풍선 */
   .mark.coach::after { content: "눌러 보세요"; position: absolute; left: calc(var(--px, 0px) + 24px); top: 50%; transform: translateY(-50%); background: #1D2430; color: #fff; padding: 5px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.35); pointer-events: none; animation: coachBob 1.2s ease-in-out infinite alternate; z-index: 2; }
-  @keyframes coachBob { from { margin-left: 0; } to { margin-left: 6px; } }
+  @keyframes coachBob { from { translate: 0 0; } to { translate: 6px 0; } }
   @media (prefers-reduced-motion: reduce) { .mark .pin, .mark.coach::after { animation: none !important; } }
   .mark.s-fail .pin, .mark.s-conflict .pin { background: var(--fail); }
   .mark.s-warn .pin { background: #B87400; }
@@ -247,7 +247,8 @@
   .lead2 { margin: 6px 0 0 !important; color: var(--ink) !important; font-size: 15px !important; }
   .fixprog { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-size: 14px; font-weight: 600; }
   .fixprog .pbar { flex: 1; height: 10px; background: #E5E9EF; border-radius: 5px; overflow: hidden; }
-  .fixprog .pbar span { display: block; height: 100%; background: var(--pass); border-radius: 5px; transition: width .3s; }
+  .fixprog .pbar span { display: block; height: 100%; width: 100% !important; background: var(--pass); border-radius: 5px; transform-origin: left center; transform: scaleX(var(--p, 0)); transition: transform .3s; }
+  @media (prefers-reduced-motion: reduce) { .fixprog .pbar span { transition: none; } }
   .cond { margin-top: 10px !important; font-size: 13px !important; }
   .pinkey { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; font-size: 13px; color: var(--sub); }
   .pinkey i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 5px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
@@ -351,7 +352,7 @@
   #tip .compare .wait { background: #2A3342; color: #C8D2E0; }
 
   /* ================================================================ 디자인 층 */
-  html { scroll-padding-top: 80px; } /* 고정된 단계 줄이 초점 받은 요소를 가리지 않게 */
+  html { scroll-padding-top: 80px; scroll-padding-bottom: 96px; } /* 고정된 단계 줄이 초점 받은 요소를 가리지 않게 */
   .skip { position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--signal); color: var(--navy); font-weight: 800; padding: 10px 16px; border-radius: 999px; border: 2px solid var(--navy); }
   .skip:focus { top: 12px; }
   /* 화면을 바꿀 때 제목·영역으로 옮기는 초점(누를 수 없는 곳)은 테두리를 그리지 않아요 */
@@ -504,7 +505,7 @@
   .gdots li.seen { border-color: var(--navy); }
   .gdots li.done { background: var(--pass); border-color: var(--pass); }
   .gdots li.cur { background: var(--signal); border-color: var(--navy); transform: scale(1.3); }
-  .guide #popTitle { font-size: 19px; margin: 12px 0 4px; display: flex; gap: 8px; align-items: center; color: var(--navy); }
+  .guide #guideTitle { font-size: 19px; margin: 12px 0 4px; display: flex; gap: 8px; align-items: center; color: var(--navy); }
   .guide .pnum { width: 30px; height: 30px; font-size: 14px; font-weight: 800; background: var(--navy) !important; border: 3px solid var(--signal); }
   .guide .pitem { padding: 10px 0; border-top: 1px solid var(--line); }
   .guide .pitem:first-of-type { border-top: 0; }
@@ -739,7 +740,8 @@
     </section>
 
     <section class="card panel" aria-label="검사 결과">
-      <div class="summary" id="summary" aria-live="polite"></div>
+      <div class="summary" id="summary"></div>
+      <p class="sr" id="guideLive" aria-live="polite"></p>
       <details class="more-box heatbox" id="heatBox" hidden>
         <summary>정보 전달 지도 · 어디부터 볼까요?</summary>
         <p class="note" style="margin:8px 0 0;color:var(--sub);font-size:12px">줄마다 <b>지금 → 고친 뒤</b>를 보여줘요. '바로 고치기'는 그 글자의 추천 수정을 한 번에 넣고, '직접 고르기'(또는 줄 누르기)는 지도 위에서 설명 창을 열어요.</p>
@@ -786,7 +788,7 @@
       </div>
       <button class="help" type="button" data-help="medium" aria-label="쓰는 곳 설명">?</button>
     </div>
-    <div class="field"><label for="dist">관람 거리</label><input type="number" id="dist" value="0.35" step="0.05" min="0.1"> m
+    <div class="field"><label for="dist">관람 거리</label><input type="number" id="dist" name="distance" inputmode="decimal" autocomplete="off" value="0.35" step="0.05" min="0.1"> m
       <button class="help" type="button" data-help="distance" aria-label="관람 거리 설명">?</button></div>
     <div class="field"><label for="purpose">목적</label>
       <select id="purpose">
@@ -865,7 +867,7 @@
           <span class="divider"></span><span class="knob" aria-hidden="true">⇆</span>
           <span class="tag l">원본</span><span class="tag r">고친 뒤</span>
           <input type="range" id="finRange" min="0" max="100" value="50" aria-label="원본과 고친 뒤 비교. 왼쪽으로 밀면 고친 뒤가 더 보여요">
-          <div class="finbusy" id="finBusy" hidden>만드는 중…</div>
+          <div class="finbusy" id="finBusy" role="status" hidden>만드는 중…</div>
         </div>
         <figcaption class="fincap" id="finCap"></figcaption>
       </figure>
@@ -1027,19 +1029,25 @@
   document.querySelector(".skip").onclick = (e) => {
     e.preventDefault();
     const t = ["finish", "work", "start", "home"].map($).find((el) => !el.hidden);
+    if (t && t.id === "home") { t.focus(); return; }
     if (t) { if (!t.hasAttribute("tabindex")) t.tabIndex = -1; t.focus(); t.scrollIntoView(); }
   };
 
   // ------------------------------------------------------------------ 홈
   // 주소 끝이 #start 면 시작 화면, 아니면 홈 (뒤로 가기로 홈에 돌아올 수 있어요)
   function route() {
-    if (!$("work").hidden || !$("finish").hidden) return; // 검사 중에는 그대로
-    const start = location.hash === "#start";
-    $("home").hidden = start; $("start").hidden = !start;
+    const h = location.hash;
+    if (S.doc && h === "#fix") { if ($("work").hidden) { if (!$("start").hidden) applyPrep(); showWork(); } return; }
+    if (S.doc && h === "#get") { if ($("finish").hidden) { if (!$("start").hidden) applyPrep(); showFinish(); } return; }
+    if (h === "#start" || ((h === "#fix" || h === "#get") && !S.doc)) { if ($("start").hidden) showPrep(); return; }
+    if (!$("home").hidden) return;
+    ["start", "work", "finish"].forEach((id) => ($(id).hidden = true)); $("home").hidden = false;
     window.scrollTo(0, 0);
-    if (start) $("start").querySelector("h1").focus({ preventScroll: true });
   }
+  // 화면을 바꿀 때 주소에 단계를 남겨요 (같으면 그대로)
+  const markStep = (h) => { if (location.hash !== "#" + h) history.pushState(null, "", "#" + h); };
   window.addEventListener("hashchange", route);
+  window.addEventListener("popstate", route);
   $("start").querySelector("h1").tabIndex = -1;
   const goStart = () => { if (location.hash === "#start") route(); else location.hash = "start"; };
   $("goStart").onclick = goStart; $("goStart2").onclick = goStart;
@@ -1062,16 +1070,7 @@
   // 단계 표시줄: 1 준비(파일·보는 사람 다시 고르기) · 2 고치기(포스터) · 3 받기(내려받기)
   document.querySelectorAll(".stepbtn").forEach((b) => (b.onclick = () => {
     const go = b.dataset.go;
-    if (go === "prep") {
-      if (!$("work").hidden || !$("finish").hidden) {
-        const set = (n, val) => { const r = document.querySelector(`input[name=${n}][value="${val}"]`); if (r) r.checked = true; };
-        set("viewer0", $("viewer").value); set("field0", $("field").value); set("medium0", medium());
-        set("usage", ["info", "art"].includes(S.purposeInfo.document) ? S.purposeInfo.document : "");
-        prepSum();
-        $("work").hidden = true; $("finish").hidden = true; $("start").hidden = false; $("home").hidden = true; window.scrollTo(0, 0);
-      }
-      return;
-    }
+    if (go === "prep") { if ($("start").hidden) showPrep(); return; }
     if (!S.doc) { // 아직 파일이 없으면 준비 단계에 머물러요
       $("startStatus").textContent = "먼저 포스터 파일을 올려 주세요.";
       $("drop").focus();
@@ -1084,26 +1083,43 @@
   }));
 
   // 준비 화면에서 바꾼 것을 지금 파일에 반영 (다시 검사)
+  // 바뀐 게 없으면 다시 검사하지 않아요 (다시 검사하면 넣은 수정이 처음으로 돌아가요)
   function applyPrep() {
     if (!S.doc) return;
     const v = (n) => document.querySelector(`input[name=${n}]:checked`).value;
+    const curUsage = ["info", "art"].includes(S.purposeInfo.document) ? S.purposeInfo.document : null;
+    if (v("viewer0") === $("viewer").value && v("field0") === $("field").value && v("medium0") === medium() && (v("usage") || null) === curUsage) return;
     $("viewer").value = v("viewer0"); $("field").value = v("field0");
     const m0 = v("medium0");
-    document.querySelector(`input[name=medium][value=${m0}]`).checked = true;
-    $("dist").value = EnginePolicies.environments[m0].distanceM;
+    if (m0 !== medium()) { document.querySelector(`input[name=medium][value=${m0}]`).checked = true; $("dist").value = EnginePolicies.environments[m0].distanceM; }
     syncSimAcuity(); updateSimFx();
     const usage = v("usage") || null;
     if (usage && usage !== S.purposeInfo.document) { S.purposeInfo.document = usage; purposesChanged(); } // purposesChanged 가 다시 검사해요
     else runCheck();
   }
   // 받기 버튼·상태 줄·큰 글씨·대체텍스트는 보이는 화면으로 옮겨 다녀요 (한 벌만 두고 같이 써요)
+  // 준비 화면 (파일이 있으면 지금 설정을 채워 둬요)
+  function showPrep() {
+    if (S.doc) {
+      const set = (n, val) => { const r = document.querySelector(`input[name=${n}][value="${val}"]`); if (r) r.checked = true; };
+      set("viewer0", $("viewer").value); set("field0", $("field").value); set("medium0", medium());
+      set("usage", ["info", "art"].includes(S.purposeInfo.document) ? S.purposeInfo.document : "");
+      prepSum();
+    }
+    $("work").hidden = true; $("finish").hidden = true; $("home").hidden = true; $("start").hidden = false;
+    markStep("start");
+    window.scrollTo(0, 0);
+    $("start").querySelector("h1").focus({ preventScroll: true });
+  }
   function showWork() {
     $("start").hidden = true; $("home").hidden = true; $("finish").hidden = true; $("work").hidden = false;
+    markStep("fix");
     const panel = document.querySelector(".panel");
     panel.insertBefore($("status"), $("settingsBox"));
   }
   function showFinish() {
     $("start").hidden = true; $("home").hidden = true; $("work").hidden = true; $("finish").hidden = false;
+    markStep("get");
     $("finGet").append(document.querySelector(".downloads"), $("status"), $("lpBox"), $("altBox"));
     window.scrollTo(0, 0);
     $("finish").querySelector("h1").focus({ preventScroll: true });
@@ -1227,6 +1243,7 @@
   }));
 
   async function load(file) {
+    if (S.doc && chosenFixes().length && !S.saved && !confirm("고친 포스터를 아직 받지 않았어요. 새 파일을 열면 지금 고친 내용이 사라져요. 계속할까요?")) return;
     $("startStatus").textContent = "읽는 중…";
     await new Promise((r) => setTimeout(r, 20));
     try {
@@ -1345,7 +1362,7 @@
       <p class="pinkey"><span><i class="k-todo">3</i>아직이에요 · 눌러서 골라요</span><span><i class="k-done">✓</i>고쳤어요 · 확인해 보세요</span></p>` : ""}
       <p class="cond">${esc(env.viewerLabel)}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>
-      ${n ? `<section class="guide" id="guide" aria-labelledby="popTitle"><div class="ghead"><span class="gcount" id="gCount"></span><ol class="gdots" id="gDots" aria-hidden="true"></ol></div>
+      ${n ? `<section class="guide" id="guide" aria-labelledby="guideTitle"><div class="ghead"><span class="gcount" id="gCount"></span><ol class="gdots" id="gDots" aria-hidden="true"></ol></div>
         <p class="gall"><button class="linkbtn" type="button" id="fixAll"></button></p>
         <div id="guideBody"></div><div class="gacts" id="guideActs"></div></section>` : ""}`;
     updateAfterBox();
@@ -1445,7 +1462,8 @@
       if (on) el.classList.add("seen");
     });
     document.querySelectorAll(".mark.coach").forEach((c) => c.classList.remove("coach"));
-    $("guideBody").innerHTML = popHtml(m);
+    $("guideBody").innerHTML = popHtml(m, "guideTitle");
+    $("guideLive").textContent = `${k + 1}번째 곳 (전체 ${S.marks.length}곳): “${short(m.layer.text, 20)}”`;
     renderGuideActs();
     fillPreviews();
     if (fromPin && window.matchMedia("(max-width: 900px)").matches) $("guide").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1455,9 +1473,14 @@
   function toggleFixAll() {
     const on = !fixAllState();
     if (on) S.defaults.forEach((i) => { const f = applyFixOf(i); [...S.chosen].forEach((j) => { const g = applyFixOf(j); if (g && slotOf(g) === slotOf(f) && j !== i) S.chosen.delete(j); }); S.chosen.add(i); });
-    else S.chosen.clear();
-    $("status").textContent = on ? `추천 수정 ${S.defaults.length}개를 한 번에 넣었어요.` : "넣은 수정을 모두 뺐어요.";
+    else { S.undoChosen = new Set(S.chosen); S.chosen.clear(); }
     if (on && S.view === "before") { refreshApplied(); setView("both"); } else refreshApplied();
+    // 화면을 다시 그린 뒤에 알려요 (다시 그리면서 상태 줄을 덮어쓰지 않게)
+    if (on) $("status").textContent = `추천 수정 ${S.defaults.length}개를 한 번에 넣었어요.`;
+    else {
+      $("status").innerHTML = `넣은 수정 ${S.undoChosen.size}개를 모두 뺐어요. <button class="linkbtn" type="button" id="undoClear">되돌리기</button>`;
+      $("undoClear").onclick = () => { S.chosen = new Set(S.undoChosen); refreshApplied(); if (!$("finish").hidden) renderFinish(); $("status").textContent = "뺀 수정을 다시 넣었어요."; };
+    }
   }
   function renderGuideActs() {
     if (!$("guide") || !S.marks.length) return;
@@ -1535,7 +1558,7 @@
       const t = els.find((e) => !e.classList.contains("fixed")) || els[0];
       if (t) t.classList.add("coach");
     }
-    if ($("fixBar")) { $("fixBar").style.width = (S.marks.length ? (fixed / S.marks.length) * 100 : 0) + "%"; $("fixCount").textContent = `고친 곳 ${fixed} / ${S.marks.length}`; }
+    if ($("fixBar")) { $("fixBar").style.setProperty("--p", S.marks.length ? fixed / S.marks.length : 0); $("fixCount").textContent = `고친 곳 ${fixed} / ${S.marks.length}`; }
   }
 
   // 툴팁 내용: 항목 하나(목록) 또는 한 레이어의 항목들(포스터 번호)
@@ -1583,8 +1606,8 @@
         ${x.alternative ? `<dt>대신</dt><dd>${esc(x.alternative.notice)} ${x.alternative.type === "largePrint" ? `<button class="linkbtn" data-golp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-goalt>대체텍스트 보기</button>`}</dd>` : ""}</dl>` +
       compareHtml(previewSpecOf(x), i);
   }
-  function popHtml(m) {
-    let html = `<h3 id="popTitle"><span class="pnum s-${m.worst}">${m.n}</span>“${esc(short(m.layer.text, 34))}”</h3>`;
+  function popHtml(m, tid = "popTitle") {
+    let html = `<h3 id="${tid}"><span class="pnum s-${m.worst}">${m.n}</span>“${esc(short(m.layer.text, 34))}”</h3>`;
     if (!m.items.length) html += `<p class="pnone">이 글자는 검사에서 고칠 곳이 없어요. 잘 보여요.</p>`;
     m.items.forEach((x) => {
       const i = S.items.indexOf(x);
@@ -1908,7 +1931,9 @@
     if (on) S.chosen.add(i);
     refreshApplied();
   }
+  window.addEventListener("beforeunload", (e) => { if (S.doc && chosenFixes().length && !S.saved) { e.preventDefault(); e.returnValue = ""; } });
   function refreshApplied() {
+    S.saved = false;
     document.querySelectorAll("[data-pick]").forEach((cb) => { cb.checked = isApplied(applyFixOf(+cb.dataset.pick)); });
     document.querySelectorAll(".applyfig[data-apply-i]").forEach((b) => {
       const on = isApplied(applyFixOf(+b.dataset.applyI));
@@ -2346,6 +2371,7 @@
   // 접근성 버전 받기: PSD (포토샵에서 계속 작업) / PNG·JPG (고친 모습 그대로)
   function withFixed(label, fn) {
     if (!chosenFixes().length) return;
+    S.saved = true; // 받았으면 나갈 때 묻지 않아요
     $("status").textContent = label + " 만드는 중…";
     setTimeout(async () => {
       try {
