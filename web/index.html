@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0E2A47">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <title>클리어 뷰</title>
 <meta name="description" content="포스터가 누구에게나 잘 보이는지 확인하고, 고친 모습을 바로 보여줘요.">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
-  /* 디자인 기준: 잉크 남색 + 신호 노랑 (저시력용 고대비 표지판 색). 글꼴은 Pretendard 하나, 굵기·크기 차이로 위계 */
+  /* 디자인 기준: 잉크 남색 + 신호 노랑 (저시력용 고대비 표지판 색). 글꼴은 IBM Plex Sans KR 하나, 굵기·크기 차이로 위계 */
   :root {
     --navy: #0E2A47; --signal: #FFD400; --paper: #FFFFFF; --mist: #E9EDF2;
     --bg: var(--mist); --card: var(--paper); --line: #CFD6DF; --ink: #0E2A47; --sub: #44546A;
@@ -20,7 +21,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
-  body { font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", system-ui, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; font-size: 15px; }
+  body { font-family: "IBM Plex Sans KR", "Malgun Gothic", system-ui, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; font-size: 15px; }
   button, select, input { font: inherit; color: inherit; }
   /* 초점 표시: 짙은 파랑 + 노란 테두리 두 겹 (밝은·어두운 배경 모두에서 잘 보여요) */
   :focus-visible { outline: 4px solid #0B3D91; outline-offset: 2px; box-shadow: 0 0 0 8px #FFD400; }
@@ -443,6 +444,7 @@
   .finbig b { color: var(--pass); }
   .finleft { margin: 6px 0 0; font-size: 15px; color: var(--sub); display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
   .finleft .linkbtn, .finwarn .linkbtn { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .finauto { margin: 6px 0 0; font-size: 15px; color: var(--ink); }
   .finwarn { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 15px; }
   .fingrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 24px; align-items: start; }
   @media (max-width: 860px) { .fingrid { grid-template-columns: 1fr; } .finwrap { padding: 20px 16px 0; } .finbar { padding: 10px 16px; } }
@@ -521,7 +523,11 @@
   .gacts .btn.primary { padding: 10px 22px; font-size: 16px; }
   .gacts .linkbtn { font-size: 15px; font-weight: 700; color: var(--navy); padding: 8px 2px; }
   .gall { margin: 6px 0 0; }
+  .gall { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 10px 0 2px; padding: 10px 12px; background: var(--brand-soft); border-radius: 10px; }
+  .gall .autofix { border: 2px solid var(--navy); background: var(--paper); font-weight: 800; padding: 8px 14px; }
+  .gall .autofix:hover { background: var(--signal); }
   .gall .linkbtn { font-size: 14px; font-weight: 700; color: var(--navy); }
+  .gallnote { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--sub); }
   .gacts .btn.primary { flex: 1 1 auto; }
   .gstate { flex-basis: 100%; margin: 0; font-size: 14px; color: var(--sub); }
   .gstate.ok { color: var(--pass); font-weight: 700; }
@@ -1039,7 +1045,8 @@
     const h = location.hash;
     if (S.doc && h === "#fix") { if ($("work").hidden) { if (!$("start").hidden) applyPrep(); showWork(); } return; }
     if (S.doc && h === "#get") { if ($("finish").hidden) { if (!$("start").hidden) applyPrep(); showFinish(); } return; }
-    if (h === "#start" || ((h === "#fix" || h === "#get") && !S.doc)) { if ($("start").hidden) showPrep(); return; }
+    if ((h === "#fix" || h === "#get") && !S.doc) history.replaceState(null, "", "#start");
+    if (location.hash === "#start") { if ($("start").hidden) showPrep(); return; }
     if (!$("home").hidden) return;
     ["start", "work", "finish"].forEach((id) => ($(id).hidden = true)); $("home").hidden = false;
     window.scrollTo(0, 0);
@@ -1186,11 +1193,12 @@
     // 요약: 고친 곳 / 남은 곳
     const n = S.marks.length, done = S.marks.filter(layerFixed), left = S.marks.filter((m) => !layerFixed(m)), nf = chosenFixes().length;
     let html = n ? `<p class="finbig">${n}군데 중 <b>${done.length}군데</b>를 고쳤어요.</p>` : `<p class="finbig">고칠 곳이 없는 포스터예요.</p>`;
+    if (S.autoNote && nf) html += `<p class="finauto">${esc(S.autoNote)}</p>`;
     if (left.length) html += `<p class="finleft">아직: ${left.slice(0, 4).map((m) => `<button class="linkbtn" type="button" data-fin-go="${S.marks.indexOf(m)}">${m.n}. “${esc(short(m.layer.text, 12))}”</button>`).join(" ")}${left.length > 4 ? ` 외 ${left.length - 4}곳` : ""}</p>`;
-    if (!nf && n) html += `<p class="finwarn">아직 넣은 수정이 없어서 받을 게 없어요. <button class="linkbtn" type="button" id="finFixAll">추천 수정 한 번에 다 넣기</button> 또는 <button class="linkbtn" type="button" data-fin-go="0">하나씩 고치러 가기</button></p>`;
+    if (!nf && n) html += `<p class="finwarn">아직 넣은 수정이 없어서 받을 게 없어요. <button class="linkbtn" type="button" id="finFixAll">자동으로 모두 고치기</button> 또는 <button class="linkbtn" type="button" data-fin-go="0">하나씩 고치러 가기</button></p>`;
     $("finSum").innerHTML = html;
     $("finSum").querySelectorAll("[data-fin-go]").forEach((b) => (b.onclick = () => { showWork(); goStep(+b.dataset.finGo); $("stages").scrollIntoView({ behavior: "smooth", block: "start" }); }));
-    if ($("finFixAll")) $("finFixAll").onclick = () => { toggleFixAll(); renderFinish(); };
+    if ($("finFixAll")) $("finFixAll").onclick = () => { autoFixAll(); renderFinish(); };
     // 눈 고르기
     $("finEyes").innerHTML = FIN_EYES.map(([v, t]) => `<label><input type="radio" name="finEye" value="${v}"${v === finEye ? " checked" : ""}><span>${t}</span></label>`).join("");
     $("finEyes").querySelectorAll("input").forEach((r) => (r.onchange = () => { finEye = r.value; drawFinish(); }));
@@ -1318,6 +1326,8 @@
     S.items = S.check.results.filter((x) => x.status !== "pass");
     // 하나씩 고치기: 처음엔 아무것도 넣지 않아요. 엔진이 추천하는 묶음은 '한 번에 다 고치기'로 따로 둬요
     S.chosen = new Set();
+    S.autoNote = "";
+    S.custom = new Map(); // 자동으로 모두 고치기가 만든 맞춤 수정 (슬롯 → 수정). 예: 겹치지 않는 최대 크기
     S.defaults = [];
     S.items.forEach((x, i) => { if (x.fix && x.layerId != null && x.fix.passes !== false && defaults.has(x.layerId + ":" + x.fix.type)) S.defaults.push(i); });
     numberMarks();
@@ -1363,7 +1373,8 @@
       <p class="cond">${esc(env.viewerLabel)}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>
       ${n ? `<section class="guide" id="guide" aria-labelledby="guideTitle"><div class="ghead"><span class="gcount" id="gCount"></span><ol class="gdots" id="gDots" aria-hidden="true"></ol></div>
-        <p class="gall"><button class="linkbtn" type="button" id="fixAll"></button></p>
+        <div class="gall"><button class="btn autofix" type="button" id="autoFix">자동으로 모두 고치고 받기</button><button class="linkbtn" type="button" id="clearAll" hidden>모두 빼기</button>
+          <p class="gallnote">하나씩 보기 귀찮으면, 고칠 수 있는 곳을 한 번에 고쳐요.</p></div>
         <div id="guideBody"></div><div class="gacts" id="guideActs"></div></section>` : ""}`;
     updateAfterBox();
     // '바꾸기'는 준비 단계로 (보는 사람·용도·쓰는 곳을 한곳에서 바꿔요)
@@ -1449,7 +1460,8 @@
 
   // ------------------------------------------------------------------ 하나씩 고치기
   //   중요한 순서로 한 글자씩: 문제 → 고친 모습 → [이렇게 고치기] [건너뛰기] → [다음]
-  const layerFixed = (m) => m.items.some((x) => { const f = applyFixOf(S.items.indexOf(x)); return f && isApplied(f); });
+  const layerFixed = (m) => m.items.some((x) => { const f = applyFixOf(S.items.indexOf(x)); return f && isApplied(f); }) ||
+    [...((S.custom && S.custom.values()) || [])].some((f) => f.layerId === m.layer.id);
   function goStep(k, fromPin) {
     if (!S.marks.length || !$("guide")) return;
     k = Math.max(0, Math.min(S.marks.length - 1, k));
@@ -1469,23 +1481,59 @@
     if (fromPin && window.matchMedia("(max-width: 900px)").matches) $("guide").scrollIntoView({ behavior: "smooth", block: "start" });
   }
   // 한 번에 다 고치기 / 다 빼기 (엔진 추천 묶음)
-  function fixAllState() { return S.defaults && S.defaults.length && S.defaults.every((i) => isApplied(applyFixOf(i))); }
-  function toggleFixAll() {
-    const on = !fixAllState();
-    if (on) S.defaults.forEach((i) => { const f = applyFixOf(i); [...S.chosen].forEach((j) => { const g = applyFixOf(j); if (g && slotOf(g) === slotOf(f) && j !== i) S.chosen.delete(j); }); S.chosen.add(i); });
-    else { S.undoChosen = new Set(S.chosen); S.chosen.clear(); }
-    if (on && S.view === "before") { refreshApplied(); setView("both"); } else refreshApplied();
-    // 화면을 다시 그린 뒤에 알려요 (다시 그리면서 상태 줄을 덮어쓰지 않게)
-    if (on) $("status").textContent = `추천 수정 ${S.defaults.length}개를 한 번에 넣었어요.`;
-    else {
-      $("status").innerHTML = `넣은 수정 ${S.undoChosen.size}개를 모두 뺐어요. <button class="linkbtn" type="button" id="undoClear">되돌리기</button>`;
-      $("undoClear").onclick = () => { S.chosen = new Set(S.undoChosen); refreshApplied(); if (!$("finish").hidden) renderFinish(); $("status").textContent = "뺀 수정을 다시 넣었어요."; };
-    }
+  // 자동으로 모두 고치기: 엔진이 고칠 수 있는 건 다 넣어요
+  //   · 기준을 넘는 수정 + 기준에는 못 미쳐도 나아지는 '가장 나은 수정'
+  //   · 키우면 다른 글자와 겹치는 크기는 '겹치지 않는 최대 크기'까지만 (그것도 안 되면 빼요)
+  //   · '참고' 항목(예술 글자 등)은 디자인 의도를 지키려고 넣지 않아요
+  function autoFixPlan() {
+    const chosen = new Set(), custom = new Map(), slots = new Set();
+    let fitted = 0, skipped = 0;
+    S.items.forEach((x, i) => {
+      if (!x.fix || x.layerId == null || x.status === "advisory" || x.status === "pass") return;
+      const f = applyFixOf(i);
+      if (!f || slots.has(slotOf(f))) return;
+      if (f.type === "size" && x.fix.layoutWarning) {
+        const l = layerOf(x.layerId), fit = x.fix.maxFitPt;
+        if (fit && l && fit > (l.sizePt || 0) + 0.25) { custom.set(slotOf(f), Object.assign({}, f, { valuePt: fit, reason: (f.reason || "") + " (겹치지 않는 최대 크기)" })); slots.add(slotOf(f)); fitted++; }
+        else skipped++;
+        return;
+      }
+      chosen.add(i); slots.add(slotOf(f));
+    });
+    return { chosen, custom, fitted, skipped };
+  }
+  function autoFixAll() {
+    const plan = autoFixPlan();
+    if (!plan.chosen.size && !plan.custom.size) { $("status").textContent = "자동으로 고칠 수 있는 곳이 없어요."; return false; }
+    S.chosen = plan.chosen; S.custom = plan.custom;
+    const n = S.marks.filter(layerFixed).length;
+    refreshApplied();
+    S.autoNote = `자동으로 고쳤어요.` + (plan.fitted ? ` 키우면 다른 글자와 겹치는 글자 ${plan.fitted}개는 겹치지 않는 만큼만 키웠어요.` : "") +
+      (plan.skipped ? ` 자리가 없어 키우지 못한 글자 ${plan.skipped}개는 그대로 뒀어요.` : "");
+    $("status").textContent = S.autoNote;
+    return true;
+  }
+  function clearAll() {
+    S.autoNote = "";
+    S.undoChosen = new Set(S.chosen); S.undoCustom = new Map(S.custom || []);
+    S.chosen = new Set(); S.custom = new Map();
+    refreshApplied();
+    if (!$("finish").hidden) renderFinish();
+    $("status").innerHTML = `넣은 수정을 모두 뺐어요. <button class="linkbtn" type="button" id="undoClear">되돌리기</button>`;
+    $("undoClear").onclick = () => { S.chosen = new Set(S.undoChosen); S.custom = new Map(S.undoCustom); refreshApplied(); if (!$("finish").hidden) renderFinish(); $("status").textContent = "뺀 수정을 다시 넣었어요."; };
   }
   function renderGuideActs() {
     if (!$("guide") || !S.marks.length) return;
-    const fa = $("fixAll");
-    if (fa) { fa.hidden = !(S.defaults && S.defaults.length); fa.textContent = fixAllState() ? "넣은 수정 모두 빼기" : `추천 수정 한 번에 다 넣기 (${(S.defaults || []).length}개)`; fa.onclick = toggleFixAll; }
+    if ($("autoFix")) {
+      const plan = autoFixPlan(), none = !plan.chosen.size && !plan.custom.size;
+      $("autoFix").hidden = none;
+      document.querySelector(".gallnote").textContent = !none ? "하나씩 보기 귀찮으면, 고칠 수 있는 곳을 한 번에 고쳐요."
+        : S.check.document.purpose === "art" ? "예술 포스터라 디자인을 지키려고 자동으로 고치지 않아요. 하나씩 보고 필요한 것만 골라 주세요."
+        : "자동으로 고칠 수 있는 곳이 없어요. 하나씩 보고 직접 골라 주세요.";
+      $("autoFix").onclick = () => { if (autoFixAll()) showFinish(); };
+      $("clearAll").hidden = !chosenFixes().length;
+      $("clearAll").onclick = clearAll;
+    }
     const k = S.step, n = S.marks.length, m = S.marks[k], last = k === n - 1;
     // 위: ‹ 2 / 7 › (고치지 않고 오가기)
     $("gCount").innerHTML = `<button class="gnav" type="button" data-g="prev" aria-label="이전 곳"${k === 0 ? " disabled" : ""}>‹</button>` +
@@ -1508,7 +1556,7 @@
         focusGuide(); return;
       }
       if (g === "undo") {
-        m.items.forEach((x) => { const i = S.items.indexOf(x), f = applyFixOf(i); if (f && isApplied(f)) S.chosen.forEach((j) => { if (fixKey(applyFixOf(j) || {}) === fixKey(f)) S.chosen.delete(j); }); });
+        m.items.forEach((x) => { const i = S.items.indexOf(x), f = applyFixOf(i); dropCustom(f); if (f && isApplied(f)) S.chosen.forEach((j) => { if (fixKey(applyFixOf(j) || {}) === fixKey(f)) S.chosen.delete(j); }); });
         $("status").textContent = `“${short(m.layer.text, 16)}”의 수정을 뺐어요.`;
         refreshApplied(); focusGuide(); return;
       }
@@ -1547,7 +1595,7 @@
     if (!S.marks) return;
     let fixed = 0;
     S.marks.forEach((m) => {
-      const on = m.items.some((x) => { const f = applyFixOf(S.items.indexOf(x)); return f && isApplied(f); });
+      const on = layerFixed(m);
       if (on) fixed++;
       document.querySelectorAll(`#stage .mark[data-layer="${m.layer.id}"]`).forEach((el) => el.classList.toggle("fixed", on));
     });
@@ -1917,13 +1965,17 @@
       const f = applyFixOf(i);
       if (f && !seen.has(slotOf(f))) { seen.add(slotOf(f)); out.push(f); }
     });
+    (S.custom || new Map()).forEach((f, slot) => { if (!seen.has(slot)) { seen.add(slot); out.push(f); } });
     return out;
   }
+  // 직접 고르면 같은 자리의 맞춤 수정은 지워요
+  const dropCustom = (f) => { if (S.custom && f) S.custom.delete(slotOf(f)); };
   function isApplied(f) { return !!f && chosenFixes().some((c) => fixKey(c) === fixKey(f)); }
   // 항목 i 의 수정을 넣거나 빼요. 같은 글자의 같은 종류 수정(예: 크기)은 새 것으로 바꿔요.
   function setApplied(i, on) {
     const f = applyFixOf(i);
     if (!f) return;
+    dropCustom(f);
     [...S.chosen].forEach((j) => {
       const g = applyFixOf(j);
       if (g && slotOf(g) === slotOf(f) && (on ? j !== i : true)) S.chosen.delete(j);
@@ -2125,6 +2177,7 @@
     const on = !qi.every((i) => isApplied(applyFixOf(i)));
     qi.forEach((i) => {
       const f = applyFixOf(i);
+      dropCustom(f);
       [...S.chosen].forEach((j) => { const g = applyFixOf(j); if (g && slotOf(g) === slotOf(f) && j !== i) S.chosen.delete(j); });
       if (on) S.chosen.add(i); else S.chosen.delete(i);
     });
@@ -2411,6 +2464,7 @@
   $("copyAlt").onclick = async () => {
     try { await navigator.clipboard.writeText($("altText").value); $("copyAlt").textContent = "복사했어요"; }
     catch (e) { $("altText").select(); $("copyAlt").textContent = "선택했어요. Ctrl+C로 복사하세요"; }
+    setTimeout(() => ($("copyAlt").textContent = "복사"), 2500);
   };
 
   // ------------------------------------------------------------------ 목적 자세히
