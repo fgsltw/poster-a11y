@@ -354,6 +354,8 @@
   html { scroll-padding-top: 80px; } /* 고정된 단계 줄이 초점 받은 요소를 가리지 않게 */
   .skip { position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--signal); color: var(--navy); font-weight: 800; padding: 10px 16px; border-radius: 999px; border: 2px solid var(--navy); }
   .skip:focus { top: 12px; }
+  /* 화면을 바꿀 때 제목·영역으로 옮기는 초점(누를 수 없는 곳)은 테두리를 그리지 않아요 */
+  [tabindex="-1"]:focus { outline: none; box-shadow: none; }
   h1, h2, h3 { text-wrap: balance; }
   p { text-wrap: pretty; }
   button, .btn, .stepbtn, .mark, label { touch-action: manipulation; -webkit-tap-highlight-color: rgba(255,212,0,.35); }
@@ -437,6 +439,25 @@
   .start .usage legend, .start .steplabel { font-size: 18px; font-weight: 800; color: var(--navy); }
   #drop { border-color: #9AA8BA; }
   #drop:hover, #drop.over { border-color: var(--navy); background: #FFFBE0; }
+  .start .preplead { font-size: 16px; margin: 0 0 32px; }
+  .start .usage { margin-bottom: 28px; }
+  .start .use span { padding: 16px 18px; }
+  .start .use b { font-size: 18px; font-weight: 800; color: var(--navy); }
+  .start .vopt b { font-weight: 800; color: var(--navy); }
+  .start .use input:checked + span, .start .vopt input:checked + span { border-color: var(--navy); background: #FFFBE0; box-shadow: inset 0 0 0 2px var(--navy); }
+  .prepmore { text-align: left; margin: -8px 0 28px; font-size: 15px; }
+  .prepmore summary { cursor: pointer; color: var(--navy); font-weight: 700; padding: 6px 0; }
+  .prepmore .fieldrow { margin-top: 12px; }
+  .prepmore .fieldrow > span:first-child { min-width: 88px; }
+  .start h2.steplabel { margin: 0 0 6px; }
+  .prepsum { text-align: left; margin: 0 0 12px; font-size: 14px; color: var(--sub); }
+  .prepsum b { color: var(--navy); }
+  .samples { gap: 4px 14px; font-size: 15px; }
+  .samples .linkbtn { font-size: 15px; font-weight: 700; color: var(--navy); padding: 8px 2px; text-underline-offset: 4px; }
+  .recheck { text-align: left; margin: 0 0 14px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; color: var(--sub); font-size: 14px; }
+  .recheck .btn { padding: 10px 20px; font-size: 15px; }
+  .stepbtn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+  .stepbtn[aria-disabled="true"]:hover { background: none; }
   @media (max-width: 600px) { .stepbtn { font-size: 14px; padding-right: 8px; } .stepbar li + li::before { width: 8px; } }
 
   /* 검사 화면 */
@@ -526,25 +547,36 @@
       <li data-step="2"><button type="button" class="stepbtn" data-go="fix"><i>2</i>고치기</button></li>
       <li data-step="3"><button type="button" class="stepbtn" data-go="get"><i>3</i>받기</button></li>
     </ol></div>
-  <h1>포스터 접근성을 확인해 볼까요?</h1>
-  <p>글자 크기, 대비, 간격, 정보 배치를 검사하고 고칠 방법을 알려드려요.</p>
+  <h1>두 가지만 알려 주세요</h1>
+  <p class="preplead">고른 사람의 눈으로 포스터를 검사해요. 나중에 바꿀 수도 있어요.</p>
   <fieldset class="usage">
-    <legend><span class="stepno">1</span> 이 포스터는 어떤 용도인가요?</legend>
+    <legend>어떤 포스터인가요?</legend>
     <div class="uses">
-      <label class="use"><input type="radio" name="usage" value="art">
-        <span><b>예술적 표현</b><small>작품이나 공연의 분위기가 중요해요. 디자인을 최대한 지키고, 고칠 점은 참고로만 알려드려요.</small></span></label>
       <label class="use"><input type="radio" name="usage" value="info">
-        <span><b>정보 전달</b><small>일시·장소 같은 정보가 잘 읽혀야 해요. 기준을 엄격하게 적용하고 고칠 방법을 알려드려요.</small></span></label>
+        <span><b>정보 전달</b><small>날짜·장소가 꼭 읽혀야 해요. 엄격하게 검사해요.</small></span></label>
+      <label class="use"><input type="radio" name="usage" value="art">
+        <span><b>예술적 표현</b><small>분위기가 중요해요. 디자인을 지키고 참고만 알려드려요.</small></span></label>
     </div>
-    <label class="use-unsure"><input type="radio" name="usage" value="" checked> 잘 모르겠어요 (글자마다 자동으로 추천해요)</label>
+    <label class="use-unsure"><input type="radio" name="usage" value="" checked> 잘 모르겠어요 (글자마다 알아서 정해요)</label>
   </fieldset>
   <fieldset class="usage viewers">
-    <legend><span class="stepno">2</span> 누가 보나요? <button class="help" type="button" data-help="viewer" aria-label="보는 사람 설명">?</button></legend>
+    <legend>누가 보나요? <button class="help" type="button" data-help="viewer" aria-label="보는 사람 설명">?</button></legend>
     <div class="vopts">
       <label class="vopt"><input type="radio" name="viewer0" value="general"><span><b>일반 시력</b><small>시력 1.0</small></span></label>
-      <label class="vopt"><input type="radio" name="viewer0" value="low" checked><span><b>저시력</b><small>시력 0.3 · WHO 중등도 시각손상 시작</small></span></label>
-      <label class="vopt"><input type="radio" name="viewer0" value="disability"><span><b>시각장애</b><small>시력 0.2 · 한국 시각장애 기준</small></span></label>
-      <label class="vopt"><input type="radio" name="viewer0" value="severe"><span><b>심한 시각장애</b><small>시력 0.06 · 한국 심한 장애 기준</small></span></label>
+      <label class="vopt"><input type="radio" name="viewer0" value="low" checked><span><b>저시력</b><small>시력 0.3 · 추천</small></span></label>
+      <label class="vopt"><input type="radio" name="viewer0" value="disability"><span><b>시각장애</b><small>시력 0.2</small></span></label>
+      <label class="vopt"><input type="radio" name="viewer0" value="severe"><span><b>심한 시각장애</b><small>시력 0.06</small></span></label>
+    </div>
+  </fieldset>
+  <details class="prepmore">
+    <summary>더 자세히 정하기 (선택)</summary>
+    <div class="fieldrow"><span>어디에 쓰나요</span>
+      <div class="seg" role="radiogroup" aria-label="쓰는 곳">
+        <label><input type="radio" name="medium0" value="sns" checked><span>SNS (휴대폰)</span></label>
+        <label><input type="radio" name="medium0" value="wall"><span>벽 포스터</span></label>
+        <label><input type="radio" name="medium0" value="flyer"><span>전단</span></label>
+      </div>
+      <button class="help" type="button" data-help="medium" aria-label="쓰는 곳 설명">?</button>
     </div>
     <div class="fieldrow"><span>시야</span>
       <div class="seg" role="radiogroup" aria-label="시야">
@@ -554,16 +586,18 @@
       </div>
       <button class="help" type="button" data-help="field" aria-label="시야 설명">?</button>
     </div>
-  </fieldset>
-  <p class="steplabel"><span class="stepno">3</span> 포스터 파일을 올려 주세요</p>
+  </details>
+  <h2 class="steplabel">포스터 올리기</h2>
+  <p class="prepsum" id="prepSum" aria-live="polite"></p>
+  <p class="recheck" id="recheckRow" hidden><button class="btn primary" type="button" id="recheck">이 설정으로 다시 검사하기</button> <span>또는 새 파일을 올려요.</span></p>
   <button id="drop" type="button">
     <strong>PSD 파일을 끌어다 놓거나 눌러서 고르세요</strong>
     포토샵에서 저장할 때 ‘호환성 최대화’를 켜 주세요
   </button>
   <input id="file" type="file" accept=".psd" hidden>
   <div class="samples">PSD가 없으면
-    <button class="btn small" data-sample="sample-poster.psd">샘플 포스터</button>
-    <button class="btn small" data-sample="sample-poster-cmyk.psd">샘플 (인쇄용 CMYK)</button>
+    <button class="linkbtn" type="button" data-sample="sample-poster.psd">샘플 포스터로 해보기</button>
+    <button class="linkbtn" type="button" data-sample="sample-poster-cmyk.psd">인쇄용(CMYK) 샘플</button>
   </div>
   <p class="privacy">파일은 이 브라우저 안에서만 처리돼요. 서버로 올라가지 않아요.</p>
   <p class="status" id="startStatus" role="status"></p>
@@ -923,14 +957,63 @@
   document.querySelectorAll(".stepbtn").forEach((b) => (b.onclick = () => {
     const go = b.dataset.go;
     if (go === "prep") {
-      if (!$("work").hidden) { $("work").hidden = true; $("start").hidden = false; $("home").hidden = true; window.scrollTo(0, 0); }
+      if (!$("work").hidden) {
+        const set = (n, val) => { const r = document.querySelector(`input[name=${n}][value="${val}"]`); if (r) r.checked = true; };
+        set("viewer0", $("viewer").value); set("field0", $("field").value); set("medium0", medium());
+        set("usage", ["info", "art"].includes(S.purposeInfo.document) ? S.purposeInfo.document : "");
+        prepSum();
+        $("work").hidden = true; $("start").hidden = false; $("home").hidden = true; window.scrollTo(0, 0);
+      }
       return;
     }
-    if (!S.doc) return; // 아직 파일이 없으면 준비 단계에 머물러요
-    $("start").hidden = true; $("home").hidden = true; $("work").hidden = false;
+    if (!S.doc) { // 아직 파일이 없으면 준비 단계에 머물러요
+      $("startStatus").textContent = "먼저 포스터 파일을 올려 주세요.";
+      $("drop").focus();
+      return;
+    }
+    const fromPrep = !$("start").hidden;
+    if (fromPrep) applyPrep(); // 준비 화면에서 바꾼 설정을 반영해요
+    showWork();
     if (go === "fix") $("stages").scrollIntoView({ behavior: "smooth", block: "start" });
     if (go === "get") { const d = document.querySelector(".downloads"); d.scrollIntoView({ behavior: "smooth", block: "center" }); $("downloadPsd").focus({ preventScroll: true }); }
   }));
+
+  // 준비 화면에서 바꾼 것을 지금 파일에 반영 (다시 검사)
+  function applyPrep() {
+    if (!S.doc) return;
+    const v = (n) => document.querySelector(`input[name=${n}]:checked`).value;
+    $("viewer").value = v("viewer0"); $("field").value = v("field0");
+    const m0 = v("medium0");
+    document.querySelector(`input[name=medium][value=${m0}]`).checked = true;
+    $("dist").value = EnginePolicies.environments[m0].distanceM;
+    syncSimAcuity(); updateSimFx();
+    const usage = v("usage") || null;
+    if (usage && usage !== S.purposeInfo.document) { S.purposeInfo.document = usage; purposesChanged(); } // purposesChanged 가 다시 검사해요
+    else runCheck();
+  }
+  function showWork() { $("start").hidden = true; $("home").hidden = true; $("work").hidden = false; }
+  $("recheck").onclick = () => { applyPrep(); showWork(); window.scrollTo(0, 0); };
+  function syncSteps() {
+    $("recheckRow").hidden = !S.doc;
+    document.querySelectorAll('.stepbtn[data-go="fix"], .stepbtn[data-go="get"]').forEach((b) => {
+      if (S.doc) { b.removeAttribute("aria-disabled"); b.removeAttribute("title"); }
+      else { b.setAttribute("aria-disabled", "true"); b.title = "포스터를 올리면 열려요"; }
+    });
+  }
+  syncSteps();
+  // 준비 화면에서 고른 것을 한 줄로 (무엇으로 검사하는지 올리기 전에 확인)
+  const USAGE_TEXT = { info: "정보 전달 기준", art: "예술 포스터 기준", "": "글자마다 알맞은 기준" };
+  const VIEWER_TEXT = { general: "일반 시력(1.0)", low: "저시력(시력 0.3)", disability: "시각장애(시력 0.2)", severe: "심한 시각장애(시력 0.06)" };
+  const MEDIUM_TEXT = { sns: ["휴대폰 화면", "으로"], wall: ["벽 포스터 앞", "에서"], flyer: ["손에 든 전단", "으로"] };
+  function prepSum() {
+    const v = (n) => document.querySelector(`input[name=${n}]:checked`).value;
+    const f = v("field0");
+    const m = v("medium0"), [mt, mj] = MEDIUM_TEXT[m], d = EnginePolicies.environments[m].distanceM;
+    const dist = d < 1 ? Math.round(d * 100) + "cm" : d + "m";
+    $("prepSum").innerHTML = `<b>${VIEWER_TEXT[v("viewer0")]}</b>인 사람이 <b>${mt}(${dist})</b>${mj} 본다고 보고, <b>${USAGE_TEXT[v("usage")]}</b>으로 검사해요${f !== "normal" ? ` (시야 ${f === "narrow" ? "10°" : "5°"})` : ""}.`;
+  }
+  document.querySelectorAll("input[name=usage], input[name=viewer0], input[name=medium0], input[name=field0]").forEach((r) => r.addEventListener("change", prepSum));
+  prepSum();
 
   // ------------------------------------------------------------------ 파일 읽기
   const drop = $("drop"), input = $("file");
@@ -959,6 +1042,9 @@
       // 시작 화면에서 고른 용도가 있으면 그걸로 (PSD에 저장된 목적보다 우선)
       $("viewer").value = document.querySelector("input[name=viewer0]:checked").value;
       $("field").value = document.querySelector("input[name=field0]:checked").value;
+      const m0 = document.querySelector("input[name=medium0]:checked").value;
+      document.querySelector(`input[name=medium][value=${m0}]`).checked = true;
+      $("dist").value = EnginePolicies.environments[m0].distanceM;
       const usage = document.querySelector("input[name=usage]:checked").value;
       if (usage) {
         S.purposeInfo.document = usage;
@@ -968,6 +1054,7 @@
       S.doc = PsdExtract.extractFromPsd(psd, { fileName: file.name });
       if (!S.doc.layers.length) throw new Error("글자 레이어를 찾지 못했어요. 글자가 이미지로 되어 있으면 검사할 수 없어요.");
       $("home").hidden = true; $("start").hidden = true; $("work").hidden = false;
+      syncSteps();
       $("fileName").textContent = file.name;
       ["stage", "stageAfter"].forEach((id) => $(id).style.setProperty("--ar", String(S.doc.document.widthPx / S.doc.document.heightPx)));
       $("purpose").value = S.purposeInfo.document || "";
@@ -1058,7 +1145,8 @@
       <p class="cond">${esc(env.viewerLabel)}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>`;
     updateAfterBox();
-    $("openSettings").onclick = () => { const b = $("settingsBox"); b.open = true; b.scrollIntoView({ behavior: "smooth", block: "center" }); };
+    // '바꾸기'는 준비 단계로 (보는 사람·용도·쓰는 곳을 한곳에서 바꿔요)
+    $("openSettings").onclick = () => document.querySelector('#work .stepbtn[data-go="prep"]').click();
   }
 
   function renderIssues() {
