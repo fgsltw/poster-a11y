@@ -494,7 +494,10 @@
   /* 하나씩 고치기 */
   .guide { margin-top: 16px; border: 2px solid var(--navy); border-radius: 14px; padding: 14px 16px 16px; background: var(--paper); }
   .ghead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .gcount { font-size: 14px; color: var(--sub); font-variant-numeric: tabular-nums; }
+  .gcount { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sub); font-variant-numeric: tabular-nums; }
+  .gnav { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--navy); background: var(--paper); color: var(--navy); font-size: 20px; font-weight: 800; line-height: 1; cursor: pointer; display: inline-grid; place-items: center; padding: 0 0 2px; }
+  .gnav:hover { background: var(--signal); }
+  .gnav:disabled { opacity: .3; cursor: default; background: var(--paper); }
   .gcount b { font-size: 20px; color: var(--navy); }
   .gdots { display: flex; gap: 5px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
   .gdots li { width: 10px; height: 10px; border-radius: 50%; background: var(--mist); border: 2px solid var(--line); }
@@ -518,6 +521,7 @@
   .gacts .linkbtn { font-size: 15px; font-weight: 700; color: var(--navy); padding: 8px 2px; }
   .gall { margin: 6px 0 0; }
   .gall .linkbtn { font-size: 14px; font-weight: 700; color: var(--navy); }
+  .gacts .btn.primary { flex: 1 1 auto; }
   .gstate { flex-basis: 100%; margin: 0; font-size: 14px; color: var(--sub); }
   .gstate.ok { color: var(--pass); font-weight: 700; }
   .mark.open .pin { transform: scale(1.25); box-shadow: 0 0 0 5px rgba(255,212,0,.6), 0 2px 8px rgba(0,0,0,.45); }
@@ -562,7 +566,7 @@
   <section class="hero" aria-labelledby="homeTitle">
     <div>
       <h1 id="homeTitle" class="chart"><span class="l1">이 포스터,</span> <span class="l2">누구나 읽을 수</span> <span class="l3">있나요?</span></h1>
-      <p class="lead">눈이 잘 안 보이는 사람에게 포스터가 어떻게 보이는지 확인하고, 읽히도록 고쳐 드려요. 포토샵 파일(PSD)을 올리면 돼요.</p>
+      <p class="lead">접근성 기준을 몰라도 괜찮아요. 포스터 PSD를 올리면 눈이 잘 안 보이는 사람에게 어떻게 보이는지 보여주고, 어디를 어떻게 고치면 되는지 하나씩 알려드려요.</p>
       <div class="cta">
         <button class="btn primary" type="button" id="goStart">내 포스터 확인하기</button>
         <button class="linkbtn big" type="button" id="goSample">샘플로 해보기</button>
@@ -585,13 +589,20 @@
     </figure>
   </section>
 
-  <h2>누구를 위한 건가요?</h2>
-  <p class="sub2">포스터는 많은 사람이 보지만, 모두에게 똑같이 보이지는 않아요.</p>
+  <h2>디자이너를 위해 만들었어요</h2>
+  <p class="sub2">접근성을 챙기고 싶은데, 무엇을 기준으로 어떻게 고쳐야 할지 모르는 디자이너를 위한 도구예요.</p>
+  <div class="who">
+    <div><b>기준을 몰라도 돼요</b><p>글자 크기·대비 같은 접근성 기준(WCAG)은 도구가 대신 재요. 결과는 쉬운 말로 알려드려요.</p></div>
+    <div><b>고친 모습을 먼저 봐요</b><p>원본 옆에 고친 모습을 보여드려요. 디자인이 어떻게 바뀌는지 보고 고를 수 있어요.</p></div>
+    <div><b>디자인은 최대한 지켜요</b><p>밝기·크기·배경 띠처럼 작은 변화로 고쳐요. 원본 파일은 건드리지 않아요.</p></div>
+  </div>
+
+  <h2>누구의 눈으로 확인하나요?</h2>
+  <p class="sub2">시각 정보를 받아들이기 어려운 사람의 눈으로 포스터를 확인해요.</p>
   <div class="who">
     <div><span class="num">시력 0.3 이하</span><b>저시력인 사람</b><p>안경을 써도 잘 안 보여요. 글자가 작거나 배경과 색이 비슷하면 가까이 가도 못 읽어요.</p></div>
     <div><span class="num">색을 다르게 봐요</span><b>색각이상인 사람</b><p>빨강과 초록처럼 색만 다르게 강조한 정보는 구분하지 못할 수 있어요.</p></div>
     <div><span class="num">시야 10° 이하</span><b>시야가 좁은 사람</b><p>한 번에 보이는 범위가 좁아요. 정보가 흩어져 있으면 찾다가 놓쳐요.</p></div>
-    <div><span class="num">만드는 사람</span><b>디자이너</b><p>접근성 기준을 몰라도 괜찮아요. 어디를 얼마나 고치면 되는지 고친 모습으로 보여드려요.</p></div>
   </div>
 
   <h2>이렇게 진행돼요</h2>
@@ -828,7 +839,7 @@
           <button class="btn small" id="copyAlt">복사</button>
         </div>
       </details>
-      <details class="more-box" id="passBox">
+      <details class="more-box" id="passBox" hidden>
         <summary id="passSummary">잘 된 점</summary>
         <div class="body"><ul class="passlist" id="passList"></ul></div>
       </details>
@@ -1453,34 +1464,39 @@
     const fa = $("fixAll");
     if (fa) { fa.hidden = !(S.defaults && S.defaults.length); fa.textContent = fixAllState() ? "넣은 수정 모두 빼기" : `추천 수정 한 번에 다 넣기 (${(S.defaults || []).length}개)`; fa.onclick = toggleFixAll; }
     const k = S.step, n = S.marks.length, m = S.marks[k], last = k === n - 1;
-    $("gCount").innerHTML = `<b>${k + 1}</b> / ${n} · ${k === 0 ? "가장 먼저 볼 곳" : last ? "마지막" : "다음으로 볼 곳"}`;
+    // 위: ‹ 2 / 7 › (고치지 않고 오가기)
+    $("gCount").innerHTML = `<button class="gnav" type="button" data-g="prev" aria-label="이전 곳"${k === 0 ? " disabled" : ""}>‹</button>` +
+      `<span><b>${k + 1}</b> / ${n} · ${k === 0 ? "가장 먼저 볼 곳" : last ? "마지막" : "다음으로 볼 곳"}</span>` +
+      `<button class="gnav" type="button" data-g="next" aria-label="다음 곳"${last ? " disabled" : ""}>›</button>`;
     $("gDots").innerHTML = S.marks.map((x, i) => `<li class="${i === k ? "cur" : layerFixed(x) ? "done" : S.seen.has(x.layer.id) ? "seen" : ""}"></li>`).join("");
     const qi = quickFixItems(m.layer.id), fixed = layerFixed(m);
-    const next = last ? `<button class="btn primary" type="button" data-g="finish">다 봤어요 · 받으러 가기</button>` : `<button class="btn primary" type="button" data-g="next">다음</button>`;
+    // 아래: 늘 '주 버튼 하나 + 글자 버튼 하나'. 고치면 바로 다음 곳으로 넘어가요
+    const go = last ? "finish" : "next", goText = last ? "마무리하기" : "다음으로";
     let html;
-    if (fixed) html = `<p class="gstate ok">✓ 고쳤어요. 왼쪽 ‘고친 모습’에서 확인해 보세요.</p>${next}<button class="linkbtn" type="button" data-g="undo">되돌리기</button>`;
-    else if (qi.length) html = `<button class="btn primary" type="button" data-g="fix">이렇게 고치기</button><button class="linkbtn" type="button" data-g="skip">건너뛰기</button>`;
-    else html = `<p class="gstate">자동으로 고치기 어려운 곳이에요. 위 ‘고친 뒤’ 그림을 눌러 직접 고르거나 넘어가요.</p>${next}`;
-    if (k > 0) html += `<button class="linkbtn" type="button" data-g="prev">이전</button>`;
+    if (fixed) html = `<p class="gstate ok">✓ 고쳤어요</p><button class="btn primary" type="button" data-g="${go}">${goText}</button><button class="linkbtn" type="button" data-g="undo">고친 것 빼기</button>`;
+    else if (qi.length) html = `<button class="btn primary" type="button" data-g="fix">${last ? "고치고 마무리하기" : "고치고 다음으로"}</button><button class="linkbtn" type="button" data-g="${go}">${last ? "고치지 않고 마무리" : "그냥 넘어가기"}</button>`;
+    else html = `<p class="gstate">자동으로 고치기 어려운 곳이에요. 위 ‘고친 뒤’ 그림을 눌러 직접 고를 수 있어요.</p><button class="btn primary" type="button" data-g="${go}">${goText}</button>`;
     $("guideActs").innerHTML = html;
-    $("guideActs").querySelectorAll("[data-g]").forEach((b) => (b.onclick = () => {
+    $("guide").querySelectorAll(".gacts [data-g], .gnav").forEach((b) => (b.onclick = () => {
       const g = b.dataset.g;
-      if (g === "fix") { quickFix(m.layer.id); return; }
+      if (g === "fix") {
+        quickFix(m.layer.id);
+        if (last) document.querySelector('#work .stepbtn[data-go="get"]').click(); else goStep(k + 1);
+        focusGuide(); return;
+      }
       if (g === "undo") {
         m.items.forEach((x) => { const i = S.items.indexOf(x), f = applyFixOf(i); if (f && isApplied(f)) S.chosen.forEach((j) => { if (fixKey(applyFixOf(j) || {}) === fixKey(f)) S.chosen.delete(j); }); });
-        $("status").textContent = `“${short(m.layer.text, 16)}”의 수정을 되돌렸어요.`;
-        refreshApplied(); return;
+        $("status").textContent = `“${short(m.layer.text, 16)}”의 수정을 뺐어요.`;
+        refreshApplied(); focusGuide(); return;
       }
-      if (g === "skip" || g === "next") goStep(k + 1);
+      if (g === "next") goStep(k + 1);
       if (g === "prev") goStep(k - 1);
-      if (g === "finish") {
-        document.querySelector('#work .stepbtn[data-go="get"]').click();
-        // 넣은 수정이 없으면 마무리 화면 요약이 안내해요
-      }
-      const first = $("guideActs").querySelector("button");
-      if (first && g !== "finish") first.focus({ preventScroll: true });
+      if (g === "finish") { document.querySelector('#work .stepbtn[data-go="get"]').click(); return; }
+      focusGuide();
     }));
   }
+  function focusGuide() { const b = $("guideActs").querySelector(".btn.primary"); if (b) b.focus({ preventScroll: true }); }
+
   // 번호끼리 겹치지 않게: 위에서부터 글자 영역 왼쪽 끝 → 오른쪽 끝 → (둘 다 막히면) 왼쪽에서 아래로 밀기
   function placePins() {
     const stage = $("stage"), W = stage.clientWidth, H = stage.clientHeight, gap = 34;
