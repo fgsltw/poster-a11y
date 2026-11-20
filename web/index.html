@@ -19,6 +19,7 @@
   button, select, input { font: inherit; color: inherit; }
   /* 초점 표시: 짙은 파랑 + 노란 테두리 두 겹 (밝은·어두운 배경 모두에서 잘 보여요) */
   :focus-visible { outline: 4px solid #0B3D91; outline-offset: 2px; box-shadow: 0 0 0 8px #FFD400; }
+  [hidden] { display: none !important; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
   /* 머리글 */
@@ -161,11 +162,24 @@
   .docnote { font-size: 12px; color: var(--sub); margin: 6px 2px 0; }
 
   /* 포스터 위 표시 */
-  .mark { position: absolute; border: 2px solid; border-radius: 4px; background: transparent; padding: 0; cursor: pointer; }
-  .mark.s-fail, .mark.s-conflict { border-color: var(--fail); }
-  .mark.s-warn { border-color: #D08A00; }
-  .mark.s-advisory { border-color: #6F86A3; border-style: dashed; }
-  .mark .pin { position: absolute; top: -12px; left: -12px; width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  /* 글자 영역은 평소엔 안 보이고, 번호에 마우스를 올리거나 열었을 때만 테두리가 생겨요 (화면을 덜 복잡하게) */
+  .mark { position: absolute; border: 2px solid transparent; border-radius: 4px; background: transparent; padding: 0; cursor: pointer; }
+  .mark:hover, .mark:focus-visible, .mark.hl, .mark.open { background: rgba(255,255,255,.14); }
+  .mark.s-fail:is(:hover, :focus-visible, .hl, .open), .mark.s-conflict:is(:hover, :focus-visible, .hl, .open) { border-color: var(--fail); }
+  .mark.s-warn:is(:hover, :focus-visible, .hl, .open) { border-color: #D08A00; }
+  .mark.s-advisory:is(:hover, :focus-visible, .hl, .open) { border-color: #6F86A3; }
+  /* 번호: 크고 흰 테두리 + 그림자 → 눌러 볼 수 있는 버튼처럼. 아직 안 열어 본 번호는 은은하게 깜빡여요 */
+  .mark .pin { position: absolute; top: calc(50% + var(--py, 0px)); left: calc(var(--px, 0px) - 17px); width: 32px; height: 32px; margin-top: -16px; border-radius: 50%; color: #fff; font-size: 15px; font-weight: 800; display: grid; place-items: center;
+    border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.45); transition: transform .15s; }
+  .mark:hover .pin, .mark:focus-visible .pin, .mark.open .pin { transform: scale(1.18); }
+  .mark:not(.seen) .pin { animation: pinPulse 1.8s ease-out infinite; }
+  @keyframes pinPulse { 0% { box-shadow: 0 0 0 0 rgba(255,212,0,.85), 0 2px 8px rgba(0,0,0,.45); } 70%, 100% { box-shadow: 0 0 0 14px rgba(255,212,0,0), 0 2px 8px rgba(0,0,0,.45); } }
+  .mark.fixed .pin { background: var(--pass) !important; }
+  .mark.fixed .pin::after { content: "✓"; position: absolute; right: -8px; top: -8px; width: 16px; height: 16px; border-radius: 50%; background: #fff; color: var(--pass); font-size: 11px; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  /* 처음 한 번: 1번 옆에 '눌러 보세요' 말풍선 */
+  .mark.coach::after { content: "눌러 보세요"; position: absolute; left: calc(var(--px, 0px) + 24px); top: 50%; transform: translateY(-50%); background: #1D2430; color: #fff; padding: 5px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.35); pointer-events: none; animation: coachBob 1.2s ease-in-out infinite alternate; z-index: 2; }
+  @keyframes coachBob { from { margin-left: 0; } to { margin-left: 6px; } }
+  @media (prefers-reduced-motion: reduce) { .mark .pin, .mark.coach::after { animation: none !important; } }
   .mark.s-fail .pin, .mark.s-conflict .pin { background: var(--fail); }
   .mark.s-warn .pin { background: #B87400; }
   .mark.s-advisory .pin { background: #5C7390; }
@@ -225,8 +239,16 @@
   .chip { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
   .c-fail { background: var(--fail-bg); color: var(--fail); } .c-conflict { background: var(--conf-bg); color: var(--conf); }
   .c-warn { background: var(--warn-bg); color: var(--warn); } .c-advisory { background: var(--adv-bg); color: var(--adv); } .c-pass { background: var(--pass-bg); color: var(--pass); }
+  .lead2 { margin: 6px 0 0 !important; color: var(--ink) !important; font-size: 15px !important; }
+  .fixprog { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-size: 14px; font-weight: 600; }
+  .fixprog .pbar { flex: 1; height: 10px; background: #E5E9EF; border-radius: 5px; overflow: hidden; }
+  .fixprog .pbar span { display: block; height: 100%; background: var(--pass); border-radius: 5px; transition: width .3s; }
+  .cond { margin-top: 10px !important; font-size: 13px !important; }
+  .pinkey { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; font-size: 13px; color: var(--sub); }
+  .pinkey i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 5px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
   .after-box { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--pass-bg); color: var(--pass); font-size: 14px; display: none; }
   .after-box.on { display: block; }
+  #afterBox { display: none !important; } /* 남은 개수는 번호·진행 막대로 충분해요 (화면을 단순하게) */
 
   .group-h { font-size: 14px; margin: 18px 0 8px; color: var(--sub); font-weight: 600; display: flex; gap: 6px; align-items: center; }
   .issue { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: block; }
@@ -294,7 +316,13 @@
   #pop { position: fixed; z-index: 45; width: 380px; max-height: calc(100vh - 16px); overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(20,30,50,.22); }
   #pop[hidden] { display: none; }
   .pophead { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 8px 16px; background: var(--card); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--sub); }
-  #popBody { padding: 4px 16px 4px; }
+  #popBody { padding: 4px 16px 12px; }
+  #popBody .pmsg { margin: 6px 0 4px; font-size: 14px; }
+  #popBody .pfix { margin: 4px 0; font-size: 14px; }
+  #popBody .pfix .lbl { display: inline-block; font-size: 12px; font-weight: 700; color: var(--brand); margin-right: 4px; }
+  #popBody .pwarn { margin: 4px 0; font-size: 13px; color: var(--warn); background: var(--warn-bg); padding: 6px 8px; border-radius: 6px; }
+  #popBody .pmore { margin: 6px 0 2px; font-size: 13px; color: var(--sub); }
+  #popBody .pmore summary { cursor: pointer; }
   #popBody h3 { font-size: 16px; margin: 10px 0 6px; display: flex; gap: 8px; align-items: center; }
   .pnum { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 12px; display: inline-grid; place-items: center; flex: none; background: #5C7390; }
   .pnum.s-fail, .pnum.s-conflict { background: var(--fail); } .pnum.s-warn { background: #B87400; }
@@ -434,8 +462,7 @@
           <label><input type="radio" name="view" value="before"><span>원본</span></label>
           <label><input type="radio" name="view" value="after"><span>고친 모습</span></label>
         </div>
-        <button type="button" class="btn small heatbtn" id="heatToggle" aria-pressed="false">정보 전달 지도</button>
-        <button class="help" type="button" data-help="heat" aria-label="정보 전달 지도 설명">?</button>
+        <button type="button" class="btn small heatbtn" id="heatToggle" aria-pressed="false" hidden>정보 전달 지도</button>
         <div class="field"><label for="sim">다른 눈으로 보기</label>
           <select id="sim">
             <option value="">그대로</option>
@@ -472,24 +499,24 @@
         <span><i class="hz-low"></i>괜찮아요 (잘 보이거나 덜 중요한 정보)</span>
         <p>실제 시선을 잰 히트맵이 아니라 <b>글자 크기 · 대비 · 위치 · 정보 중요도</b>로 만든 검토 우선순위 지도예요. 영역에 마우스를 올리면 점수가 보여요.</p>
       </div>
-      <p class="hint" id="hint">번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
+      <p class="hint" id="hint">포스터의 <b>번호</b>를 누르면 설명과 고친 모습이 떠요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
       <p class="docnote" id="docnote"></p>
     </section>
 
     <section class="card panel" aria-label="검사 결과">
       <div class="summary" id="summary" aria-live="polite"></div>
-      <details class="more-box heatbox" id="heatBox">
+      <details class="more-box heatbox" id="heatBox" hidden>
         <summary>정보 전달 지도 · 어디부터 볼까요?</summary>
         <p class="note" style="margin:8px 0 0;color:var(--sub);font-size:12px">줄마다 <b>지금 → 고친 뒤</b>를 보여줘요. '바로 고치기'는 그 글자의 추천 수정을 한 번에 넣고, '직접 고르기'(또는 줄 누르기)는 지도 위에서 설명 창을 열어요.</p>
         <div class="body"><div class="psum" id="heatSum"></div><ol class="prank" id="heatList"></ol>
           <p class="note" style="margin:6px 0 0;color:var(--sub);font-size:12px">우선순위 = 정보 중요도 × (1 − 식별 쉬움). 식별 쉬움 = 크기·대비 중 약한 쪽 × 위치. 실제 시선 측정은 아니에요.</p></div>
       </details>
-      <div id="issues"></div>
-      <div class="actions">
+      <div id="issues" hidden></div>
+      <div class="actions" hidden>
         <button class="btn primary" id="seeAfter">고친 모습 보기</button>
       </div>
       <div class="downloads" role="group" aria-labelledby="dlLabel">
-        <span id="dlLabel">접근성 버전 받기</span>
+        <span id="dlLabel">고친 포스터 받기</span>
         <button class="btn" id="downloadPsd" data-help="dlPsd">PSD</button>
         <button class="btn" id="downloadPng" data-help="dlPng">이미지 PNG</button>
         <button class="btn" id="downloadJpg" data-help="dlJpg">이미지 JPG</button>
@@ -588,7 +615,7 @@
 <div id="pop" role="dialog" hidden>
   <div class="pophead"><span>설명과 고친 모습</span><button class="btn small" id="popClose" aria-label="설명 창 닫기">닫기 ✕</button></div>
   <div id="popBody"></div>
-  <div class="popfoot"><button class="linkbtn" id="popList">오른쪽 목록에서 보기</button></div>
+  <div class="popfoot" hidden><button class="linkbtn" id="popList">오른쪽 목록에서 보기</button></div>
 </div>
 
 <script src="../node_modules/ag-psd/dist/bundle.js"></script>
@@ -614,6 +641,7 @@
 
   // ------------------------------------------------------------------ 상태
   const S = {
+    seen: new Set(), // 설명을 열어 본 글자 (번호 깜빡임을 멈춰요)
     fileName: "", psd: null, doc: null, purposeInfo: PurposeStore.empty(),
     check: null, items: [], marks: [], chosen: new Set(),
     fixed: null, fixedKey: "", afterCheck: null, view: "before",
@@ -780,7 +808,7 @@
     await new Promise((r) => setTimeout(r, 20));
     try {
       const psd = agPsd.readPsd(await file.arrayBuffer(), { useImageData: true, useRawThumbnail: true });
-      S.fileName = file.name; S.psd = psd; S.lpEdited = false;
+      S.fileName = file.name; S.psd = psd; S.lpEdited = false; S.seen = new Set();
       S.purposeInfo = PurposeStore.readFromPsd(psd) || PurposeStore.empty();
       // 시작 화면에서 고른 용도가 있으면 그걸로 (PSD에 저장된 목적보다 우선)
       $("viewer").value = document.querySelector("input[name=viewer0]:checked").value;
@@ -851,8 +879,7 @@
     if (S.view !== "before") setView(S.view);
     $("altText").value = S.check.altTextDraft;
     if (!S.lpEdited) { $("lpText").value = LargePrint.draftText(S.doc.layers, S.check.roles, EngineRoles.speakDate); lpDirty(); }
-    if (S.check.summary.largePrintRecommended) $("lpBox").open = true;
-    $("altBox").open = S.check.summary.alternativeRecommended;
+    // 큰 글씨 안내문·대체텍스트는 접어 둬요 (필요하면 설명 창의 '대신' 버튼으로 열려요)
     $("status").textContent = "";
   }
 
@@ -875,17 +902,14 @@
   const layerOf = (id) => S.doc.layers.find((l) => l.id === id);
   const markOf = (id) => S.marks.find((m) => m.layer.id === id);
 
+  // 오른쪽 요약: 몇 군데인지 + 번호를 눌러 보라는 안내 + 고친 곳 진행 막대 (자세한 내용은 번호 설명 창에서)
   function renderSummary() {
-    const c = S.check.summary.counts, env = S.check.environment;
-    const must = c.fail + c.conflict, check = c.warn;
-    const head = must + check === 0 ? "고칠 곳이 없어요" : `고칠 곳 ${must + check}개`;
-    const chips = ["conflict", "fail", "warn", "advisory", "pass"].filter((k) => c[k])
-      .map((k) => `<span class="chip c-${k}">${STATUS_TEXT[k]} ${c[k]}</span>`).join("");
-    const p = S.check.document;
-    $("summary").innerHTML = `<h2>${head}</h2>
-      <p><b>${esc(env.viewerLabel)}</b>${env.fieldDeg ? ` · <b>${esc(env.fieldLabel)}</b>` : ""} · ${esc(env.mediumLabel)} · ${env.distanceM}m${env.lighting === "dim" ? " · 어두운 곳" : ""} · 목적 <b>${PL[p.purpose]}</b>${p.purposeSource === "suggested" ? " (자동 추천)" : ""}
-        <button class="linkbtn" id="openSettings">바꾸기</button></p>
-      <div class="chips">${chips}</div>
+    const env = S.check.environment, n = S.marks.length;
+    $("summary").innerHTML = `<h2>${n ? `잘 안 보이는 곳 ${n}군데` : "고칠 곳이 없어요"}</h2>
+      <p class="lead2">${n ? "포스터의 <b>번호</b>를 눌러 보세요. 무엇이 문제인지와 고친 모습이 나와요." : "모든 검사를 통과했어요."}</p>
+      ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>
+      <p class="pinkey"><span><i style="background:var(--pass)"></i>고쳤어요 (확인해 보세요)</span><span><i style="background:var(--fail)"></i>아직이에요 (직접 골라요)</span></p>` : ""}
+      <p class="cond">${esc(env.viewerLabel)}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>`;
     updateAfterBox();
     $("openSettings").onclick = () => { const b = $("settingsBox"); b.open = true; b.scrollIntoView({ behavior: "smooth", block: "center" }); };
@@ -913,7 +937,7 @@
           <div class="idetail">${detailHtml(x, i)}</div></article>`;
       });
     });
-    $("issues").innerHTML = html || '<p style="color:var(--pass);font-weight:600">모든 검사를 통과했어요.</p>';
+    $("issues").innerHTML = $("issues").hidden ? "" : html || '<p style="color:var(--pass);font-weight:600">모든 검사를 통과했어요.</p>';
 
     $("issues").querySelectorAll(".issue").forEach((el) => {
       const x = S.items[+el.dataset.i];
@@ -950,18 +974,58 @@
       el.style.width = (b.width / d.widthPx) * 100 + "%";
       el.style.height = (b.height / d.heightPx) * 100 + "%";
       el.innerHTML = `<span class="pin" aria-hidden="true">${m.n}</span>`;
+      if (S.seen.has(m.layer.id)) el.classList.add("seen");
+      if (m.n === 1 && !S.seen.size) el.classList.add("coach");
       el.setAttribute("aria-haspopup", "dialog");
       bindTip(el, () => (popFor === el ? "" : tipHtml(m.items, false, m)));
       el.onclick = (e) => {
         e.stopPropagation();
         hideTip(el);
         if (popFor === el) { closePop(); return; }
+        S.seen.add(m.layer.id);
+        el.classList.add("seen");
+        document.querySelectorAll(".mark.coach").forEach((c) => c.classList.remove("coach"));
         openPop(el, m);
         document.querySelectorAll(".issue.hl").forEach((c) => c.classList.remove("hl"));
         document.querySelectorAll(`.issue[data-layer="${m.layer.id}"]`).forEach((c) => c.classList.add("hl"));
       };
       stage.appendChild(el);
     });
+    updatePins();
+    placePins();
+  }
+  // 번호끼리 겹치지 않게: 위에서부터 글자 영역 왼쪽 끝 → 오른쪽 끝 → (둘 다 막히면) 왼쪽에서 아래로 밀기
+  function placePins() {
+    const stage = $("stage"), W = stage.clientWidth, H = stage.clientHeight, gap = 34;
+    if (!W) return;
+    const placed = [];
+    const els = [...stage.querySelectorAll(".mark")].map((el) => ({ el, l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }))
+      .sort((a, b) => a.t + a.h / 2 - (b.t + b.h / 2));
+    els.forEach((m) => {
+      const cy = m.t + m.h / 2;
+      const right = Math.min(m.w, W - m.l - 20); // 오른쪽 끝 (포스터 밖으로 나가지 않게)
+      const free = (x, y) => placed.every((q) => Math.hypot(q.x - x, q.y - y) >= gap);
+      let px = 0, py = 0;
+      if (!free(m.l, cy)) {
+        if (free(m.l + right, cy)) px = right;
+        else { while (!free(m.l, cy + py) && cy + py < H - 16) py += 8; }
+      }
+      m.el.style.setProperty("--px", px + "px");
+      m.el.style.setProperty("--py", py + "px");
+      placed.push({ x: m.l + px, y: cy + py });
+    });
+  }
+  if (window.ResizeObserver) new ResizeObserver(() => S.marks && placePins()).observe($("stage"));
+  // 수정을 하나라도 넣은 번호는 초록 ✓, 오른쪽 진행 막대도 같이
+  function updatePins() {
+    if (!S.marks) return;
+    let fixed = 0;
+    S.marks.forEach((m) => {
+      const on = m.items.some((x) => { const f = applyFixOf(S.items.indexOf(x)); return f && isApplied(f); });
+      if (on) fixed++;
+      document.querySelectorAll(`#stage .mark[data-layer="${m.layer.id}"]`).forEach((el) => el.classList.toggle("fixed", on));
+    });
+    if ($("fixBar")) { $("fixBar").style.width = (S.marks.length ? (fixed / S.marks.length) * 100 : 0) + "%"; $("fixCount").textContent = `고친 곳 ${fixed} / ${S.marks.length}`; }
   }
 
   // 툴팁 내용: 항목 하나(목록) 또는 한 레이어의 항목들(포스터 번호)
@@ -1013,13 +1077,25 @@
     let html = `<h3 id="popTitle"><span class="pnum s-${m.worst}">${m.n}</span>“${esc(short(m.layer.text, 34))}”</h3>`;
     if (!m.items.length) html += `<p class="pnone">이 글자는 검사에서 고칠 곳이 없어요. 잘 보여요.</p>`;
     m.items.forEach((x) => {
-      html += `<section class="pitem"><div><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <b>${esc(titleOf(x))}</b></div>` +
-        detailHtml(x, S.items.indexOf(x)) + `</section>`;
+      const i = S.items.indexOf(x);
+      html += `<section class="pitem"><div class="ptitle"><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <b>${esc(titleOf(x))}</b></div>` +
+        `<p class="pmsg">${esc(x.message || why(x))}</p>` +
+        (x.fix ? `<p class="pfix"><span class="lbl">이렇게 고쳐요</span> ${esc(fixText(x.fix))}${x.fix.passes === false ? " (기준에는 조금 못 미쳐요)" : ""}</p>` : "") +
+        (x.fix && x.fix.layoutWarning ? `<p class="pwarn">키우면 다른 글자와 겹쳐서 기본으로 꺼 뒀어요. 위치를 옮긴 뒤 켜 주세요.</p>` : "") +
+        (x.alternative ? `<p class="pfix"><span class="lbl">대신</span> ${esc(x.alternative.notice)} ${x.alternative.type === "largePrint" ? `<button class="linkbtn" data-golp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-goalt>대체텍스트 보기</button>`}</p>` : "") +
+        compareHtml(previewSpecOf(x), i) +
+        `<details class="pmore"><summary>자세히 (측정값·기준)</summary><dl class="dlist"><dt>측정</dt><dd>${esc(x.metric)}</dd>
+          <dt>왜?</dt><dd>${esc(why(x))}</dd>
+          ${x.purpose ? `<dt>목적</dt><dd>${PL[x.purpose]}${x.purposeSource === "suggested" ? " (자동 추천)" : ""}</dd>` : ""}
+          ${x.fix && x.fix.contrastAfter ? `<dt>고친 뒤</dt><dd>대비 ${x.fix.contrastAfter}:1</dd>` : ""}
+          ${x.fix && x.fix.maxFitPt ? `<dt>참고</dt><dd>지금 자리에서 겹치지 않는 최대 크기는 ${x.fix.maxFitPt}pt예요.</dd>` : ""}</dl></details></section>`;
     });
     return html;
   }
   function openPop(el, m) {
+    if (popFor) popFor.classList.remove("open");
     popFor = el; popMark = m;
+    el.classList.add("open");
     $("popBody").innerHTML = popHtml(m);
     pop.hidden = false;
     pop.setAttribute("aria-labelledby", "popTitle");
@@ -1030,6 +1106,7 @@
   function closePop(returnFocus) {
     if (!popFor) return;
     const el = popFor;
+    el.classList.remove("open");
     pop.hidden = true; popFor = null; popMark = null;
     document.querySelectorAll(".issue.hl").forEach((c) => c.classList.remove("hl"));
     if (returnFocus) el.focus({ preventScroll: true });
@@ -1333,6 +1410,7 @@
       b.textContent = isApplied(applyFixOf(+b.dataset.applyI)) ? "✓ 적용됨 · 빼기" : "이 수정 적용";
     });
     updateAfterBox();
+    updatePins();
     if (S.view !== "before") setView(S.view); else renderHeat();
   }
   document.addEventListener("click", (e) => {
@@ -1533,7 +1611,7 @@
   }
   $("heatToggle").onclick = () => toggleHeat($("heatToggle").getAttribute("aria-pressed") !== "true");
 
-  const HINT_ONE = "번호를 누르면 그 글자의 설명과 고친 모습이 떠요. 오른쪽에는 모든 항목의 설명이 펼쳐져 있어요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
+  const HINT_ONE = "포스터의 번호를 누르면 설명과 고친 모습이 떠요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.";
   // 보기: both = 원본 | 고친 모습 나란히 (기본), before = 원본만 크게, after = 고친 모습만 크게
   let viewToken = 0; // 빠르게 여러 번 바뀌면 마지막 것만 그려요
   function setView(v) {
@@ -1555,7 +1633,7 @@
       // 고칠 게 없어도 나란히·고친 모습을 띄워요 (원본과 같은 그림)
       if (two) { drawPoster(S.psd.imageData); drawAfter(S.psd.imageData); } else drawPoster(S.psd.imageData);
       $("afterCapN").textContent = "(고친 곳 없음 · 원본과 같아요)";
-      $("status").textContent = "적용한 수정이 없어서 고친 모습이 원본과 같아요. 오른쪽 목록에서 수정을 켜거나 '고친 뒤' 그림을 누르면 바로 바뀌어요.";
+      $("status").textContent = "적용한 수정이 없어서 고친 모습이 원본과 같아요. 번호를 눌러 '고친 뒤' 그림을 누르면 바로 바뀌어요.";
       $("hint").textContent = two ? "왼쪽은 원본, 오른쪽은 고친 모습이에요. 지금은 적용한 수정이 없어서 같아요." : "적용한 수정이 없어서 원본과 같아요.";
       updateAfterBox();
       renderHeat();
@@ -1572,7 +1650,7 @@
         $("afterCapN").textContent = `(수정 ${r.applied.length}개)`;
         const notes = r.warnings.filter((w) => /줄 간격|밖으로|겹쳐/.test(w));
         $("status").textContent = `수정 ${r.applied.length}개를 적용한 모습이에요.` + (notes.length ? " ⚠ " + notes.join(" ") : "");
-        $("hint").textContent = two ? "왼쪽은 원본, 오른쪽은 고친 모습이에요. 원본의 번호를 누르면 설명이 떠요. 오른쪽 목록에서 수정을 켜고 끄면 고친 모습이 바로 바뀌어요."
+        $("hint").textContent = two ? "왼쪽은 원본, 오른쪽은 고친 모습이에요. 원본의 번호를 누르면 설명이 떠요. 설명 창의 '고친 뒤' 그림을 누르면 고친 모습이 바로 바뀌어요."
           : "고친 모습이에요. 번호는 원래 문제가 있던 곳이에요.";
         updateAfterBox();
         renderHeat();
