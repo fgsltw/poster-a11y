@@ -22,12 +22,13 @@ tools/
   apply-fixes.js       수정 목록 적용 → 접근성 버전 PSD + 미리보기 PNG
   set-purpose.js       목적 정보 저장·확인
   make-sample-psd.js   테스트용 샘플 포스터 PSD 만들기
+  make-color-sample-psd.js  색각이상·좁은 시야 시연용 샘플 (A1 현수막)
   serve.js             브라우저 변환 페이지 띄우기
   build-web.js         브라우저 페이지를 배포용 폴더(dist-web/)로 묶기
 web/index.html         ★ 클리어 뷰 (사용자 화면): 용도·보는 사람(저시력 단계) 고르기 → 올리기 → 번호를 누르면 설명과 고친 모습 → 접근성 버전·큰 글씨 안내문 받기
 src/large-print.js     큰 글씨 안내문 (A4 고대비) 글·배치·PDF 만들기
 web/dev.html           개발자 도구 (B·C용: 레이어 JSON, 검사 결과 원본, 수동 수정 목록)
-samples/               샘플 PSD (RGB, 인쇄용 CMYK), 변환 결과 JSON, 정답 값
+samples/               샘플 PSD (RGB, 인쇄용 CMYK, 색·시야 문제 sample-color), 변환 결과 JSON, 정답 값
 docs/
   layer-data.md        ★ A → B 데이터 형식 약속
   apply-fixes.md       ★ B → A 수정 목록 형식 약속
@@ -53,6 +54,7 @@ npm install
 | `npm run web` | 클리어 뷰 → http://localhost:5173/web/ (개발자 도구는 `/web/dev.html`) |
 | `npm run build:web` | 배포용 폴더 `dist-web/` 만들기 → Vercel 등에 이 폴더만 올리면 돼요 |
 | `npm run sample` | 샘플 PSD 다시 만들기 (Windows 맑은 고딕 필요) |
+| `npm run sample:color` | 색·시야 문제 샘플 다시 만들기 (기존 샘플·정답은 그대로) |
 
 ## 웹 페이지 (배포됨)
 

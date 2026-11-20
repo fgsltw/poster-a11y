@@ -1361,7 +1361,7 @@
     const n = S.marks.length, done = S.marks.filter(layerFixed), left = S.marks.filter((m) => !layerFixed(m)), nf = chosenFixes().length;
     let html = n ? `<p class="finbig">${n}군데 중 <b>${done.length}군데</b>를 고쳤어요.</p>` : `<p class="finbig">고칠 곳이 없는 포스터예요.</p>`;
     if (S.autoNote && nf) html += `<p class="finauto">${esc(S.autoNote)}</p>`;
-    if (left.length) html += `<p class="finleft">아직: ${left.slice(0, 4).map((m) => `<button class="linkbtn" type="button" data-fin-go="${S.marks.indexOf(m)}">${m.n}. “${esc(short(m.layer.text, 12))}”</button>`).join(" ")}${left.length > 4 ? ` 외 ${left.length - 4}곳` : ""}</p>`;
+    if (left.length) html += `<p class="finleft">아직: ${left.slice(0, 4).map((m) => `<button class="linkbtn" type="button" data-fin-go="${S.marks.indexOf(m)}">${m.n}. ${m.doc ? "포스터 전체 (배치)" : `“${esc(short(m.layer.text, 12))}”`}</button>`).join(" ")}${left.length > 4 ? ` 외 ${left.length - 4}곳` : ""}</p>`;
     if (!nf && n) html += `<p class="finwarn">아직 넣은 수정이 없어서 받을 게 없어요. <button class="linkbtn" type="button" id="finFixAll">자동으로 모두 고치기</button> 또는 <button class="linkbtn" type="button" data-fin-go="0">하나씩 고치러 가기</button></p>`;
     $("finSum").innerHTML = html;
     $("finSum").querySelectorAll("[data-fin-go]").forEach((b) => (b.onclick = () => { showWork(); goStep(+b.dataset.finGo); $("stages").scrollIntoView({ behavior: "smooth", block: "start" }); }));
