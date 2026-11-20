@@ -429,7 +429,41 @@
   .stepbtn:hover { background: var(--brand-soft); }
   .stepbar[data-at="1"] [data-step="1"] .stepbtn, .stepbar[data-at="2"] [data-step="2"] .stepbtn { color: var(--navy); font-weight: 800; }
   .stepbar[data-at="1"] [data-step="1"] i, .stepbar[data-at="2"] [data-step="2"] i { background: var(--signal); border-color: var(--navy); color: var(--navy); }
-  .stepbar[data-at="2"] [data-step="1"] i { background: var(--pass); border-color: var(--pass); color: #fff; }
+  .stepbar[data-at="2"] [data-step="1"] i, .stepbar[data-at="3"] [data-step="1"] i, .stepbar[data-at="3"] [data-step="2"] i { background: var(--pass); border-color: var(--pass); color: #fff; }
+  .stepbar[data-at="3"] [data-step="3"] .stepbtn { color: var(--navy); font-weight: 800; }
+  .stepbar[data-at="3"] [data-step="3"] i { background: var(--signal); border-color: var(--navy); color: var(--navy); }
+  /* 마무리 */
+  .finish { background: var(--mist); min-height: calc(100vh - 56px); padding-bottom: 48px; }
+  .finbar { background: var(--paper); border-bottom: 1px solid var(--line); padding: 12px 24px; }
+  .finwrap { max-width: 1120px; margin: 0 auto; padding: 28px 24px 0; }
+  .finwrap h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: var(--navy); margin: 0 0 8px; }
+  .finsum { margin: 0 0 20px; }
+  .finbig { font-size: 19px; margin: 0; color: var(--ink); }
+  .finbig b { color: var(--pass); }
+  .finleft { margin: 6px 0 0; font-size: 15px; color: var(--sub); display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .finleft .linkbtn, .finwarn .linkbtn { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .finwarn { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 15px; }
+  .fingrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 24px; align-items: start; }
+  @media (max-width: 860px) { .fingrid { grid-template-columns: 1fr; } .finwrap { padding: 20px 16px 0; } .finbar { padding: 10px 16px; } }
+  .fineye { margin: 0; background: var(--navy); border-radius: 16px; padding: 16px; }
+  .eyeseg { display: flex; flex-wrap: wrap; border-color: #2C4A6B; background: var(--navy); margin-bottom: 12px; }
+  .eyeseg span { color: #C9D4E2; }
+  .eyeseg input:checked + span { background: var(--signal); color: var(--navy); }
+  .eyeseg label + label span { border-left-color: #2C4A6B; }
+  .fincmp { max-height: 72vh; margin: 0 auto; }
+  .fincmp img { object-fit: contain; background: #1B3655; }
+  .finbusy { position: absolute; inset: auto 0 0 0; padding: 8px; text-align: center; background: rgba(14,42,71,.85); color: #fff; font-size: 14px; }
+  .fincap { margin: 10px 2px 0; color: #E3E9F1; font-size: 15px; line-height: 1.6; }
+  .finget { background: var(--paper); border-radius: 14px; padding: 18px; position: sticky; top: 16px; }
+  .finget h2 { font-size: 22px; font-weight: 800; color: var(--navy); margin: 0 0 4px; }
+  .finnote { margin: 0; font-size: 14px; color: var(--sub); }
+  .finget .downloads { border-top: 0; padding-top: 0; }
+  .finget .downloads .btn { padding: 10px 16px; font-size: 15px; }
+  .finget .downloads .btn.primary { flex-basis: 100%; padding: 12px 16px; font-size: 17px; }
+  .finget .downloads #dlLabel { display: none; }
+  .tofinish { margin: 16px 0 0; }
+  .tofinish .btn { width: 100%; padding: 12px 16px; font-size: 17px; }
+  .panel > .downloads { display: none; } /* 받기는 마무리 화면에서 */
   .stepbar li + li::before { content: ""; display: inline-block; width: 18px; height: 2px; background: var(--line); vertical-align: middle; margin-right: 4px; }
   .bar { gap: 12px 24px; justify-content: space-between; }
   .startsteps { display: flex; justify-content: center; margin: 0 0 28px; }
@@ -653,7 +687,7 @@
           <label><input type="radio" name="view" value="after"><span>고친 모습</span></label>
         </div>
         <button type="button" class="btn small heatbtn" id="heatToggle" aria-pressed="false" hidden>정보 전달 지도</button>
-        <div class="field"><label for="sim">다른 눈으로 보기</label>
+        <div class="field" hidden><label for="sim">다른 눈으로 보기</label>
           <select id="sim">
             <option value="">그대로</option>
             <optgroup label="시력">
@@ -705,11 +739,12 @@
       <div class="actions" hidden>
         <button class="btn primary" id="seeAfter">고친 모습 보기</button>
       </div>
+      <p class="tofinish"><button class="btn primary" type="button" id="toFinish">마무리하고 받기</button></p>
       <div class="downloads" role="group" aria-labelledby="dlLabel">
         <span id="dlLabel">고친 포스터 받기</span>
-        <button class="btn primary" id="downloadPsd" data-help="dlPsd">PSD</button>
-        <button class="btn" id="downloadPng" data-help="dlPng">이미지 PNG</button>
-        <button class="btn" id="downloadJpg" data-help="dlJpg">이미지 JPG</button>
+        <button class="btn primary" id="downloadPsd" data-help="dlPsd">PSD 받기 (포토샵 파일)</button>
+        <button class="btn" id="downloadPng" data-help="dlPng">PNG 이미지</button>
+        <button class="btn" id="downloadJpg" data-help="dlJpg">JPG 이미지</button>
       </div>
       <p class="status" id="status" role="status"></p>
 
@@ -800,6 +835,36 @@
     </section>
   </div>
 </div>
+
+<!-- 3. 마무리: 다른 눈으로 비교하고 받기 -->
+<section class="finish" id="finish" hidden>
+  <div class="finbar"><ol class="stepbar" data-at="3" aria-label="진행 단계">
+      <li data-step="1"><button type="button" class="stepbtn" data-go="prep"><i>1</i>준비</button></li>
+      <li data-step="2"><button type="button" class="stepbtn" data-go="fix"><i>2</i>고치기</button></li>
+      <li data-step="3"><button type="button" class="stepbtn" data-go="get"><i>3</i>받기</button></li>
+    </ol></div>
+  <div class="finwrap">
+    <h1 tabindex="-1">고친 포스터를 확인하고 받아요</h1>
+    <div class="finsum" id="finSum" aria-live="polite"></div>
+    <div class="fingrid">
+      <figure class="fineye" aria-labelledby="finCap">
+        <div class="seg eyeseg" role="radiogroup" aria-label="어떤 눈으로 볼까요" id="finEyes"></div>
+        <div class="cmp fincmp" id="finCmp">
+          <img id="finBefore" alt=""><img id="finAfter" class="after" alt="">
+          <span class="divider"></span><span class="knob" aria-hidden="true">⇆</span>
+          <span class="tag l">원본</span><span class="tag r">고친 뒤</span>
+          <input type="range" id="finRange" min="0" max="100" value="50" aria-label="원본과 고친 뒤 비교. 왼쪽으로 밀면 고친 뒤가 더 보여요">
+          <div class="finbusy" id="finBusy" hidden>만드는 중…</div>
+        </div>
+        <figcaption class="fincap" id="finCap"></figcaption>
+      </figure>
+      <div class="finget" id="finGet">
+        <h2>받기</h2>
+        <p class="finnote">원본 파일은 그대로 두고, 고친 것만 담은 새 파일을 만들어요.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
 <div id="tip" role="tooltip"></div>
 <div id="pop" role="dialog" hidden>
@@ -950,14 +1015,14 @@
   // 본문으로 건너뛰기: 지금 보이는 화면으로
   document.querySelector(".skip").onclick = (e) => {
     e.preventDefault();
-    const t = ["work", "start", "home"].map($).find((el) => !el.hidden);
+    const t = ["finish", "work", "start", "home"].map($).find((el) => !el.hidden);
     if (t) { if (!t.hasAttribute("tabindex")) t.tabIndex = -1; t.focus(); t.scrollIntoView(); }
   };
 
   // ------------------------------------------------------------------ 홈
   // 주소 끝이 #start 면 시작 화면, 아니면 홈 (뒤로 가기로 홈에 돌아올 수 있어요)
   function route() {
-    if (!$("work").hidden) return; // 검사 중에는 그대로
+    if (!$("work").hidden || !$("finish").hidden) return; // 검사 중에는 그대로
     const start = location.hash === "#start";
     $("home").hidden = start; $("start").hidden = !start;
     window.scrollTo(0, 0);
@@ -987,12 +1052,12 @@
   document.querySelectorAll(".stepbtn").forEach((b) => (b.onclick = () => {
     const go = b.dataset.go;
     if (go === "prep") {
-      if (!$("work").hidden) {
+      if (!$("work").hidden || !$("finish").hidden) {
         const set = (n, val) => { const r = document.querySelector(`input[name=${n}][value="${val}"]`); if (r) r.checked = true; };
         set("viewer0", $("viewer").value); set("field0", $("field").value); set("medium0", medium());
         set("usage", ["info", "art"].includes(S.purposeInfo.document) ? S.purposeInfo.document : "");
         prepSum();
-        $("work").hidden = true; $("start").hidden = false; $("home").hidden = true; window.scrollTo(0, 0);
+        $("work").hidden = true; $("finish").hidden = true; $("start").hidden = false; $("home").hidden = true; window.scrollTo(0, 0);
       }
       return;
     }
@@ -1003,9 +1068,8 @@
     }
     const fromPrep = !$("start").hidden;
     if (fromPrep) applyPrep(); // 준비 화면에서 바꾼 설정을 반영해요
-    showWork();
-    if (go === "fix") $("stages").scrollIntoView({ behavior: "smooth", block: "start" });
-    if (go === "get") { const d = document.querySelector(".downloads"); d.scrollIntoView({ behavior: "smooth", block: "center" }); $("downloadPsd").focus({ preventScroll: true }); }
+    if (go === "fix") { showWork(); $("stages").scrollIntoView({ behavior: "smooth", block: "start" }); }
+    if (go === "get") showFinish();
   }));
 
   // 준비 화면에서 바꾼 것을 지금 파일에 반영 (다시 검사)
@@ -1021,7 +1085,20 @@
     if (usage && usage !== S.purposeInfo.document) { S.purposeInfo.document = usage; purposesChanged(); } // purposesChanged 가 다시 검사해요
     else runCheck();
   }
-  function showWork() { $("start").hidden = true; $("home").hidden = true; $("work").hidden = false; }
+  // 받기 버튼·상태 줄·큰 글씨·대체텍스트는 보이는 화면으로 옮겨 다녀요 (한 벌만 두고 같이 써요)
+  function showWork() {
+    $("start").hidden = true; $("home").hidden = true; $("finish").hidden = true; $("work").hidden = false;
+    const panel = document.querySelector(".panel");
+    panel.insertBefore($("status"), $("settingsBox"));
+  }
+  function showFinish() {
+    $("start").hidden = true; $("home").hidden = true; $("work").hidden = true; $("finish").hidden = false;
+    $("finGet").append(document.querySelector(".downloads"), $("status"), $("lpBox"), $("altBox"));
+    window.scrollTo(0, 0);
+    $("finish").querySelector("h1").focus({ preventScroll: true });
+    renderFinish();
+  }
+  $("toFinish").onclick = showFinish;
   $("recheck").onclick = () => { applyPrep(); showWork(); window.scrollTo(0, 0); };
   function syncSteps() {
     $("recheckRow").hidden = !S.doc;
@@ -1044,6 +1121,82 @@
   }
   document.querySelectorAll("input[name=usage], input[name=viewer0], input[name=medium0], input[name=field0]").forEach((r) => r.addEventListener("change", prepSum));
   prepSum();
+
+  // ------------------------------------------------------------------ 마무리 화면
+  const FIN_EYES = [
+    ["normal", "보통 눈"], ["acuity", "저시력"], ["cataract", "백내장"], ["protan", "적색맹"], ["deutan", "녹색맹"], ["dark", "어두운 곳"]
+  ];
+  let finEye = "acuity", finToken = 0;
+  const finCache = new Map();
+  function finOptions(eye) {
+    const acuity = (EnginePolicies.viewers[$("viewer").value] || {}).acuity || 0.3, dist = parseFloat($("dist").value) || 2;
+    return {
+      normal: null,
+      acuity: { acuity, distanceM: dist },
+      cataract: { acuity: Math.min(acuity, 0.3), distanceM: dist, contrastLoss: 0.45, yellowing: 0.7 },
+      protan: { colorVision: "protan" }, deutan: { colorVision: "deutan" }, dark: { lighting: "dim" }
+    }[eye];
+  }
+  function finCaption(eye) {
+    const acuity = (EnginePolicies.viewers[$("viewer").value] || {}).acuity || 0.3, dist = parseFloat($("dist").value) || 2;
+    return {
+      normal: "보통 눈으로 본 모습이에요. 디자인이 크게 바뀌지 않았는지 확인해 보세요.",
+      acuity: `시력 ${acuity}인 사람이 ${dist < 1 ? Math.round(dist * 100) + "cm" : dist + "m"}에서 본 모습이에요. 고친 뒤에 날짜·장소가 읽히는지 보세요.`,
+      cataract: "백내장이 있으면 뿌옇고 누렇게 보여요. 옅은 색 글자가 특히 약해져요.",
+      protan: "적색맹(빨강을 잘 못 느껴요)으로 본 모습이에요. 색으로만 구분한 정보가 사라지지 않는지 보세요.",
+      deutan: "녹색맹(초록을 잘 못 느껴요)으로 본 모습이에요. 가장 흔한 색각이상이에요.",
+      dark: "어두운 곳에서 본 모습이에요."
+    }[eye];
+  }
+  function finUrl(img) { // (toUrl 은 아래에 이미 있어서 이름을 따로 써요)
+    const c = document.createElement("canvas");
+    c.width = img.width; c.height = img.height;
+    c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);
+    return c.toDataURL("image/jpeg", 0.88);
+  }
+  function renderFinish() {
+    if (!S.doc) return;
+    // 요약: 고친 곳 / 남은 곳
+    const n = S.marks.length, done = S.marks.filter(layerFixed), left = S.marks.filter((m) => !layerFixed(m)), nf = chosenFixes().length;
+    let html = n ? `<p class="finbig">${n}군데 중 <b>${done.length}군데</b>를 고쳤어요.</p>` : `<p class="finbig">고칠 곳이 없는 포스터예요.</p>`;
+    if (left.length) html += `<p class="finleft">아직: ${left.slice(0, 4).map((m) => `<button class="linkbtn" type="button" data-fin-go="${S.marks.indexOf(m)}">${m.n}. “${esc(short(m.layer.text, 12))}”</button>`).join(" ")}${left.length > 4 ? ` 외 ${left.length - 4}곳` : ""}</p>`;
+    if (!nf && n) html += `<p class="finwarn">아직 넣은 수정이 없어서 받을 게 없어요. <button class="linkbtn" type="button" id="finFixAll">추천 수정 한 번에 다 넣기</button> 또는 <button class="linkbtn" type="button" data-fin-go="0">하나씩 고치러 가기</button></p>`;
+    $("finSum").innerHTML = html;
+    $("finSum").querySelectorAll("[data-fin-go]").forEach((b) => (b.onclick = () => { showWork(); goStep(+b.dataset.finGo); $("stages").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+    if ($("finFixAll")) $("finFixAll").onclick = () => { toggleFixAll(); renderFinish(); };
+    // 눈 고르기
+    $("finEyes").innerHTML = FIN_EYES.map(([v, t]) => `<label><input type="radio" name="finEye" value="${v}"${v === finEye ? " checked" : ""}><span>${t}</span></label>`).join("");
+    $("finEyes").querySelectorAll("input").forEach((r) => (r.onchange = () => { finEye = r.value; drawFinish(); }));
+    $("finCmp").style.aspectRatio = `${S.doc.document.widthPx} / ${S.doc.document.heightPx}`;
+    drawFinish();
+  }
+  function drawFinish() {
+    const token = ++finToken;
+    $("finCap").textContent = finCaption(finEye);
+    $("finBusy").hidden = false;
+    setTimeout(() => {
+      if (token !== finToken) return;
+      try {
+        const fixes = chosenFixes();
+        const after = fixes.length ? ensureFixed().psd.imageData : S.psd.imageData;
+        const key = finEye + "|" + $("viewer").value + "|" + $("dist").value + "|" + JSON.stringify(fixes);
+        let urls = finCache.get(key);
+        if (!urls) {
+          const o = finOptions(finEye), ppi = S.doc.document.ppi;
+          const sim = (img) => finUrl(o ? Simulate.simulate(img, Object.assign({ ppi, maxWidth: 900 }, o)).image : Simulate.downscale(img, 900).image);
+          urls = [sim(S.psd.imageData), sim(after)];
+          if (finCache.size > 12) finCache.clear();
+          finCache.set(key, urls);
+        }
+        const eyeName = FIN_EYES.find((e) => e[0] === finEye)[1];
+        $("finBefore").src = urls[0]; $("finBefore").alt = `원본 포스터를 ${eyeName}으로 본 모습`;
+        $("finAfter").src = urls[1]; $("finAfter").alt = `고친 포스터를 ${eyeName}으로 본 모습`;
+      } catch (e) { console.error(e); $("finCap").textContent = "비교 그림을 만들지 못했어요: " + e.message; }
+      $("finBusy").hidden = true;
+    }, 30);
+  }
+  const finSet = () => $("finCmp").style.setProperty("--cut", $("finRange").value + "%");
+  $("finRange").addEventListener("input", finSet); finSet();
 
   // ------------------------------------------------------------------ 파일 읽기
   const drop = $("drop"), input = $("file");
@@ -1083,7 +1236,7 @@
       }
       S.doc = PsdExtract.extractFromPsd(psd, { fileName: file.name });
       if (!S.doc.layers.length) throw new Error("글자 레이어를 찾지 못했어요. 글자가 이미지로 되어 있으면 검사할 수 없어요.");
-      $("home").hidden = true; $("start").hidden = true; $("work").hidden = false;
+      showWork();
       syncSteps();
       $("fileName").textContent = file.name;
       ["stage", "stageAfter"].forEach((id) => $(id).style.setProperty("--ar", String(S.doc.document.widthPx / S.doc.document.heightPx)));
@@ -1322,7 +1475,7 @@
       if (g === "prev") goStep(k - 1);
       if (g === "finish") {
         document.querySelector('#work .stepbtn[data-go="get"]').click();
-        if (!chosenFixes().length) $("status").textContent = "아직 넣은 수정이 없어요. ‘이렇게 고치기’나 ‘추천 수정 한 번에 다 넣기’를 누르면 받을 수 있어요.";
+        // 넣은 수정이 없으면 마무리 화면 요약이 안내해요
       }
       const first = $("guideActs").querySelector("button");
       if (first && g !== "finish") first.focus({ preventScroll: true });
@@ -1765,7 +1918,7 @@
       return;
     }
     if (e.target.closest("[data-open-lp], [data-golp]")) { closePop(); openLargePrint(); return; }
-    if (e.target.closest("[data-goalt]")) { closePop(); $("altBox").open = true; $("altBox").scrollIntoView({ behavior: "smooth", block: "center" }); }
+    if (e.target.closest("[data-goalt]")) { closePop(); if ($("finish").hidden) showFinish(); $("altBox").open = true; $("altBox").scrollIntoView({ behavior: "smooth", block: "center" }); }
   });
 
   function ensureFixed() {
@@ -2106,7 +2259,7 @@
   const LP_FONT = '"Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
   let lpTimer = null;
   function lpDirty() { clearTimeout(lpTimer); lpTimer = setTimeout(renderLargePrintPreview, 250); }
-  function openLargePrint() { $("lpBox").open = true; $("lpBox").scrollIntoView({ behavior: "smooth", block: "center" }); }
+  function openLargePrint() { if (S.doc && $("finish").hidden) showFinish(); $("lpBox").open = true; $("lpBox").scrollIntoView({ behavior: "smooth", block: "center" }); }
   $("lpText").addEventListener("input", () => { S.lpEdited = true; lpDirty(); });
   $("lpTheme").onchange = lpDirty;
   $("lpSize").onchange = lpDirty;
