@@ -76,6 +76,8 @@
       field: policies.visualField && policies.visualField.levels[env.field] ? env.field : "normal",
       fieldLabel: policies.visualField ? (policies.visualField.levels[env.field] || policies.visualField.levels.normal).label : "보통 시야",
       fieldDeg: policies.visualField && policies.visualField.levels[env.field] ? policies.visualField.levels[env.field].deg : null,
+      // 색각이상(적·녹·청색맹)인 사람도 보나요 (기본: 예)
+      colorVision: env.colorVision !== false,
       // SNS: 휴대폰 화면 너비에 맞춰 보이는 크기
       displayScaleMmPerPx: base.screenWidthMm ? base.screenWidthMm / doc.document.widthPx : null
     };
@@ -290,7 +292,7 @@
   // ---------------------------------------------------------------- 색 의존 정보 (WCAG 1.4.1 색 사용)
   //   한 글자 안에서 크기·굵기·기울임·밑줄은 같고 색만 다른 구간 = 색으로만 구분한 정보
   //   그 두 색이 색각이상(적·녹·청색맹)으로 보면 거의 같아지면 '주의'
-  function checkColorOnly(l, pol, P) {
+  function checkColorOnly(l, contrastRes, pol, P) {
     var CV = P.colorVision;
     var runs = (l.styleRuns || []).filter(function (r) { return r.color && C.hexToRgb(r.color); });
     if (!CV || runs.length < 2) return null;
@@ -315,15 +317,45 @@
     pairs.forEach(function (p) { p.lostFor.forEach(function (t) { if (lostAll.indexOf(t) < 0) lostAll.push(t); }); });
     var p0 = pairs.filter(function (p) { return p.lostFor.length; })[0] || pairs[0];
     var names = lostAll.map(function (t) { return CV.labels[t]; }).join("·");
+    var fix = lostAll.length ? colorOnlyFix(l, p0, contrastRes, pol, P) : null;
     return {
       check: "colorOnly",
       status: pol.judge === "advisory" || !lostAll.length ? "advisory" : "warn",
       metric: "“" + short(p0.a) + "”, “" + short(p0.b) + "” 두 부분이 모양은 같고 색만 달라요 (" + p0.colors.join(" · ") + ")" +
         (lostAll.length ? " · " + names + "이면 두 색이 거의 같아 보여요" : ""),
-      message: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1).",
+      message: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1)." +
+        (fix ? " 자동 수정은 두 색의 밝기 차이를 크게 벌려서, 색을 못 느껴도 밝기로 구분되게 해요." : ""),
       detail: { pairs: pairs, lostFor: lostAll },
-      fix: null
+      fix: fix
     };
+  }
+  // 색만 다른 두 구간 중 짧은 쪽(보통 강조)의 밝기만 바꿔요 (색상은 그대로)
+  //   목표: 색각이상 눈(구분이 안 되던 유형 모두)으로 봐도 두 색 거리 ≥ fixDeltaE, 배경 대비는 기준 유지. 가장 작은 변화
+  function colorOnlyFix(l, pair, contrastRes, pol, P) {
+    var CV = P.colorVision, bgs = backgroundRgbs(l);
+    if (!bgs || !contrastRes || !contrastRes.detail || !contrastRes.detail.target) return null;
+    var target = contrastRes.detail.target, alpha = l.opacity == null ? 1 : l.opacity, types = pair.lostFor.length ? pair.lostFor : CV.types;
+    var order = pair.a.length <= pair.b.length ? [[pair.colors[0], pair.colors[1]], [pair.colors[1], pair.colors[0]]] : [[pair.colors[1], pair.colors[0]], [pair.colors[0], pair.colors[1]]];
+    var best = null;
+    order.forEach(function (o) {
+      if (best && best.passes) return;
+      var base = C.rgbToOklch(C.hexToRgb(o[0])), other = C.hexToRgb(o[1]);
+      [-1, 1].forEach(function (dir) {
+        for (var step = 1; step <= 100; step++) {
+          var shift = (step / 100) * dir;
+          if (Math.abs(shift) > pol.fix.maxLightnessShift + 1e-9 || base.L + shift < 0 || base.L + shift > 1) break;
+          var rgb = C.oklchToRgb({ L: base.L + shift, C: base.C, h: base.h });
+          var dE = Math.min.apply(null, types.map(function (t) { return C.deltaE(C.simulateCvd(rgb, t), C.simulateCvd(other, t)); }));
+          var bgWorst = percentile(contrastsFor(rgb, bgs, alpha), P.contrast.worstPercentile);
+          var cand = { from: o[0], value: C.rgbToHex(rgb), deltaE: dE, bgContrast: bgWorst, shift: Math.abs(shift), passes: dE >= CV.fixDeltaE && bgWorst >= target };
+          if (cand.passes) { if (!best || !best.passes || cand.shift < best.shift) best = cand; break; }
+          if (!best || (!best.passes && bgWorst >= target && cand.deltaE > best.deltaE)) best = cand;
+        }
+      });
+    });
+    if (!best) return null;
+    return { type: "color", value: best.value, runs: [{ from: best.from, value: best.value }], strategy: "cvd-distinct", passes: best.passes,
+      contrastAfter: round(best.bgContrast, 2), deltaEAfter: round(best.deltaE, 3) };
   }
 
   // 일반 눈으로는 대비가 충분해도, 색각이상으로 보면 대비가 기준 밑으로 떨어지는지
@@ -347,6 +379,7 @@
     if (!drops.length) return null;
     drops.sort(function (a, b) { return a.worst - b.worst; });
     var d0 = drops[0];
+    var fix = cvdContrastFix(l, hexes, bgs, alpha, target, pol, P);
     return {
       check: "cvd",
       status: pol.judge === "advisory" ? "advisory" : "warn",
@@ -354,8 +387,38 @@
         (drops.length > 1 ? " · " + drops.slice(1).map(function (d) { return CV.labels[d.type] + " " + d.worst + ":1"; }).join(", ") : ""),
       message: "빨강·초록처럼 색은 다르지만 밝기가 비슷한 조합은 색각이상이 있으면 잘 안 보여요. 글자와 배경의 밝기 차이를 더 크게 해 주세요.",
       detail: { drops: drops, target: target, normalWorst: contrastRes.detail.worst },
-      fix: null
+      fix: fix
     };
+  }
+  function cvdContrastFix(l, hexes, bgs, alpha, target, pol, P) {
+    var CV = P.colorVision;
+    var lums = bgs.map(C.luminance).sort(function (a, b) { return a - b; });
+    var cut = Math.floor(lums.length * P.contrast.worstPercentile);
+    lums = lums.slice(cut, lums.length - cut || lums.length);
+    var simBgs = {};
+    CV.types.forEach(function (t) { simBgs[t] = bgs.map(function (bg) { return C.simulateCvd(bg, t); }); });
+    var cvdWorst = function (hex) {
+      return Math.min.apply(null, CV.types.map(function (t) { return percentile(contrastsFor(C.simulateCvd(C.hexToRgb(hex), t), simBgs[t], alpha), P.contrast.worstPercentile); }));
+    };
+    var best = null;
+    for (var goal = target; goal <= CV.fixMaxContrast + 1e-9; goal += CV.fixStep) {
+      var changes = [], worst = Infinity;
+      hexes.forEach(function (h) {
+        if (cvdWorst(h) >= target) { worst = Math.min(worst, cvdWorst(h)); return; }
+        var c = C.findAccessibleColor(h, lums, goal, { maxShift: pol.fix.maxLightnessShift, alpha: alpha, bgRgbs: alpha < 1 ? bgs : null });
+        var hex = c ? c.hex : h;
+        worst = Math.min(worst, cvdWorst(hex));
+        if (hex.toUpperCase() !== h.toUpperCase()) changes.push({ from: h, value: hex });
+      });
+      if (!changes.length) continue;
+      var cand = { changes: changes, worst: worst, passes: worst >= target };
+      if (!best || cand.worst > best.worst) best = cand;
+      if (cand.passes) break;
+    }
+    if (!best) return null;
+    var f = { type: "color", value: best.changes[0].value, strategy: "cvd", passes: best.passes, contrastAfter: round(best.worst, 2) };
+    if (hexes.length > 1) f.runs = best.changes;
+    return f;
   }
 
   // ---------------------------------------------------------------- ① 글꼴 가독성 (장식·좁은 글꼴, 기울임, 전부 대문자)
@@ -787,10 +850,12 @@
       var contrast = Object.assign({}, common, checkContrast(l, env, pol, P, purpose, docPurpose, altText));
       perLayer[l.id] = { size: size, contrast: contrast };
       results.push(size, contrast);
-      var cvd = checkCvdContrast(l, contrast, pol, P);
-      if (cvd) results.push(Object.assign({}, common, cvd));
-      var colorOnly = checkColorOnly(l, pol, P);
-      if (colorOnly) results.push(Object.assign({}, common, colorOnly));
+      if (env.colorVision) {
+        var cvd = checkCvdContrast(l, contrast, pol, P);
+        if (cvd) results.push(Object.assign({}, common, cvd));
+        var colorOnly = checkColorOnly(l, contrast, pol, P);
+        if (colorOnly) results.push(Object.assign({}, common, colorOnly));
+      }
       var font = checkFont(l, pol, P);
       if (font) results.push(Object.assign({}, common, font));
       var weight = checkWeight(l, pol, P);

@@ -72,6 +72,44 @@ test("빨간 글자·검은 배경: 일반 눈은 통과, 적색맹으로 보면
   assert.match(x.metric, /적색맹으로 보면/);
 });
 
+test("색만 다른 강조 → 자동 수정: 강조 쪽 밝기만 바꿔 색각이상으로도 구분, 배경 대비는 기준 유지", () => {
+  const d = fresh();
+  const l = d.layers.find((x) => x.id === 6);
+  l.styleRuns = [run("11.8(토) ", "#C8102E"), run("19:30 공연 시작", "#2E8B57")];
+  l.colorRuns = ["#C8102E", "#2E8B57"];
+  const r = E.checkDocument(d, { medium: "flyer" });
+  const x = find(r, 6, "colorOnly");
+  assert.ok(x.fix, "수정이 있어요");
+  assert.equal(x.fix.type, "color");
+  assert.equal(x.fix.runs.length, 1);
+  assert.equal(x.fix.runs[0].from, "#C8102E", "짧은 쪽(강조)을 바꿔요");
+  assert.equal(x.fix.passes, true);
+  // 바꾼 색은 색각이상으로 봐도 다른 색과 구분돼요
+  const other = C.hexToRgb("#2E8B57"), nu = C.hexToRgb(x.fix.value);
+  for (const t of x.detail.lostFor) assert.ok(C.deltaE(C.simulateCvd(nu, t), C.simulateCvd(other, t)) >= 0.12, t);
+  assert.ok(x.fix.contrastAfter >= find(r, 6, "contrast").detail.target);
+});
+
+test("색각이상 대비 부족 → 자동 수정: 모든 색각이상 눈에서 기준을 넘는 밝기", () => {
+  const d = fresh();
+  const l = d.layers.find((x) => x.id === 6);
+  l.color = "#FF0000"; l.colorRuns = ["#FF0000"];
+  l.background = Object.assign({}, l.background, { samples: Array(50).fill("#000000"), stats: Object.assign({}, l.background.stats, { luminanceStdDev: 0 }) });
+  const x = find(E.checkDocument(d, { medium: "flyer" }), 6, "cvd");
+  assert.ok(x.fix && x.fix.type === "color");
+  assert.equal(x.fix.passes, true);
+  assert.ok(x.fix.contrastAfter >= x.detail.target);
+  for (const t of ["protan", "deutan", "tritan"]) assert.ok(C.contrast(C.simulateCvd(C.hexToRgb(x.fix.value), t), [0, 0, 0]) >= x.detail.target, t);
+});
+
+test("색각이상 검사를 끄면(colorVision: false) 색 관련 항목이 없어요", () => {
+  const d = fresh();
+  d.layers.find((x) => x.id === 6).styleRuns = [run("11.8(토) ", "#C8102E"), run("19:30", "#2E8B57")];
+  const r = E.checkDocument(d, { medium: "flyer", colorVision: false });
+  assert.equal(r.results.filter((x) => x.check === "cvd" || x.check === "colorOnly").length, 0);
+  assert.equal(r.environment.colorVision, false);
+});
+
 test("샘플 포스터에는 색 의존 문제가 없어요 (흙색 계열 글자)", () => {
   const r = E.checkDocument(fresh(), { medium: "sns" });
   assert.equal(r.results.filter((x) => x.check === "cvd" || x.check === "colorOnly").length, 0);

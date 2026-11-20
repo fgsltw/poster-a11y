@@ -27,6 +27,7 @@ const FILES = [
   ["engine/engine.js", "engine/engine.js"],
   ["samples/sample-poster.psd", "samples/sample-poster.psd"],
   ["samples/sample-poster-cmyk.psd", "samples/sample-poster-cmyk.psd"],
+  ["samples/sample-color.psd", "samples/sample-color.psd"],
   ["web/home/before.jpg", "home/before.jpg"],
   ["web/home/after.jpg", "home/after.jpg"],
   ["web/home/before-low.jpg", "home/before-low.jpg"],

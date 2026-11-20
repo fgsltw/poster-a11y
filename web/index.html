@@ -528,6 +528,47 @@
   .recheck { text-align: left; margin: 0 0 14px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; color: var(--sub); font-size: 14px; }
   .recheck .btn { padding: 10px 20px; font-size: 15px; }
   .stepbtn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+  /* 준비 (A안): 번호 붙은 세 단계, 왼쪽 정렬. 선택한 카드는 남색 테두리 + 노란 링 */
+  .start { max-width: 760px; text-align: left; }
+  .start .startsteps { justify-content: flex-start; }
+  .start h1 { font-size: 40px; font-weight: 700; line-height: 1.25; margin: 28px 0 10px; }
+  .start .preplead { font-size: 17px; line-height: 1.6; margin: 0 0 40px; }
+  .pstep { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 20px; margin-bottom: 40px; }
+  .pbody { min-width: 0; }
+  .pstep-n { width: 48px; height: 48px; border-radius: 50%; background: var(--navy); color: var(--signal); display: grid; place-items: center; font-size: 20px; font-weight: 700; }
+  .pstep-n.go { background: var(--signal); color: var(--navy); border: 2px solid var(--navy); box-sizing: border-box; }
+  .pstep .usage { margin: 0; }
+  .pstep .usage legend, .pstep .steplabel { font-size: 22px; font-weight: 700; min-height: 48px; margin: 0 0 12px; }
+  .start .use span { border-width: 1px; border-radius: 14px; padding: 20px; }
+  .start .use input:checked + span { background: var(--paper); border: 3px solid var(--navy); padding: 18px; box-shadow: 0 0 0 4px var(--signal); }
+  .start .use-unsure { min-height: 44px; font-size: 15px; }
+  .pstep .prepmore { margin: 16px 0 0; }
+  .pstep .prepsum { margin: 0 0 14px; padding: 14px 16px; background: var(--brand-soft); border-radius: 10px; font-size: 15px; line-height: 1.6; color: var(--ink); }
+  #drop { display: flex; flex-direction: column; align-items: center; gap: 10px; border: 3px dashed var(--navy); border-radius: 16px; padding: 44px 24px; font-size: 14px; }
+  #drop strong { font-size: 19px; margin: 0; }
+  .pstep .samples { justify-content: flex-start; }
+  .pstep .privacy { text-align: left; }
+  @media (max-width: 600px) {
+    .start h1 { font-size: 30px; }
+    .pstep { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; }
+    .pstep-n { width: 36px; height: 36px; font-size: 16px; }
+    .pstep .usage legend, .pstep .steplabel { font-size: 19px; min-height: 36px; }
+    #drop { padding: 32px 16px; }
+  }
+  /* 준비: 누구의 눈으로 */
+  .gtip { margin: -4px 0 12px; font-size: 14px; color: var(--sub); text-align: left; }
+  .groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: left; }
+  @media (max-width: 700px) { .groups { grid-template-columns: 1fr; } }
+  .grp { border: 2px solid var(--navy); border-radius: 12px; padding: 12px 14px; background: #FFFBE0; display: flex; flex-direction: column; gap: 10px; }
+  .grp.off { border-color: var(--line); background: var(--paper); }
+  .gchk { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+  .gchk input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--navy); flex: none; }
+  .gchk b { display: block; font-size: 17px; font-weight: 800; color: var(--navy); }
+  .gchk small { display: block; font-size: 13px; color: var(--sub); line-height: 1.45; }
+  .gopt { align-self: flex-start; }
+  .grp.off .gopt { opacity: .45; }
+  .gnote { margin: 0; font-size: 13px; color: var(--sub); }
+  .grp.off .gnote { opacity: .45; }
   /* 하나씩 고치기 */
   .guide { margin-top: 16px; border: 2px solid var(--navy); border-radius: 14px; padding: 14px 16px 16px; background: var(--paper); }
   .ghead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -543,6 +584,7 @@
   .gdots li.cur { background: var(--signal); border-color: var(--navy); transform: scale(1.3); }
   .guide #guideTitle { font-size: 19px; margin: 12px 0 4px; display: flex; gap: 8px; align-items: center; color: var(--navy); }
   .guide .pnum { width: 30px; height: 30px; font-size: 14px; font-weight: 800; background: var(--navy) !important; border: 3px solid var(--signal); }
+  .guide .pdoc { font-size: 13px; font-weight: 600; color: var(--sub); }
   .guide .pitem { padding: 10px 0; border-top: 1px solid var(--line); }
   .guide .pitem:first-of-type { border-top: 0; }
   .guide .pmsg { margin: 6px 0 4px; font-size: 15px; }
@@ -700,6 +742,7 @@
     </ol></div>
   <h1>두 가지만 알려 주세요</h1>
   <p class="preplead">고른 사람의 눈으로 포스터를 검사해요. 나중에 바꿀 수도 있어요.</p>
+  <div class="pstep"><span class="pstep-n" aria-hidden="true">1</span><div class="pbody">
   <fieldset class="usage">
     <legend>어떤 포스터인가요?</legend>
     <div class="uses">
@@ -710,13 +753,31 @@
     </div>
     <label class="use-unsure"><input type="radio" name="usage" value="" checked> 잘 모르겠어요 (글자마다 알아서 정해요)</label>
   </fieldset>
+  </div></div>
+  <div class="pstep"><span class="pstep-n" aria-hidden="true">2</span><div class="pbody">
   <fieldset class="usage viewers">
-    <legend>누가 보나요? <button class="help" type="button" data-help="viewer" aria-label="보는 사람 설명">?</button></legend>
-    <div class="vopts">
-      <label class="vopt"><input type="radio" name="viewer0" value="general"><span><b>일반 시력</b><small>시력 1.0</small></span></label>
-      <label class="vopt"><input type="radio" name="viewer0" value="low" checked><span><b>저시력</b><small>시력 0.3 · 추천</small></span></label>
-      <label class="vopt"><input type="radio" name="viewer0" value="disability"><span><b>시각장애</b><small>시력 0.2</small></span></label>
-      <label class="vopt"><input type="radio" name="viewer0" value="severe"><span><b>심한 시각장애</b><small>시력 0.06</small></span></label>
+    <legend>누구의 눈으로 확인할까요? <button class="help" type="button" data-help="viewer" aria-label="보는 사람 설명">?</button></legend>
+    <p class="gtip">셋 다 켜 두는 걸 추천해요. 끄면 그 사람을 위한 검사는 빼요.</p>
+    <div class="groups">
+      <div class="grp">
+        <label class="gchk"><input type="checkbox" id="gLow" checked><span><b>저시력</b><small>안경을 써도 잘 안 보여요</small></span></label>
+        <div class="seg gopt" role="radiogroup" aria-label="저시력 정도">
+          <label><input type="radio" name="viewer0" value="low" checked><span>시력 0.3</span></label>
+          <label><input type="radio" name="viewer0" value="disability"><span>0.2</span></label>
+          <label><input type="radio" name="viewer0" value="severe"><span>0.06</span></label>
+        </div>
+      </div>
+      <div class="grp">
+        <label class="gchk"><input type="checkbox" id="gCvd" checked><span><b>색각이상</b><small>빨강·초록·파랑을 잘 구분하지 못해요</small></span></label>
+        <p class="gnote">적색맹 · 녹색맹 · 청색맹을 모두 확인해요</p>
+      </div>
+      <div class="grp">
+        <label class="gchk"><input type="checkbox" id="gField" checked><span><b>시야가 좁은 사람</b><small>한 번에 보이는 범위가 좁아요</small></span></label>
+        <div class="seg gopt" role="radiogroup" aria-label="시야">
+          <label><input type="radio" name="field0" value="narrow" checked><span>10°</span></label>
+          <label><input type="radio" name="field0" value="veryNarrow"><span>5°</span></label>
+        </div>
+      </div>
     </div>
   </fieldset>
   <details class="prepmore">
@@ -729,19 +790,14 @@
       </div>
       <button class="help" type="button" data-help="medium" aria-label="쓰는 곳 설명">?</button>
     </div>
-    <div class="fieldrow"><span>시야</span>
-      <div class="seg" role="radiogroup" aria-label="시야">
-        <label><input type="radio" name="field0" value="normal" checked><span>보통</span></label>
-        <label><input type="radio" name="field0" value="narrow"><span>좁음 (10°)</span></label>
-        <label><input type="radio" name="field0" value="veryNarrow"><span>아주 좁음 (5°)</span></label>
-      </div>
-      <button class="help" type="button" data-help="field" aria-label="시야 설명">?</button>
-    </div>
   </details>
+  </div></div>
+  <div class="pstep"><span class="pstep-n go" aria-hidden="true">3</span><div class="pbody">
   <h2 class="steplabel">포스터 올리기</h2>
   <p class="prepsum" id="prepSum" aria-live="polite"></p>
   <p class="recheck" id="recheckRow" hidden><button class="btn primary" type="button" id="recheck">이 설정으로 다시 검사하기</button> <span>또는 새 파일을 올려요.</span></p>
   <button id="drop" type="button">
+    <svg aria-hidden="true" width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="21" fill="#FFD400"/><path d="M22 30V14M15 20l7-7 7 7" fill="none" stroke="#0E2A47" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <strong>PSD 파일을 끌어다 놓거나 눌러서 고르세요</strong>
     포토샵에서 저장할 때 ‘호환성 최대화’를 켜 주세요
   </button>
@@ -749,9 +805,11 @@
   <div class="samples">PSD가 없으면
     <button class="linkbtn" type="button" data-sample="sample-poster.psd">샘플 포스터로 해보기</button>
     <button class="linkbtn" type="button" data-sample="sample-poster-cmyk.psd">인쇄용(CMYK) 샘플</button>
+    <button class="linkbtn" type="button" data-sample="sample-color.psd" data-medium="wall">색·시야 문제 샘플 (벽 포스터)</button>
   </div>
   <p class="privacy">파일은 이 브라우저 안에서만 처리돼요. 서버로 올라가지 않아요.</p>
   <p class="status" id="startStatus" role="status"></p>
+  </div></div>
 </section>
 
 <!-- 2. 검사 화면 -->
@@ -1158,14 +1216,22 @@
     if (go === "get") showFinish();
   }));
 
+  const pick = (n) => document.querySelector(`input[name=${n}]:checked`).value;
+  const prepViewer = () => ($("gLow").checked ? pick("viewer0") : "general");
+  const prepField = () => ($("gField").checked ? pick("field0") : "normal");
+  const prepCvd = () => $("gCvd").checked;
+  function syncGroups() {
+    [["gLow", "viewer0"], ["gField", "field0"]].forEach(([g, n]) => document.querySelectorAll(`input[name=${n}]`).forEach((r) => (r.disabled = !$(g).checked)));
+    document.querySelectorAll(".grp").forEach((el) => el.classList.toggle("off", !el.querySelector(".gchk input").checked));
+  }
   // 준비 화면에서 바꾼 것을 지금 파일에 반영 (다시 검사)
   // 바뀐 게 없으면 다시 검사하지 않아요 (다시 검사하면 넣은 수정이 처음으로 돌아가요)
   function applyPrep() {
     if (!S.doc) return;
     const v = (n) => document.querySelector(`input[name=${n}]:checked`).value;
     const curUsage = ["info", "art"].includes(S.purposeInfo.document) ? S.purposeInfo.document : null;
-    if (v("viewer0") === $("viewer").value && v("field0") === $("field").value && v("medium0") === medium() && (v("usage") || null) === curUsage) return;
-    $("viewer").value = v("viewer0"); $("field").value = v("field0");
+    if (prepViewer() === $("viewer").value && prepField() === $("field").value && prepCvd() === (S.cvd !== false) && v("medium0") === medium() && (v("usage") || null) === curUsage) return;
+    $("viewer").value = prepViewer(); $("field").value = prepField(); S.cvd = prepCvd();
     const m0 = v("medium0");
     if (m0 !== medium()) { document.querySelector(`input[name=medium][value=${m0}]`).checked = true; $("dist").value = EnginePolicies.environments[m0].distanceM; }
     syncSimAcuity(); updateSimFx();
@@ -1178,7 +1244,10 @@
   function showPrep() {
     if (S.doc) {
       const set = (n, val) => { const r = document.querySelector(`input[name=${n}][value="${val}"]`); if (r) r.checked = true; };
-      set("viewer0", $("viewer").value); set("field0", $("field").value); set("medium0", medium());
+      $("gLow").checked = $("viewer").value !== "general"; if ($("gLow").checked) set("viewer0", $("viewer").value);
+      $("gField").checked = $("field").value !== "normal"; if ($("gField").checked) set("field0", $("field").value);
+      $("gCvd").checked = S.cvd !== false;
+      syncGroups(); set("medium0", medium());
       set("usage", ["info", "art"].includes(S.purposeInfo.document) ? S.purposeInfo.document : "");
       prepSum();
     }
@@ -1216,18 +1285,22 @@
   const VIEWER_TEXT = { general: "일반 시력(1.0)", low: "저시력(시력 0.3)", disability: "시각장애(시력 0.2)", severe: "심한 시각장애(시력 0.06)" };
   const MEDIUM_TEXT = { sns: ["휴대폰 화면", "으로"], wall: ["벽 포스터 앞", "에서"], flyer: ["손에 든 전단", "으로"] };
   function prepSum() {
-    const v = (n) => document.querySelector(`input[name=${n}]:checked`).value;
-    const f = v("field0");
-    const m = v("medium0"), [mt, mj] = MEDIUM_TEXT[m], d = EnginePolicies.environments[m].distanceM;
+    const m = pick("medium0"), [mt, mj] = MEDIUM_TEXT[m], d = EnginePolicies.environments[m].distanceM;
     const dist = d < 1 ? Math.round(d * 100) + "cm" : d + "m";
-    $("prepSum").innerHTML = `<b>${VIEWER_TEXT[v("viewer0")]}</b>인 사람이 <b>${mt}(${dist})</b>${mj} 본다고 보고, <b>${USAGE_TEXT[v("usage")]}</b>으로 검사해요${f !== "normal" ? ` (시야 ${f === "narrow" ? "10°" : "5°"})` : ""}.`;
+    const who = [];
+    if ($("gLow").checked) who.push(VIEWER_TEXT[pick("viewer0")]);
+    if ($("gCvd").checked) who.push("색각이상");
+    if ($("gField").checked) who.push(`시야 ${pick("field0") === "narrow" ? "10°" : "5°"}`);
+    $("prepSum").innerHTML = (who.length ? `<b>${who.join(" · ")}</b>인 사람의 눈으로` : "<b>일반 눈</b>으로만") +
+      ` <b>${mt}(${dist})</b>${mj} 본다고 보고, <b>${USAGE_TEXT[pick("usage")]}</b>으로 검사해요.`;
   }
-  document.querySelectorAll("input[name=usage], input[name=viewer0], input[name=medium0], input[name=field0]").forEach((r) => r.addEventListener("change", prepSum));
+  document.querySelectorAll("input[name=usage], input[name=viewer0], input[name=medium0], input[name=field0], .gchk input").forEach((r) => r.addEventListener("change", () => { syncGroups(); prepSum(); }));
+  syncGroups();
   prepSum();
 
   // ------------------------------------------------------------------ 마무리 화면
   const FIN_EYES = [
-    ["normal", "보통 눈"], ["acuity", "저시력"], ["cataract", "백내장"], ["protan", "적색맹"], ["deutan", "녹색맹"], ["dark", "어두운 곳"]
+    ["normal", "보통 눈"], ["acuity", "저시력"], ["cataract", "백내장"], ["protan", "적색맹"], ["deutan", "녹색맹"], ["tritan", "청색맹"], ["tunnel", "시야 좁음"], ["dark", "어두운 곳"]
   ];
   let finEye = "acuity", finToken = 0;
   const finCache = new Map();
@@ -1237,7 +1310,7 @@
       normal: null,
       acuity: { acuity, distanceM: dist },
       cataract: { acuity: Math.min(acuity, 0.3), distanceM: dist, contrastLoss: 0.45, yellowing: 0.7 },
-      protan: { colorVision: "protan" }, deutan: { colorVision: "deutan" }, dark: { lighting: "dim" }
+      protan: { colorVision: "protan" }, deutan: { colorVision: "deutan" }, tritan: { colorVision: "tritan" }, tunnel: null, dark: { lighting: "dim" }
     }[eye];
   }
   function finCaption(eye) {
@@ -1248,8 +1321,33 @@
       cataract: "백내장이 있으면 뿌옇고 누렇게 보여요. 옅은 색 글자가 특히 약해져요.",
       protan: "적색맹(빨강을 잘 못 느껴요)으로 본 모습이에요. 색으로만 구분한 정보가 사라지지 않는지 보세요.",
       deutan: "녹색맹(초록을 잘 못 느껴요)으로 본 모습이에요. 가장 흔한 색각이상이에요.",
+      tritan: "청색맹(파랑·노랑을 잘 못 느껴요)으로 본 모습이에요.",
+      tunnel: (() => { const f = fieldInfo(); return f ? `시야가 ${f.deg}°로 좁으면 한 번에 밝은 원만큼만 보여요 (지름 약 ${Math.round(f.viewMm / 10)}cm). 핵심 정보가 원 안에 다 들어오는지 보세요.` : ""; })(),
       dark: "어두운 곳에서 본 모습이에요."
     }[eye];
+  }
+  function fieldInfo() {
+    const r = S.check && S.check.results.find((x) => x.check === "field");
+    if (r && r.detail && r.detail.viewPx) return { deg: r.detail.fieldDeg, viewMm: r.detail.viewMm, viewPx: r.detail.viewPx, clusters: r.detail.clusters || [] };
+    const deg = EnginePolicies.visualField.levels.narrow.deg, dist = parseFloat($("dist").value) || 2;
+    const env = EnginePolicies.environments[medium()] || {};
+    const mmPerPx = env.screenWidthMm ? env.screenWidthMm / S.doc.document.widthPx : 25.4 / S.doc.document.ppi;
+    const viewMm = 2 * dist * 1000 * Math.tan((deg * Math.PI) / 180);
+    return { deg, viewMm, viewPx: viewMm / mmPerPx, clusters: [] };
+  }
+  // 좁은 시야: 핵심 정보 묶음(가장 큰 것) 가운데를 보고 있을 때, 원 밖은 거의 안 보여요
+  function tunnelView(img) {
+    const f = fieldInfo(), k = img.width / S.doc.document.widthPx;
+    const cl = f.clusters.slice().sort((a, b) => b.ids.length - a.ids.length)[0];
+    const cx = cl ? ((cl.box.left + cl.box.right) / 2) * k : img.width / 2, cy = cl ? ((cl.box.top + cl.box.bottom) / 2) * k : img.height / 2;
+    const r = Math.max(8, (f.viewPx / 2) * k), d = img.data;
+    for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+      const t = Math.min(1, Math.max(0, (Math.hypot(x - cx, y - cy) - r) / (r * 0.25))); // 원 가장자리는 부드럽게
+      if (!t) continue;
+      const i = (y * img.width + x) * 4, keep = 1 - t * 0.92;
+      d[i] *= keep; d[i + 1] *= keep; d[i + 2] *= keep;
+    }
+    return img;
   }
   function finUrl(img) { // (toUrl 은 아래에 이미 있어서 이름을 따로 써요)
     const c = document.createElement("canvas");
@@ -1283,11 +1381,11 @@
       try {
         const fixes = chosenFixes();
         const after = fixes.length ? ensureFixed().psd.imageData : S.psd.imageData;
-        const key = finEye + "|" + $("viewer").value + "|" + $("dist").value + "|" + JSON.stringify(fixes);
+        const key = finEye + "|" + $("viewer").value + "|" + $("field").value + "|" + $("dist").value + "|" + JSON.stringify(fixes);
         let urls = finCache.get(key);
         if (!urls) {
           const o = finOptions(finEye), ppi = S.doc.document.ppi;
-          const sim = (img) => finUrl(o ? Simulate.simulate(img, Object.assign({ ppi, maxWidth: 900 }, o)).image : Simulate.downscale(img, 900).image);
+          const sim = finEye === "tunnel" ? (img) => finUrl(tunnelView(Simulate.downscale(img, 900).image)) : (img) => finUrl(o ? Simulate.simulate(img, Object.assign({ ppi, maxWidth: 900 }, o)).image : Simulate.downscale(img, 900).image);
           urls = [sim(S.psd.imageData), sim(after)];
           if (finCache.size > 12) finCache.clear();
           finCache.set(key, urls);
@@ -1311,6 +1409,8 @@
   input.onchange = () => input.files[0] && load(input.files[0]);
   $("another").onclick = () => { input.value = ""; input.click(); };
   document.querySelectorAll("[data-sample]").forEach((b) => (b.onclick = async () => {
+    // 샘플마다 어울리는 쓰는 곳 (색·시야 샘플은 벽에 붙이는 큰 현수막)
+    if (b.dataset.medium) { const r = document.querySelector(`input[name=medium0][value=${b.dataset.medium}]`); if (r) { r.checked = true; prepSum(); } }
     $("startStatus").textContent = "샘플을 불러오는 중…";
     try {
       const res = await fetch(SAMPLE_BASE + b.dataset.sample);
@@ -1328,8 +1428,9 @@
       S.fileName = file.name; S.psd = psd; S.lpEdited = false; S.seen = new Set();
       S.purposeInfo = PurposeStore.readFromPsd(psd) || PurposeStore.empty();
       // 시작 화면에서 고른 용도가 있으면 그걸로 (PSD에 저장된 목적보다 우선)
-      $("viewer").value = document.querySelector("input[name=viewer0]:checked").value;
-      $("field").value = document.querySelector("input[name=field0]:checked").value;
+      $("viewer").value = prepViewer();
+      $("field").value = prepField();
+      S.cvd = prepCvd();
       const m0 = document.querySelector("input[name=medium0]:checked").value;
       document.querySelector(`input[name=medium][value=${m0}]`).checked = true;
       $("dist").value = EnginePolicies.environments[m0].distanceM;
@@ -1372,7 +1473,7 @@
   // 지금 고른 보는 환경
   const envNow = () => ({
     medium: medium(), distanceM: parseFloat($("dist").value) || undefined, lighting: $("dim").checked ? "dim" : "normal",
-    viewer: $("viewer").value, field: $("field").value
+    viewer: $("viewer").value, field: $("field").value, colorVision: S.cvd !== false
   });
   $("purpose").onchange = () => { S.purposeInfo.document = $("purpose").value || null; purposesChanged(); };
 
@@ -1424,8 +1525,15 @@
     // 고치는 순서: '참고'만 있는 글자는 맨 뒤, 그 안에서는 정보 전달 지도 점수(중요한데 안 보이는 순)가 높은 것부터
     const pr = new Map(((S.check && S.check.priority) || []).map((x) => [x.layerId, x.score]));
     const grp = (m) => (m.worst === "advisory" ? 1 : 0);
+    // 글자 하나가 아니라 포스터 전체에 대한 항목(시야·정보 배치·위계)은 '포스터 전체' 한 단계로 묶어요
+    const docItems = S.items.filter((x) => x.layerId == null);
+    if (docItems.length) {
+      const worst = docItems.reduce((w, x) => (ORDER[x.status] < ORDER[w] ? x.status : w), "advisory");
+      byLayer.set("doc", { layer: { id: -1, text: "포스터 전체", bounds: null }, worst, items: docItems, doc: true });
+    }
+    const top = (m) => (m.layer.bounds ? m.layer.bounds.top : 1e9);
     S.marks = [...byLayer.values()].sort((a, b) => grp(a) - grp(b) || (pr.get(b.layer.id) || 0) - (pr.get(a.layer.id) || 0) ||
-      ORDER[a.worst] - ORDER[b.worst] || a.layer.bounds.top - b.layer.bounds.top);
+      ORDER[a.worst] - ORDER[b.worst] || top(a) - top(b));
     S.marks.forEach((m, i) => (m.n = i + 1));
     S.step = 0;
   }
@@ -1439,7 +1547,7 @@
       <p class="lead2">${n ? "중요한 곳부터 <b>하나씩</b> 보여드릴게요. 포스터의 번호를 눌러 바로 가도 돼요." : "모든 검사를 통과했어요. 바로 받아도 돼요."}</p>
       ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>
       <p class="pinkey"><span><i class="k-todo">3</i>아직이에요 · 눌러서 골라요</span><span><i class="k-done">✓</i>고쳤어요 · 확인해 보세요</span></p>` : ""}
-      <p class="cond">${esc(env.viewerLabel)}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
+      <p class="cond">${esc(env.viewerLabel)}${env.colorVision ? " · 색각이상" : ""}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>
       ${n ? `<section class="guide" id="guide" aria-labelledby="guideTitle"><div class="ghead"><span class="gcount" id="gCount"></span><ol class="gdots" id="gDots" aria-hidden="true"></ol></div>
         <div class="gall"><button class="btn autofix" type="button" id="autoFix">자동으로 모두 고치고 받기</button><button class="linkbtn" type="button" id="clearAll" hidden>모두 빼기</button>
@@ -1499,6 +1607,7 @@
     stage.querySelectorAll(".mark").forEach((m) => m.remove());
     S.marks.forEach((m) => {
       const b = m.layer.bounds;
+      if (!b) return; // 포스터 전체 단계는 번호 버튼이 없어요
       const el = document.createElement("button");
       el.type = "button";
       el.className = "mark s-" + m.worst;
@@ -1724,7 +1833,7 @@
       compareHtml(previewSpecOf(x), i);
   }
   function popHtml(m, tid = "popTitle") {
-    let html = `<h3 id="${tid}"><span class="pnum s-${m.worst}">${m.n}</span>“${esc(short(m.layer.text, 34))}”</h3>`;
+    let html = `<h3 id="${tid}"><span class="pnum s-${m.worst}">${m.n}</span>${m.doc ? "포스터 전체 <small class=\"pdoc\">시야 · 정보 배치</small>" : `“${esc(short(m.layer.text, 34))}”`}</h3>`;
     if (!m.items.length) html += `<p class="pnone">이 글자는 검사에서 고칠 곳이 없어요. 잘 보여요.</p>`;
     m.items.forEach((x) => {
       const i = S.items.indexOf(x);
@@ -1809,7 +1918,9 @@
     if (x.check === "field") return { kind: "field", detail: d };
     if (x.check === "cvd" || x.check === "colorOnly") {
       const type = x.check === "cvd" ? d.drops[0].type : (d.lostFor && d.lostFor[0]) || "deutan";
-      return { kind: "cvd", layerId: x.layerId, type, label: `${EnginePolicies.colorVision.labels[type]}으로 보면` };
+      const name = EnginePolicies.colorVision.labels[type];
+      if (x.fix) return asFix(x, { cvdType: type, label: `${name}으로 본 모습`, caption: x.fix.passes === false ? "기준에는 못 미쳐요" : "" });
+      return { kind: "cvd", layerId: x.layerId, type, label: `${name}으로 보면` };
     }
     if (x.check === "font") return { kind: "font", layerId: x.layerId, allCaps: (d.issues || []).includes("allCaps"), label: "읽기 쉬운 글꼴로 바꾼 모습 (예시)" };
     if (x.check === "layout") return asFix(sizeOf(x.layerId), { label: "추천 크기로 키운 모습" }) ||
@@ -1903,7 +2014,13 @@
     return rect;
   }
   const boxOfLayer = (l) => ({ left: l.left, top: l.top, right: l.right, bottom: l.bottom });
-  const crop = (psd, rect) => toUrl(PsdApply.compositePsd(psd, rect).imageData, 560);
+  const crop = (psd, rect, cvdType) => {
+    const img0 = PsdApply.compositePsd(psd, rect).imageData;
+    if (!cvdType) return toUrl(img0, 560);
+    const img = { width: img0.width, height: img0.height, data: new Uint8ClampedArray(img0.data) }; // 복사본에만 (원본은 그대로)
+    Simulate.applyColorVision(img, cvdType);
+    return toUrl(img, 560);
+  };
 
   function makePreview(spec) {
     if (spec.kind === "fix") return previewFix(spec);
@@ -1942,7 +2059,9 @@
     const made = r.applied[0] && r.applied[0].createdLayerId != null ? PsdApply.findLayer(r.psd.children, r.applied[0].createdLayerId).layer : null;
     if (made) boxes.push(boxOfLayer(made));
     const rect = regionAround(boxes);
-    return { before: crop(S.psd, rect), after: crop(r.psd, rect), afterCaption: spec.caption ? "고친 뒤 · " + spec.caption : "고친 뒤" };
+    const eye = spec.cvdType ? " (" + EnginePolicies.colorVision.labels[spec.cvdType] + ")" : "";
+    return { before: crop(S.psd, rect, spec.cvdType), beforeCaption: spec.cvdType ? "지금" + eye : undefined,
+      after: crop(r.psd, rect, spec.cvdType), afterCaption: (spec.caption ? "고친 뒤 · " + spec.caption : "고친 뒤") + eye };
   }
 
   // 같은 글을 읽기 쉬운 글꼴(민무늬 고딕, 보통 폭, 바로 선 글꼴)로 다시 써서 보여줘요. 영문 전부 대문자는 첫 글자만 대문자로.
