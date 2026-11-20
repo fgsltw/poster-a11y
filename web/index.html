@@ -3,19 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0E2A47">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <title>클리어 뷰</title>
 <meta name="description" content="포스터가 누구에게나 잘 보이는지 확인하고, 고친 모습을 바로 보여줘요.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
+  /* 디자인 기준: 잉크 남색 + 신호 노랑 (저시력용 고대비 표지판 색). 글꼴은 Pretendard 하나, 굵기·크기 차이로 위계 */
   :root {
-    --bg: #F5F6F8; --card: #FFFFFF; --line: #DDE1E7; --ink: #1D2430; --sub: #5A6474;
-    --brand: #1F5FBF; --brand-ink: #FFFFFF; --brand-soft: #E8F0FB;
+    --navy: #0E2A47; --signal: #FFD400; --paper: #FFFFFF; --mist: #E9EDF2;
+    --bg: var(--mist); --card: var(--paper); --line: #CFD6DF; --ink: #0E2A47; --sub: #44546A;
+    --brand: #0E2A47; --brand-ink: #FFFFFF; --brand-soft: #E3E9F1;
     --fail: #B3261E; --fail-bg: #FCE8E6; --conf: #6A2C91; --conf-bg: #F1E6F8;
-    --warn: #8A5300; --warn-bg: #FFF2D9; --adv: #3F5670; --adv-bg: #E7EDF4; --pass: #1E6B34; --pass-bg: #E3F4E8;
+    --warn: #8A5300; --warn-bg: #FFF2D9; --adv: #3F5670; --adv-bg: #E7EDF4; --pass: #16794A; --pass-bg: #E2F3EA;
     --radius: 12px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
-  body { font-family: "Pretendard", "Malgun Gothic", system-ui, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; font-size: 15px; }
+  body { font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", system-ui, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; font-size: 15px; }
   button, select, input { font: inherit; color: inherit; }
   /* 초점 표시: 짙은 파랑 + 노란 테두리 두 겹 (밝은·어두운 배경 모두에서 잘 보여요) */
   :focus-visible { outline: 4px solid #0B3D91; outline-offset: 2px; box-shadow: 0 0 0 8px #FFD400; }
@@ -344,27 +349,138 @@
   #tip .compare figcaption { color: #9FB0C6; }
   #tip .compare img { border-color: #3A4456; }
   #tip .compare .wait { background: #2A3342; color: #C8D2E0; }
+
+  /* ================================================================ 디자인 층 */
+  html { scroll-padding-top: 80px; } /* 고정된 단계 줄이 초점 받은 요소를 가리지 않게 */
+  .skip { position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--signal); color: var(--navy); font-weight: 800; padding: 10px 16px; border-radius: 999px; border: 2px solid var(--navy); }
+  .skip:focus { top: 12px; }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+  button, .btn, .stepbtn, .mark, label { touch-action: manipulation; -webkit-tap-highlight-color: rgba(255,212,0,.35); }
+  #fixCount, .fixprog { font-variant-numeric: tabular-nums; }
+  #pop { overscroll-behavior: contain; }
+  select { background-color: var(--paper); color: var(--ink); }
+  body { background: var(--paper); font-size: 16px; -webkit-font-smoothing: antialiased; }
+  #work { background: var(--mist); min-height: calc(100vh - 64px); }
+  :focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; box-shadow: 0 0 0 7px var(--signal); }
+
+  /* 머리글: 남색 띠 */
+  .top { background: var(--navy); border-bottom: 0; padding: 12px 24px; }
+  .brand { color: #fff; }
+  .brand b { font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }
+  .brand small, .top p { color: #C9D4E2; }
+  .top a.dev { color: #C9D4E2; }
+  .topgap { flex: 1; }
+  .top :focus-visible { outline-color: var(--signal); box-shadow: none; }
+
+  /* 버튼: 주요 버튼만 노란 알약, 나머지는 조용하게 */
+  .btn { border-radius: 8px; border-color: var(--line); font-weight: 600; color: var(--navy); }
+  .btn:hover { border-color: var(--navy); }
+  .btn.primary { background: var(--signal); color: var(--navy); border: 2px solid var(--navy); border-radius: 999px; font-weight: 800; }
+  .btn.primary:hover { background: #FFE14D; }
+  .btn:disabled { opacity: .45; }
+  .linkbtn.big { font-size: 16px; font-weight: 700; color: var(--navy); text-decoration: underline; text-underline-offset: 4px; background: none; border: 0; padding: 12px 8px; cursor: pointer; }
+  .seg { border-color: var(--line); background: var(--paper); }
+  .seg input:checked + span { background: var(--navy); color: #fff; font-weight: 700; }
+
+  /* 홈 */
+  .home { padding-top: 56px; }
+  .hero { gap: 56px; }
+  h1.chart { margin: 0 0 20px; color: var(--navy); font-weight: 800; letter-spacing: -0.045em; line-height: 1.08; }
+  h1.chart span { display: block; }
+  h1.chart .l1 { font-size: 64px; }
+  h1.chart .l2 { font-size: 44px; margin-top: 6px; }
+  h1.chart .l3 { font-size: 30px; margin-top: 8px; }
+  @media (max-width: 600px) { h1.chart .l1 { font-size: 42px; } h1.chart .l2 { font-size: 30px; } h1.chart .l3 { font-size: 22px; } .home h2 { font-size: 23px; margin-top: 52px; } }
+  .hero .lead { font-size: 18px; color: var(--sub); max-width: 34em; line-height: 1.65; }
+  .hero .cta { align-items: center; }
+  .demo { background: var(--navy); border: 0; border-radius: 16px; padding: 16px; }
+  .demo .seg { border-color: #2C4A6B; background: var(--navy); }
+  .demo .seg span { color: #C9D4E2; }
+  .demo .seg input:checked + span { background: var(--signal); color: var(--navy); }
+  .demo .seg label + label span { border-left-color: #2C4A6B; }
+  .demo .cap, .demo .cap b { color: #E3E9F1; }
+  .demo .cap b { color: #fff; }
+  .cmp { border-radius: 10px; }
+  .cmp .divider { width: 4px; margin-left: -2px; background: var(--signal); box-shadow: none; }
+  .cmp .knob { width: 56px; height: 56px; margin: -28px 0 0 -28px; background: rgba(14,42,71,.82); border: 4px solid var(--signal); color: var(--signal); font-size: 20px; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .cmp .tag { background: var(--navy); }
+  .cmp .tag.r { background: var(--pass); }
+  .home h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: var(--navy); margin-top: 72px; }
+  /* 대상: 카드 대신 굵은 남색 윗선 */
+  .who { gap: 28px 24px; }
+  .who div { background: none; border: 0; border-top: 4px solid var(--navy); border-radius: 0; padding: 14px 0 0; }
+  .who .num { color: var(--sub); font-weight: 700; font-size: 14px; }
+  .who b { font-size: 19px; font-weight: 800; }
+  .who p { font-size: 15px; line-height: 1.6; }
+  /* 단계: 실제 순서라 번호를 써요 */
+  .how li { background: none; border: 0; border-radius: 0; padding: 0; }
+  .how li::before { width: 40px; height: 40px; background: var(--signal); color: var(--navy); border: 2px solid var(--navy); font-size: 18px; }
+  .how b { font-size: 19px; font-weight: 800; }
+  .how p { font-size: 15px; line-height: 1.6; }
+  .home .end { margin-top: 56px; }
+
+  /* 단계 표시줄 */
+  .stepbar { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
+  .stepbtn { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border: 0; background: none; border-radius: 999px; font-size: 15px; font-weight: 600; color: var(--sub); cursor: pointer; }
+  .stepbtn i { font-style: normal; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); font-size: 13px; font-weight: 800; }
+  .stepbtn:hover { background: var(--brand-soft); }
+  .stepbar[data-at="1"] [data-step="1"] .stepbtn, .stepbar[data-at="2"] [data-step="2"] .stepbtn { color: var(--navy); font-weight: 800; }
+  .stepbar[data-at="1"] [data-step="1"] i, .stepbar[data-at="2"] [data-step="2"] i { background: var(--signal); border-color: var(--navy); color: var(--navy); }
+  .stepbar[data-at="2"] [data-step="1"] i { background: var(--pass); border-color: var(--pass); color: #fff; }
+  .stepbar li + li::before { content: ""; display: inline-block; width: 18px; height: 2px; background: var(--line); vertical-align: middle; margin-right: 4px; }
+  .bar { gap: 12px 24px; justify-content: space-between; }
+  .startsteps { display: flex; justify-content: center; margin: 0 0 28px; }
+  .start { margin-top: 36px; }
+  .start h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: var(--navy); }
+  .start .stepno { display: none; } /* 위 단계 표시줄과 번호가 겹치지 않게, 질문은 제목만 */
+  .start .usage legend, .start .steplabel { font-size: 18px; font-weight: 800; color: var(--navy); }
+  #drop { border-color: #9AA8BA; }
+  #drop:hover, #drop.over { border-color: var(--navy); background: #FFFBE0; }
+  @media (max-width: 600px) { .stepbtn { font-size: 14px; padding-right: 8px; } .stepbar li + li::before { width: 8px; } }
+
+  /* 검사 화면 */
+  .card { border: 0; border-radius: 14px; box-shadow: 0 1px 2px rgba(14,42,71,.08); }
+  .summary h2 { font-size: 24px; font-weight: 800; color: var(--navy); }
+  .lead2 { font-size: 16px !important; line-height: 1.6; }
+  .fixprog { font-size: 15px; }
+  .fixprog .pbar { height: 12px; background: var(--mist); border-radius: 6px; }
+  .pinkey { gap: 6px 16px; font-size: 14px; color: var(--ink); }
+  .pinkey i { width: 22px; height: 22px; display: inline-grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 800; color: #fff; box-shadow: none; vertical-align: -6px; }
+  .pinkey .k-todo { background: var(--navy); border: 3px solid var(--signal); }
+  .pinkey .k-done { background: var(--pass); border: 3px solid #fff; box-shadow: 0 0 0 1px var(--pass); }
+  .downloads { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .downloads span { color: var(--navy); font-weight: 700; }
+  details.more-box summary { color: var(--navy); }
+
+  /* 포스터 번호: 아직 = 남색 + 노란 테두리, 고침 = 초록 + ✓ (색과 모양 둘 다) */
+  .mark .pin, .mark.s-fail .pin, .mark.s-conflict .pin, .mark.s-warn .pin, .mark.s-advisory .pin { background: var(--navy); border-color: var(--signal); }
+  .mark.seen .pin { border-color: #fff; }
+  .mark.fixed .pin { border-color: #fff; }
+  .mark.coach::after { background: var(--signal); color: var(--navy); border: 2px solid var(--navy); }
+  .mark:is(:hover, :focus-visible, .hl, .open) { border-color: var(--signal) !important; background: rgba(255,212,0,.12); }
 </style>
 </head>
 <body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
 <header class="top">
   <a class="brand" href="./" aria-label="클리어 뷰 처음으로">
-    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1F5FBF"/><path d="M5 16c3-5.5 6.8-8 11-8s8 2.5 11 8c-3 5.5-6.8 8-11 8s-8-2.5-11-8z" fill="none" stroke="#fff" stroke-width="2.2"/><circle cx="16" cy="16" r="4" fill="#fff"/></svg>
+    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#FFD400"/><path d="M5 16c3-5.5 6.8-8 11-8s8 2.5 11 8c-3 5.5-6.8 8-11 8s-8-2.5-11-8z" fill="none" stroke="#0E2A47" stroke-width="2.4"/><circle cx="16" cy="16" r="4.2" fill="#0E2A47"/></svg>
     <span><b>클리어 뷰</b> <small>ClearView</small></span>
   </a>
-  <p>포스터가 누구에게나 잘 보이는지 확인하고, 고친 모습을 바로 보여줘요.</p>
+  <span class="topgap"></span>
   <a class="dev" href="./dev.html">개발자 도구</a>
 </header>
 
 <!-- 0. 홈 -->
-<main class="home" id="home">
+<main class="home" id="home" tabindex="-1">
   <section class="hero" aria-labelledby="homeTitle">
     <div>
-      <h1 id="homeTitle">이 포스터,<br>누구나 읽을 수 있나요?</h1>
+      <h1 id="homeTitle" class="chart"><span class="l1">이 포스터,</span> <span class="l2">누구나 읽을 수</span> <span class="l3">있나요?</span></h1>
       <p class="lead">눈이 잘 안 보이는 사람에게 포스터가 어떻게 보이는지 확인하고, 읽히도록 고쳐 드려요. 포토샵 파일(PSD)을 올리면 돼요.</p>
       <div class="cta">
         <button class="btn primary" type="button" id="goStart">내 포스터 확인하기</button>
-        <button class="btn" type="button" id="goSample">샘플로 해보기</button>
+        <button class="linkbtn big" type="button" id="goSample">샘플로 해보기</button>
       </div>
       <p class="fine">설치 없이 브라우저에서 바로 써요. 파일은 서버로 올라가지 않아요.</p>
     </div>
@@ -374,8 +490,8 @@
         <label><input type="radio" name="demoEye" value="normal"><span>보통 눈으로</span></label>
       </div>
       <div class="cmp" id="cmp">
-        <img id="demoBefore" src="home/before-low.jpg" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜와 영문 제목이 흐려서 읽기 어려워요.">
-        <img id="demoAfter" class="after" src="home/after-low.jpg" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜가 커지고 제목 뒤에 배경 띠가 생겨 읽을 수 있어요.">
+        <img id="demoBefore" src="home/before-low.jpg" width="720" height="1018" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜와 영문 제목이 흐려서 읽기 어려워요.">
+        <img id="demoAfter" class="after" src="home/after-low.jpg" width="720" height="1018" fetchpriority="high" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜가 커지고 제목 뒤에 배경 띠가 생겨 읽을 수 있어요.">
         <span class="divider"></span><span class="knob" aria-hidden="true">⇆</span>
         <span class="tag l">원본</span><span class="tag r">고친 뒤</span>
         <input type="range" id="cmpRange" min="0" max="100" value="50" aria-label="원본과 고친 뒤 비교. 왼쪽으로 밀면 고친 뒤가 더 보여요">
@@ -396,7 +512,7 @@
   <h2>이렇게 진행돼요</h2>
   <p class="sub2">3단계면 끝나요.</p>
   <ol class="how">
-    <li><b>올리기</b><p>포스터 용도와 보는 사람을 고르고 PSD를 올려요.</p></li>
+    <li><b>준비</b><p>포스터 용도와 보는 사람을 고르고 PSD를 올려요.</p></li>
     <li><b>고치기</b><p>잘 안 보이는 글자를 알려드려요. 고친 모습을 원본 옆에서 보고 골라요.</p></li>
     <li><b>받기</b><p>고친 포스터를 PSD·이미지로 받아요. 필요하면 큰 글씨 안내문도 만들어요.</p></li>
   </ol>
@@ -405,6 +521,11 @@
 
 <!-- 1. 시작 -->
 <section class="start" id="start" hidden>
+  <div class="startsteps"><ol class="stepbar" data-at="1" aria-label="진행 단계">
+      <li data-step="1"><button type="button" class="stepbtn" data-go="prep"><i>1</i>준비</button></li>
+      <li data-step="2"><button type="button" class="stepbtn" data-go="fix"><i>2</i>고치기</button></li>
+      <li data-step="3"><button type="button" class="stepbtn" data-go="get"><i>3</i>받기</button></li>
+    </ol></div>
   <h1>포스터 접근성을 확인해 볼까요?</h1>
   <p>글자 크기, 대비, 간격, 정보 배치를 검사하고 고칠 방법을 알려드려요.</p>
   <fieldset class="usage">
@@ -437,7 +558,7 @@
   <p class="steplabel"><span class="stepno">3</span> 포스터 파일을 올려 주세요</p>
   <button id="drop" type="button">
     <strong>PSD 파일을 끌어다 놓거나 눌러서 고르세요</strong>
-    포토샵에서 저장할 때 '호환성 최대화'를 켜 주세요
+    포토샵에서 저장할 때 ‘호환성 최대화’를 켜 주세요
   </button>
   <input id="file" type="file" accept=".psd" hidden>
   <div class="samples">PSD가 없으면
@@ -451,6 +572,11 @@
 <!-- 2. 검사 화면 -->
 <div id="work" hidden>
   <div class="bar">
+    <ol class="stepbar" data-at="2" aria-label="진행 단계">
+      <li data-step="1"><button type="button" class="stepbtn" data-go="prep"><i>1</i>준비</button></li>
+      <li data-step="2"><button type="button" class="stepbtn" data-go="fix"><i>2</i>고치기</button></li>
+      <li data-step="3"><button type="button" class="stepbtn" data-go="get"><i>3</i>받기</button></li>
+    </ol>
     <div class="file"><span class="sr">파일</span><b id="fileName"></b><button class="btn small" id="another">다른 파일</button></div>
   </div>
 
@@ -499,7 +625,7 @@
         <span><i class="hz-low"></i>괜찮아요 (잘 보이거나 덜 중요한 정보)</span>
         <p>실제 시선을 잰 히트맵이 아니라 <b>글자 크기 · 대비 · 위치 · 정보 중요도</b>로 만든 검토 우선순위 지도예요. 영역에 마우스를 올리면 점수가 보여요.</p>
       </div>
-      <p class="hint" id="hint">포스터의 <b>번호</b>를 누르면 설명과 고친 모습이 떠요. '고친 뒤' 그림을 누르면 그 수정이 적용돼요.</p>
+      <p class="hint" id="hint">포스터의 <b>번호</b>를 누르면 설명과 고친 모습이 떠요. ‘고친 뒤’ 그림을 누르면 그 수정이 적용돼요.</p>
       <p class="docnote" id="docnote"></p>
     </section>
 
@@ -517,7 +643,7 @@
       </div>
       <div class="downloads" role="group" aria-labelledby="dlLabel">
         <span id="dlLabel">고친 포스터 받기</span>
-        <button class="btn" id="downloadPsd" data-help="dlPsd">PSD</button>
+        <button class="btn primary" id="downloadPsd" data-help="dlPsd">PSD</button>
         <button class="btn" id="downloadPng" data-help="dlPng">이미지 PNG</button>
         <button class="btn" id="downloadJpg" data-help="dlJpg">이미지 JPG</button>
       </div>
@@ -757,6 +883,13 @@
   window.addEventListener("scroll", () => hideTip(), { passive: true });
   document.querySelectorAll("[data-help]").forEach((b) => bindTip(b, () => HELP[b.dataset.help]));
 
+  // 본문으로 건너뛰기: 지금 보이는 화면으로
+  document.querySelector(".skip").onclick = (e) => {
+    e.preventDefault();
+    const t = ["work", "start", "home"].map($).find((el) => !el.hidden);
+    if (t) { if (!t.hasAttribute("tabindex")) t.tabIndex = -1; t.focus(); t.scrollIntoView(); }
+  };
+
   // ------------------------------------------------------------------ 홈
   // 주소 끝이 #start 면 시작 화면, 아니면 홈 (뒤로 가기로 홈에 돌아올 수 있어요)
   function route() {
@@ -784,6 +917,19 @@
     $("demoBefore").src = `home/before${sfx}.jpg`; $("demoBefore").alt = d.before;
     $("demoAfter").src = `home/after${sfx}.jpg`; $("demoAfter").alt = d.after;
     $("demoNote").textContent = d.note;
+  }));
+
+  // 단계 표시줄: 1 준비(파일·보는 사람 다시 고르기) · 2 고치기(포스터) · 3 받기(내려받기)
+  document.querySelectorAll(".stepbtn").forEach((b) => (b.onclick = () => {
+    const go = b.dataset.go;
+    if (go === "prep") {
+      if (!$("work").hidden) { $("work").hidden = true; $("start").hidden = false; $("home").hidden = true; window.scrollTo(0, 0); }
+      return;
+    }
+    if (!S.doc) return; // 아직 파일이 없으면 준비 단계에 머물러요
+    $("start").hidden = true; $("home").hidden = true; $("work").hidden = false;
+    if (go === "fix") $("stages").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (go === "get") { const d = document.querySelector(".downloads"); d.scrollIntoView({ behavior: "smooth", block: "center" }); $("downloadPsd").focus({ preventScroll: true }); }
   }));
 
   // ------------------------------------------------------------------ 파일 읽기
@@ -908,7 +1054,7 @@
     $("summary").innerHTML = `<h2>${n ? `잘 안 보이는 곳 ${n}군데` : "고칠 곳이 없어요"}</h2>
       <p class="lead2">${n ? "포스터의 <b>번호</b>를 눌러 보세요. 무엇이 문제인지와 고친 모습이 나와요." : "모든 검사를 통과했어요."}</p>
       ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>
-      <p class="pinkey"><span><i style="background:var(--pass)"></i>고쳤어요 (확인해 보세요)</span><span><i style="background:var(--fail)"></i>아직이에요 (직접 골라요)</span></p>` : ""}
+      <p class="pinkey"><span><i class="k-todo">3</i>아직이에요 · 눌러서 골라요</span><span><i class="k-done">✓</i>고쳤어요 · 확인해 보세요</span></p>` : ""}
       <p class="cond">${esc(env.viewerLabel)}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>`;
     updateAfterBox();
@@ -975,7 +1121,6 @@
       el.style.height = (b.height / d.heightPx) * 100 + "%";
       el.innerHTML = `<span class="pin" aria-hidden="true">${m.n}</span>`;
       if (S.seen.has(m.layer.id)) el.classList.add("seen");
-      if (m.n === 1 && !S.seen.size) el.classList.add("coach");
       el.setAttribute("aria-haspopup", "dialog");
       bindTip(el, () => (popFor === el ? "" : tipHtml(m.items, false, m)));
       el.onclick = (e) => {
@@ -1025,6 +1170,13 @@
       if (on) fixed++;
       document.querySelectorAll(`#stage .mark[data-layer="${m.layer.id}"]`).forEach((el) => el.classList.toggle("fixed", on));
     });
+    // '눌러 보세요'는 아직 안 고친 첫 번호에 (다 고쳤으면 1번에). 하나라도 열어 보면 사라져요
+    document.querySelectorAll("#stage .mark.coach").forEach((c) => c.classList.remove("coach"));
+    if (!S.seen.size) {
+      const els = [...document.querySelectorAll("#stage .mark")].sort((a, b) => +a.querySelector(".pin").textContent - +b.querySelector(".pin").textContent);
+      const t = els.find((e) => !e.classList.contains("fixed")) || els[0];
+      if (t) t.classList.add("coach");
+    }
     if ($("fixBar")) { $("fixBar").style.width = (S.marks.length ? (fixed / S.marks.length) * 100 : 0) + "%"; $("fixCount").textContent = `고친 곳 ${fixed} / ${S.marks.length}`; }
   }
 
