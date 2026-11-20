@@ -4,6 +4,7 @@
   "description": "포스터 접근성 검수 — 포토샵 연동(기술 A)",
   "scripts": {
     "sample": "node tools/make-sample-psd.js",
+    "sample:color": "node tools/make-color-sample-psd.js",
     "extract": "node tools/psd-to-json.js",
     "test": "node --test test/",
     "web": "node tools/serve.js",
