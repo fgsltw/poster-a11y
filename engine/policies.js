@@ -51,7 +51,19 @@
         veryNarrow: { label: "아주 좁은 시야 (5°)", deg: 5, note: "모든 방향 5도 이하 = 심한 장애" }
       },
       // 한 번에 함께 보여야 하는 핵심 정보 (근접성의 원칙)
-      roles: ["date", "place", "price", "access"]
+      roles: ["date", "place", "price", "access"],
+      // 핵심 정보 띠: 흩어진 핵심 정보를 한 줄(최대 maxLines줄)로 모은 새 글자 레이어 — 임시값
+      strip: {
+        color: "#111111", plate: "#FFFFFF", plateOpacity: 0.95, paddingMm: 2,
+        // 글자 폭 어림 (글자 크기 대비): 한글·한자, 그 밖의 글자
+        wideChar: 0.95, narrowChar: 0.55,
+        // 한 줄 폭은 한 번에 보이는 지름의 이 비율까지
+        maxWidthOfView: 0.9,
+        maxLines: 4,
+        // 묶음 아래 띄우는 간격 (글자 크기 대비)
+        gap: 0.6,
+        separator: " · "
+      }
     },
 
     // 저시력자에게 맞춘 기준 (보는 사람을 저시력 이상으로 고르면 적용)

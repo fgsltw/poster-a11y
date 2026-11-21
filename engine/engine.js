@@ -324,7 +324,7 @@
       metric: "“" + short(p0.a) + "”, “" + short(p0.b) + "” 두 부분이 모양은 같고 색만 달라요 (" + p0.colors.join(" · ") + ")" +
         (lostAll.length ? " · " + names + "이면 두 색이 거의 같아 보여요" : ""),
       message: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1)." +
-        (fix ? " 자동 수정은 두 색의 밝기 차이를 크게 벌려서, 색을 못 느껴도 밝기로 구분되게 해요." : ""),
+        (fix ? " 자동 수정은 강조한 부분을 굵게 하고 밑줄을 그어요" + (fix.runs[0].value ? " (밝기도 함께 바꿔요)" : "") + "." : ""),
       detail: { pairs: pairs, lostFor: lostAll },
       fix: fix
     };
@@ -353,9 +353,13 @@
         }
       });
     });
-    if (!best) return null;
-    return { type: "color", value: best.value, runs: [{ from: best.from, value: best.value }], strategy: "cvd-distinct", passes: best.passes,
-      contrastAfter: round(best.bgContrast, 2), deltaEAfter: round(best.deltaE, 3) };
+    // 강조 쪽(짧은 구간)에 굵게 + 밑줄 → 색을 전혀 못 느껴도 모양으로 구분돼요 (WCAG 1.4.1이 권하는 방법)
+    //   밝기 차이까지 낼 수 있으면(passes) 그 색도 같이 넣어요
+    var emph = pair.a.length <= pair.b.length ? pair.colors[0] : pair.colors[1];
+    var run = { from: emph, bold: true, underline: true };
+    if (best && best.passes && best.from.toUpperCase() === emph.toUpperCase()) run.value = best.value;
+    return { type: "emphasis", runs: [run], strategy: "shape", passes: true,
+      contrastAfter: run.value ? round(best.bgContrast, 2) : undefined, deltaEAfter: run.value ? round(best.deltaE, 3) : undefined };
   }
 
   // 일반 눈으로는 대비가 충분해도, 색각이상으로 보면 대비가 기준 밑으로 떨어지는지
@@ -718,6 +722,15 @@
       if (!placed) clusters.push({ box: { left: b.left, top: b.top, right: b.right, bottom: b.bottom }, ids: [l.id] });
     });
     var n = clusters.length;
+    // 이미 '핵심 정보 띠'처럼 모든 핵심 정보를 한 레이어에 담은 글자가 있으면 한눈에 보여요
+    var norm = function (t) { return String(t || "").replace(/\s+/g, ""); };
+    //   (그 띠도 일시 글자처럼 핵심 정보로 분류될 수 있어서, 자기 자신을 뺀 나머지를 다 담았는지 봐요)
+    var gathered = n > 1 && doc.layers.some(function (l) {
+      if (l.visible === false || !l.text) return false;
+      var t = norm(l.text), others = items.filter(function (k) { return k !== l; });
+      return others.length >= 2 && others.every(function (k) { return t.indexOf(norm(k.text)) >= 0; });
+    });
+    if (gathered) n = 1;
     var bad = docPurpose === "art" ? "advisory" : n >= 3 ? "fail" : "warn";
     var whole = items.reduce(function (u, l) {
       var b = l.bounds;
@@ -728,7 +741,10 @@
       check: "field",
       status: n === 1 ? "pass" : bad,
       metric: env.fieldLabel + " · " + env.distanceM + "m에서 한 번에 보이는 지름 약 " + Math.round(viewMm / 10) + "cm · 핵심 정보가 " + n + "군데" + (n === 1 ? " (한눈에 보여요)" : "로 흩어져 있어요"),
-      message: n === 1 ? undefined : "시야가 좁은 사람은 한 번에 지름 " + Math.round(viewMm / 10) + "cm만 보여요. 핵심 정보를 보려면 시선을 " + n + "번 옮겨 찾아야 해요. 일시·장소·가격·접근성 정보를 한곳에 모아 주세요.",
+      message: n === 1 ? (gathered ? "흩어진 핵심 정보를 한곳에 모은 글자(핵심 정보 띠)가 있어요." : undefined) : "시야가 좁은 사람은 한 번에 지름 " + Math.round(viewMm / 10) + "cm만 보여요. 핵심 정보를 보려면 시선을 " + n + "번 옮겨 찾아야 해요. 일시·장소·가격·접근성 정보를 한곳에 모아 주세요." +
+        " 자동 수정은 핵심 정보를 한데 모은 '핵심 정보 띠'를 새 글자 레이어로 넣어요 (원래 글자는 그대로).",
+      fix: n === 1 ? null : infoStripFix(doc, roles, items, clusters, viewPx, VF),
+      alternative: n === 1 ? null : { type: "largePrint", notice: "큰 글씨 안내문에도 핵심 정보를 한곳에 모아 포스터 옆에 함께 붙여 주세요." },
       detail: {
         fieldDeg: env.fieldDeg, viewMm: round(viewMm), viewPx: round(viewPx), clusterCount: n,
         clusters: clusters.map(function (c) { return { box: c.box, ids: c.ids }; }),
@@ -741,6 +757,41 @@
   // ---------------------------------------------------------------- 정보 전달 지도 (검토 우선순위)
   //   글자마다: 중요도(역할) × (1 − 식별 쉬움). 식별 쉬움 = min(크기, 대비) × 위치
   //   판정(통과·실패)이 아니라 '어디부터 고칠지' 보여주는 지도예요.
+  // 핵심 정보 띠: 일시 → 장소 → 가격 → 접근성 순서로 글을 모아, 한 번에 보이는 지름 안에 들어가게 줄을 나눠요.
+  //   자리는 일시가 있는 묶음 바로 아래 (모자라면 위). 검은 글자 + 흰 판 (대비 기준을 늘 넘어요)
+  function infoStripFix(doc, roles, items, clusters, viewPx, VF) {
+    var S = VF.strip, W = doc.document.widthPx, H = doc.document.heightPx, ppi = doc.document.ppi || 72;
+    var order = VF.roles;
+    var keys = items.slice().sort(function (a, b) { return order.indexOf(roles[a.id].role) - order.indexOf(roles[b.id].role); });
+    var px = Math.max.apply(null, keys.map(function (l) { return (l.sizePt || 12) * ppi / 72; }));
+    var est = function (t) { var w = 0; for (var i = 0; i < t.length; i++) w += /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\u4E00-\u9FFF]/.test(t[i]) ? S.wideChar : S.narrowChar; return w * px; };
+    var maxW = Math.min(viewPx * S.maxWidthOfView, W * 0.9);
+    // 글이 길면 글자 크기를 조금 줄이지 않고 줄을 나눠요 (크기는 핵심 정보 중 가장 큰 글자)
+    var lines = [], cur = "";
+    keys.forEach(function (l) {
+      var t = String(l.text).replace(/\s+/g, " ").trim();
+      var next = cur ? cur + S.separator + t : t;
+      if (cur && est(next) > maxW) { lines.push(cur); cur = t; } else cur = next;
+    });
+    if (cur) lines.push(cur);
+    if (lines.length > S.maxLines) lines = [lines.slice(0, S.maxLines - 1).join(S.separator)].concat(lines.slice(S.maxLines - 1));
+    var lineH = px * 1.35, pad = (S.paddingMm / 25.4) * ppi;
+    var width = Math.max.apply(null, lines.map(est)), height = lineH * lines.length;
+    var dateId = keys.filter(function (l) { return roles[l.id].role === "date"; }).map(function (l) { return l.id; })[0];
+    var anchor = clusters.filter(function (c) { return dateId != null && c.ids.indexOf(dateId) >= 0; })[0] ||
+      clusters.slice().sort(function (a, b) { return b.ids.length - a.ids.length; })[0];
+    var x = Math.max(pad, Math.min(W - width - pad, anchor.box.left));
+    var y = anchor.box.bottom + px * S.gap + pad;
+    if (y + height + pad > H) y = Math.max(pad, anchor.box.top - px * S.gap - pad - height);
+    var font = (keys[0].font && keys[0].font.postScriptName) || null;
+    return {
+      type: "infoStrip", text: lines.join("\n"), lines: lines, sizePt: round(px * 72 / ppi, 1),
+      left: Math.round(x), top: Math.round(y), widthPx: Math.round(width), heightPx: Math.round(height),
+      color: S.color, plate: S.plate, plateOpacity: S.plateOpacity, paddingMm: S.paddingMm, fontName: font,
+      sourceIds: keys.map(function (l) { return l.id; }), strategy: "gather", passes: true
+    };
+  }
+
   function clamp01(n) { return Math.max(0, Math.min(1, n)); }
   function priorityMap(doc, roles, perLayer, P) {
     var M = P.priorityMap;
@@ -909,7 +960,7 @@
     opts = opts || {};
     var seen = {}, out = [];
     result.results.forEach(function (r) {
-      if (!r.fix || r.layerId == null) return;
+      if (!r.fix || (r.layerId == null && r.fix.type !== "infoStrip")) return;
       if (r.fix.passes === false && !opts.includeFailing) return;
       if (r.status === "pass") return;
       if (r.status === "advisory" && !opts.includeAdvisory) return;
@@ -922,6 +973,8 @@
       if (r.fix.type === "size") f.valuePt = r.fix.valuePt;
       if (r.fix.type === "backplate") { f.color = r.fix.color; f.opacity = r.fix.opacity; f.paddingMm = r.fix.paddingMm; }
       if (r.fix.type === "weight") f.fauxBold = true;
+      if (r.fix.type === "emphasis") f.runs = r.fix.runs;
+      if (r.fix.type === "infoStrip") ["text", "sizePt", "left", "top", "color", "plate", "plateOpacity", "paddingMm", "fontName", "sourceIds"].forEach(function (k) { f[k] = r.fix[k]; });
       if (r.fix.type === "spacing") {
         if (r.fix.lineHeight != null) f.lineHeight = r.fix.lineHeight;
         if (r.fix.letterSpacingEm != null) f.letterSpacingEm = r.fix.letterSpacingEm;

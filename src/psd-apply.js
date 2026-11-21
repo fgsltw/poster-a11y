@@ -281,6 +281,116 @@
       (missing.length ? " ⚠ 찾지 못한 색: " + missing.join(", ") : "");
   }
 
+  // ------------------------------------------------------------ 색만 다른 강조 → 모양으로도 (굵게 + 밑줄, 밝기)
+  //   fix.runs: [{ from: "#C62828", bold: true, underline: true, value?: "#7F1616" }]
+  //   PSD: 그 색 구간의 글자 스타일에 가짜 굵게·밑줄(·색)을 켜요
+  //   미리보기: 그 색 픽셀만 조금 두껍게 그리고, 그 구간 아래에 밑줄을 그어요 (근사)
+  function applyEmphasis(layer, fix, isCmyk) {
+    var map = {};
+    (fix.runs || []).forEach(function (r) { map[String(r.from).toUpperCase()] = { run: r, to: r.value ? prepareColor(r.value, isCmyk) : null }; });
+    var runs = layer.text.styleRuns || [];
+    if (!runs.length) throw new Error("글자 구간(스타일)이 하나뿐이라 강조 구간을 찾을 수 없어요.");
+    var palette = [];
+    setTextStyle(layer.text, function (s) { var h = fillHex(s.fillColor); if (h && palette.indexOf(h) < 0) palette.push(h); });
+    var hit = 0;
+    runs.forEach(function (r) {
+      var h = fillHex(r.style && r.style.fillColor), m = h && map[h];
+      if (!m) return;
+      if (m.run.bold) r.style.fauxBold = true;
+      if (m.run.underline) r.style.underline = true;
+      if (m.to) r.style.fillColor = m.to.fill;
+      hit++;
+    });
+    if (!hit) throw new Error("강조할 색 구간을 찾지 못했어요: " + Object.keys(map).join(", "));
+
+    var img = layer.imageData;
+    if (img) {
+      var pal = palette.map(function (h) { return { hex: h, rgb: LD.hexToRgb(h) }; });
+      var W = img.width, H = img.height, mask = new Uint8Array(W * H), minX = W, maxX = -1, maxY = -1;
+      for (var p = 0; p < W * H; p++) {
+        var j = p * 4;
+        if (img.data[j + 3] === 0) continue;
+        var best = null, bd = Infinity;
+        for (var k = 0; k < pal.length; k++) {
+          var dr = img.data[j] - pal[k].rgb.r, dg = img.data[j + 1] - pal[k].rgb.g, db = img.data[j + 2] - pal[k].rgb.b, d = dr * dr + dg * dg + db * db;
+          if (d < bd) { bd = d; best = pal[k].hex; }
+        }
+        if (best && map[best]) { mask[p] = 1; var x = p % W, y = (p / W) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y > maxY) maxY = y; }
+      }
+      if (maxX >= 0) {
+        var first = map[Object.keys(map)[0]], col = first.to ? first.to.rgb : LD.hexToRgb(first.run.from);
+        var px = effectiveFontPx(layer.text) || 20;
+        // 굵게: 강조 색 픽셀 주변을 같은 색으로 채워요
+        if (first.run.bold) {
+          var rr = Math.max(1, Math.round(px * 0.025)), src = new Uint8ClampedArray(img.data);
+          for (var y2 = 0; y2 < H; y2++) for (var x2 = 0; x2 < W; x2++) {
+            var a = 0;
+            for (var dy = -rr; dy <= rr; dy++) for (var dx = -rr; dx <= rr; dx++) {
+              var sx = x2 + dx, sy = y2 + dy;
+              if (sx < 0 || sy < 0 || sx >= W || sy >= H || dx * dx + dy * dy > rr * rr || !mask[sy * W + sx]) continue;
+              a = Math.max(a, src[(sy * W + sx) * 4 + 3]);
+            }
+            var o = (y2 * W + x2) * 4;
+            if (a > img.data[o + 3] || (a && mask[y2 * W + x2])) { img.data[o] = col.r; img.data[o + 1] = col.g; img.data[o + 2] = col.b; img.data[o + 3] = Math.max(a, img.data[o + 3]); }
+          }
+        } else if (first.to) {
+          for (var q = 0; q < W * H; q++) if (mask[q]) { img.data[q * 4] = col.r; img.data[q * 4 + 1] = col.g; img.data[q * 4 + 2] = col.b; }
+        }
+        // 밑줄: 강조 구간 아래 (글자 크기의 8% 띄우고 6% 굵기). 그림 밖이면 그림을 아래로 늘려요
+        if (first.run.underline) {
+          var gap = Math.max(2, Math.round(px * 0.08)), th = Math.max(2, Math.round(px * 0.06));
+          var y0 = maxY + gap, need = y0 + th - H;
+          if (need > 0) {
+            var grown = new Uint8ClampedArray(W * (H + need) * 4);
+            grown.set(img.data);
+            layer.imageData = img = { width: W, height: H + need, data: grown };
+            layer.bottom = layer.top + H + need;
+          }
+          for (var yy = y0; yy < y0 + th; yy++) for (var xx = minX; xx <= maxX; xx++) {
+            var u = (yy * W + xx) * 4;
+            img.data[u] = col.r; img.data[u + 1] = col.g; img.data[u + 2] = col.b; img.data[u + 3] = 255;
+          }
+        }
+      }
+    }
+    return "강조 구간 " + Object.keys(map).join(", ") + " → " + [first0(fix).bold ? "굵게" : "", first0(fix).underline ? "밑줄" : "", first0(fix).value ? "색 " + first0(fix).value.toUpperCase() : ""].filter(Boolean).join(" · ");
+  }
+  function first0(fix) { return (fix.runs && fix.runs[0]) || {}; }
+
+  // ------------------------------------------------------------ 핵심 정보 띠 (좁은 시야)
+  //   흩어진 핵심 정보를 모은 새 글자 레이어 + 흰 판을 맨 위에 넣어요. 원래 글자는 그대로 둬요.
+  //   opts.renderText(text, px, colorHex, fontName) → { width, height, data } 가 있으면 미리보기 그림을 그려요
+  //   (포토샵에서는 invalidateTextLayers 로 글자를 새로 그려요 — 여러 줄 처리는 확인 필요)
+  function applyInfoStrip(psd, fix, ppi, newId, isCmyk, opts) {
+    var px = LD.ptToPx(fix.sizePt, ppi);
+    var pad = Math.round(((fix.paddingMm == null ? 2 : fix.paddingMm) / MM_PER_INCH) * ppi);
+    var color = prepareColor(fix.color || "#111111", isCmyk);
+    var plateRgb = LD.hexToRgb(fix.plate || "#FFFFFF");
+    if (isCmyk) { var pc = LD.cmykPercent(LD.rgbToCmyk(plateRgb.r, plateRgb.g, plateRgb.b)); plateRgb = LD.cmykToRgb(pc.c / 100, pc.m / 100, pc.y / 100, pc.k / 100); }
+    var lines = String(fix.text).split(/\r?\n|\r/), lineH = Math.round(px * 1.35);
+    var img = opts && opts.renderText ? opts.renderText(fix.text, px, LD.toHex(color.rgb.r, color.rgb.g, color.rgb.b), fix.fontName) : null;
+    var w = img ? img.width : Math.round(fix.widthPx || px * 10), h = img ? img.height : lineH * lines.length;
+    var left = fix.left, top = fix.top;
+    var textLayer = {
+      id: newId + 1,
+      name: "핵심 정보 띠 (접근성)",
+      left: left, top: top, right: left + w, bottom: top + h,
+      opacity: 1, blendMode: "normal",
+      imageData: img || { width: w, height: h, data: new Uint8ClampedArray(w * h * 4) },
+      text: {
+        text: lines.join("\r"), // 포토샵 문단 나눔은 \r (여러 줄 표시는 포토샵에서 확인 필요)
+        transform: [1, 0, 0, 1, left, top + Math.round(px * 1.05)],
+        style: { font: { name: fix.fontName || "MalgunGothic" }, fontSize: px, fillColor: color.fill, fauxBold: false, leading: lineH, autoLeading: false }
+      }
+    };
+    var pl = left - pad, pt = top - pad, pw = w + pad * 2, ph = h + pad * 2, data = new Uint8ClampedArray(pw * ph * 4);
+    for (var i = 0; i < pw * ph; i++) { data[i * 4] = plateRgb.r; data[i * 4 + 1] = plateRgb.g; data[i * 4 + 2] = plateRgb.b; data[i * 4 + 3] = 255; }
+    var plate = { id: newId, name: "핵심 정보 띠 판 (접근성)", left: pl, top: pt, right: pl + pw, bottom: pt + ph, opacity: fix.plateOpacity == null ? 0.95 : fix.plateOpacity, blendMode: "normal", imageData: { width: pw, height: ph, data: data } };
+    psd.children = psd.children || [];
+    psd.children.push(plate, textLayer); // ag-psd 목록 끝 = 맨 위
+    return { message: "핵심 정보 띠 추가 (" + lines.length + "줄, " + LD.round(fix.sizePt, 1) + "pt" + (img ? "" : ", 미리보기 그림 없음") + ")", layerId: textLayer.id, plateId: plate.id };
+  }
+
   // 양선형 보간으로 크기를 바꿔요 (프리멀티플라이드로 계산해서 가장자리 색 번짐을 막아요)
   function resample(img, scale) {
     var nw = Math.max(1, Math.round(img.width * scale));
@@ -465,11 +575,21 @@
 
     var nextId = maxId(psd.children || []) + 1;
     var sizedIds = [], spacingNote = false;
-    // 배경 띠는 레이어 순서를 바꾸니까 맨 마지막에 처리해요
-    var ordered = fixes.filter(function (f) { return f.type !== "backplate"; }).concat(fixes.filter(function (f) { return f.type === "backplate"; }));
+    // 배경 띠는 레이어 순서를 바꾸니까 맨 마지막에, 핵심 정보 띠는 맨 위에 새로 넣으니까 그다음에 처리해요
+    var late = { backplate: 1, infoStrip: 2 };
+    var ordered = fixes.filter(function (f) { return !late[f.type]; })
+      .concat(fixes.filter(function (f) { return f.type === "backplate"; }), fixes.filter(function (f) { return f.type === "infoStrip"; }));
 
     for (var i = 0; i < ordered.length; i++) {
       var f = ordered[i];
+      if (f.type === "infoStrip") {
+        try {
+          var s = applyInfoStrip(psd, f, ppi, nextId, psd.colorMode === 4, opts);
+          nextId += 2;
+          applied.push({ fix: f, message: s.message, createdLayerId: s.layerId });
+        } catch (e) { skipped.push({ fix: f, reason: e.message }); }
+        continue;
+      }
       var found = findLayer(psd.children || [], f.layerId);
       if (!found) { skipped.push({ fix: f, reason: "레이어를 찾지 못했어요." }); continue; }
       if (!found.layer.text) { skipped.push({ fix: f, reason: "텍스트 레이어가 아니에요." }); continue; }
@@ -477,6 +597,7 @@
         if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f, psd.colorMode === 4) });
         else if (f.type === "size") { applied.push({ fix: f, message: applySize(found.layer, f.valuePt, ppi) }); sizedIds.push(f.layerId); }
         else if (f.type === "weight") applied.push({ fix: f, message: applyWeight(found.layer) });
+        else if (f.type === "emphasis") applied.push({ fix: f, message: applyEmphasis(found.layer, f, psd.colorMode === 4) });
         else if (f.type === "spacing") {
           applied.push({ fix: f, message: applySpacing(found.layer, f) });
           spacingNote = true;

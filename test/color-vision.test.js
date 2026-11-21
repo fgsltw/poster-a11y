@@ -72,7 +72,7 @@ test("빨간 글자·검은 배경: 일반 눈은 통과, 적색맹으로 보면
   assert.match(x.metric, /적색맹으로 보면/);
 });
 
-test("색만 다른 강조 → 자동 수정: 강조 쪽 밝기만 바꿔 색각이상으로도 구분, 배경 대비는 기준 유지", () => {
+test("색만 다른 강조 → 자동 수정: 강조 쪽을 굵게 + 밑줄 (모양으로 구분), 밝기도 바꿀 수 있으면 함께", () => {
   const d = fresh();
   const l = d.layers.find((x) => x.id === 6);
   l.styleRuns = [run("11.8(토) ", "#C8102E"), run("19:30 공연 시작", "#2E8B57")];
@@ -80,14 +80,20 @@ test("색만 다른 강조 → 자동 수정: 강조 쪽 밝기만 바꿔 색각
   const r = E.checkDocument(d, { medium: "flyer" });
   const x = find(r, 6, "colorOnly");
   assert.ok(x.fix, "수정이 있어요");
-  assert.equal(x.fix.type, "color");
+  assert.equal(x.fix.type, "emphasis");
   assert.equal(x.fix.runs.length, 1);
-  assert.equal(x.fix.runs[0].from, "#C8102E", "짧은 쪽(강조)을 바꿔요");
+  const run0 = x.fix.runs[0];
+  assert.equal(run0.from, "#C8102E", "짧은 쪽(강조)");
+  assert.equal(run0.bold, true);
+  assert.equal(run0.underline, true);
   assert.equal(x.fix.passes, true);
-  // 바꾼 색은 색각이상으로 봐도 다른 색과 구분돼요
-  const other = C.hexToRgb("#2E8B57"), nu = C.hexToRgb(x.fix.value);
-  for (const t of x.detail.lostFor) assert.ok(C.deltaE(C.simulateCvd(nu, t), C.simulateCvd(other, t)) >= 0.12, t);
-  assert.ok(x.fix.contrastAfter >= find(r, 6, "contrast").detail.target);
+  assert.match(x.message, /굵게 하고 밑줄/);
+  if (run0.value) {
+    // 바꾼 색은 색각이상으로 봐도 다른 색과 구분되고, 배경 대비 기준도 지켜요
+    const other = C.hexToRgb("#2E8B57"), nu = C.hexToRgb(run0.value);
+    for (const t of x.detail.lostFor) assert.ok(C.deltaE(C.simulateCvd(nu, t), C.simulateCvd(other, t)) >= 0.12, t);
+    assert.ok(x.fix.contrastAfter >= find(r, 6, "contrast").detail.target);
+  }
 });
 
 test("색각이상 대비 부족 → 자동 수정: 모든 색각이상 눈에서 기준을 넘는 밝기", () => {
