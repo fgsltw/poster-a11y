@@ -20,6 +20,8 @@
   function matchRoles(text) {
     var out = [];
     for (var k in RULES) if (RULES[k].test(text)) out.push(k);
+    // 날짜가 있고 가격은 '예매'라는 말뿐이면(금액·좌석·무료 없음) 일시로 봐요. 예: "7.19(토) 매진 · 7.20(일) 예매 가능"
+    if (out.indexOf("date") >= 0 && out.indexOf("price") >= 0 && !/(\d\s*원|무료|[RSAV]석)/.test(text)) out.splice(out.indexOf("price"), 1);
     return out;
   }
 

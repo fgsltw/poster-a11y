@@ -1106,6 +1106,8 @@
       case "color": return f.runs && f.runs.length ? `글자색 ${f.runs.map((r) => r.value).join(", ")}로 (해당 색만)` : `글자색 ${f.value}로 (밝기만 조절)`;
       case "backplate": return `글자 뒤에 ${f.color === "#FFFFFF" ? "흰" : "짙은"} 배경 띠 (${Math.round(f.opacity * 100)}%)`;
       case "weight": return "조금 굵게";
+      case "emphasis": { const r = (f.runs || [])[0] || {}; return "강조한 부분을 " + [r.bold ? "굵게" : "", r.underline ? "밑줄" : "", r.value ? `색 ${r.value}` : ""].filter(Boolean).join(" · ") + " (모양으로도 구분)"; }
+      case "infoStrip": return `흩어진 핵심 정보를 모은 '핵심 정보 띠' 넣기 (${String(f.text).split(/\n/).length}줄, ${f.sizePt}pt)`;
       case "spacing": return [f.lineHeight != null ? `줄 간격 ${f.lineHeight}배` : "", f.letterSpacingEm != null ? `자간 ${f.letterSpacingEm}em` : ""].filter(Boolean).join(", ");
     }
     return f.type;
@@ -1666,7 +1668,7 @@
     const chosen = new Set(), custom = new Map(), slots = new Set();
     let fitted = 0, skipped = 0;
     S.items.forEach((x, i) => {
-      if (!x.fix || x.layerId == null || x.status === "advisory" || x.status === "pass") return;
+      if (!x.fix || (x.layerId == null && x.fix.type !== "infoStrip") || x.status === "advisory" || x.status === "pass") return;
       const f = applyFixOf(i);
       if (!f || slots.has(slotOf(f))) return;
       if (f.type === "size" && x.fix.layoutWarning) {
@@ -1900,6 +1902,21 @@
   //   handout : 큰 글씨 안내문 첫 쪽
   //   field   : 포스터 위에 '한 번에 보이는 범위' 원
   //   none    : 배치를 바꿔야 하는 항목 — 지금 모습 + 고치는 방법
+  // 핵심 정보 띠 미리보기 글자 (여러 줄). psd-apply 가 새 글자 레이어 그림으로 써요
+  function renderStripText(text, px, color, fontName) {
+    const lines = String(text).split(/\r?\n|\r/), bold = /bold|black|heavy/i.test(fontName || "") ? 700 : 600;
+    const m = document.createElement("canvas").getContext("2d");
+    m.font = `${bold} ${px}px ${PLAIN_FONT}`;
+    const w = Math.ceil(Math.max(...lines.map((t) => m.measureText(t).width))) + 2, lh = Math.round(px * 1.35);
+    const c = document.createElement("canvas");
+    c.width = w; c.height = lh * lines.length;
+    const g = c.getContext("2d");
+    g.font = `${bold} ${px}px ${PLAIN_FONT}`; g.fillStyle = color; g.textBaseline = "alphabetic";
+    lines.forEach((t, i) => g.fillText(t, 0, Math.round(px * 1.05) + lh * i));
+    const d = g.getImageData(0, 0, c.width, c.height);
+    return { width: d.width, height: d.height, data: new Uint8ClampedArray(d.data) };
+  }
+  const APPLY_OPTS = { renderText: renderStripText };
   const PLAIN_FONT = '"Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
   const halfUp = (n) => Math.ceil(n * 2) / 2;
   function medianPt() {
@@ -1913,8 +1930,8 @@
       return f ? Object.assign({ kind: "fix", fix: f }, extra || {}) : null;
     };
     const sizeOf = (id) => S.check.results.find((y) => y.layerId === id && y.check === "size" && y.fix);
+    if (x.check === "field") return x.fix ? asFix(x, { label: "핵심 정보 띠를 넣은 모습" }) : { kind: "field", detail: d };
     if (x.alternative && x.alternative.type === "largePrint") return { kind: "handout", layerId: x.layerId, label: "큰 글씨 안내문으로 함께 제공한 모습" };
-    if (x.check === "field") return { kind: "field", detail: d };
     if (x.check === "cvd" || x.check === "colorOnly") {
       const type = x.check === "cvd" ? d.drops[0].type : (d.lostFor && d.lostFor[0]) || "deutan";
       const name = EnginePolicies.colorVision.labels[type];
@@ -2051,7 +2068,8 @@
     const fix = spec.fix;
     const l = layerOf(fix.layerId);
     if (fix.type === "spacing") return { before: crop(S.psd, regionAround([l.bounds])), note: "줄 간격·자간 변경은 그림으로 보여드리지 못해요. 받은 PSD를 포토샵에서 열면 반영돼요." };
-    const r = PsdApply.applyFixes(S.psd, [fix], { quick: true });
+    if (fix.type === "infoStrip") return previewStrip(fix);
+    const r = PsdApply.applyFixes(S.psd, [fix], Object.assign({ quick: true }, APPLY_OPTS));
     if (r.skipped.length) return { note: "적용하지 못했어요: " + r.skipped[0].reason };
     const fl = PsdApply.findLayer(r.psd.children, fix.layerId).layer;
     const boxes = [l.bounds, boxOfLayer(fl)];
@@ -2095,6 +2113,14 @@
   }
 
   // 포스터 위에 '한 번에 보이는 범위' 원을 그려요
+  function previewStrip(fix) {
+    const r = PsdApply.applyFixes(S.psd, [fix], Object.assign({ quick: true }, APPLY_OPTS));
+    if (r.skipped.length) return { note: "만들지 못했어요: " + r.skipped[0].reason };
+    const f = fieldInfo(), half = Math.round(f.viewPx / 2), d = S.doc.document;
+    const cx = fix.left + (fix.widthPx || 0) / 2, cy = fix.top;
+    const rect = { left: Math.max(0, Math.round(cx - half)), top: Math.max(0, Math.round(cy - half)), right: Math.min(d.widthPx, Math.round(cx + half)), bottom: Math.min(d.heightPx, Math.round(cy + half)) };
+    return { before: crop(S.psd, rect), beforeCaption: "지금 (한 번에 보이는 범위)", after: crop(r.psd, rect), afterCaption: "핵심 정보 띠를 넣은 뒤" };
+  }
   function previewField(d) {
     const img = S.psd.imageData, maxW = 420;
     const full = document.createElement("canvas");
@@ -2205,7 +2231,7 @@
     const fixes = chosenFixes();
     const key = JSON.stringify(fixes);
     if (S.fixed && S.fixedKey === key) return S.fixed;
-    const r = PsdApply.applyFixes(S.psd, fixes);
+    const r = PsdApply.applyFixes(S.psd, fixes, APPLY_OPTS);
     S.fixed = r; S.fixedKey = key;
     const doc = PsdExtract.extractFromPsd(r.psd, { fileName: S.fileName });
     S.afterCheck = Engine.checkDocument(doc, envNow());
@@ -2353,7 +2379,7 @@
   function quickFixItems(layerId) {
     const out = [];
     S.items.forEach((x, i) => {
-      if (x.layerId !== layerId || !x.fix || x.fix.passes === false || x.fix.layoutWarning) return;
+      if ((layerId === -1 ? x.layerId != null : x.layerId !== layerId) || !x.fix || x.fix.passes === false || x.fix.layoutWarning) return;
       if (applyFixOf(i)) out.push(i);
     });
     return out;
@@ -2368,7 +2394,7 @@
       [...S.chosen].forEach((j) => { const g = applyFixOf(j); if (g && slotOf(g) === slotOf(f) && j !== i) S.chosen.delete(j); });
       if (on) S.chosen.add(i); else S.chosen.delete(i);
     });
-    const l = layerOf(layerId);
+    const l = layerOf(layerId) || { text: "포스터 전체" };
     $("status").textContent = on ? `“${short(l.text, 16)}”에 추천 수정 ${qi.length}개를 넣었어요: ${qi.map((i) => fixText(applyFixOf(i))).join(", ")}` : `“${short(l.text, 16)}”의 수정을 뺐어요.`;
     if (on && S.view === "before") { refreshApplied(); setView("both"); } else refreshApplied();
   }

@@ -18,6 +18,9 @@
 | `size` | `valuePt`: `11` | 실제로 보이는 크기를 이 pt로 맞춰요 (변형 비율 반영, 행간도 같이) | 근사치 (픽셀 확대) |
 | `backplate` | `color`(기본 `#FFFFFF`), `opacity`(0~1, 기본 0.85), `paddingMm`(기본 1.5) | 글자 **바로 아래**에 사각형 레이어 `접근성 배경 띠 · 레이어이름`을 새로 만들어요 | 정확 |
 | `weight` | `fauxBold: true` | 포토샵 **가짜 굵게(Faux Bold)**를 켜요. 더 굵은 글꼴로 바꾸는 건 디자이너가 해 주세요 | 근사치 (글자 모양을 조금 두껍게) |
+| `emphasis` | `runs: [{ from: "#C62828", bold: true, underline: true, value?: "#7F1616" }]` | 색만 다른 강조(WCAG 1.4.1): **그 색 구간만** 가짜 굵게 + 밑줄 (+ `value`가 있으면 그 색으로). 다른 구간은 그대로 | 근사치 (그 색 픽셀만 조금 두껍게, 구간 아래에 밑줄) |
+| `infoStrip` | `text`(줄은 `
+`), `sizePt`, `left`·`top`(px), `color`, `plate`, `plateOpacity`, `paddingMm`, `fontName`, `sourceIds` | 좁은 시야: 흩어진 핵심 정보를 모은 **새 글자 레이어 `핵심 정보 띠 (접근성)`** + 흰 판 레이어를 맨 위에 넣어요. `layerId` 없음. 원래 글자는 그대로 | 미리보기 글자는 `opts.renderText`로 그려요 (없으면 빈 그림). 포토샵에서 여러 줄 표시는 확인 필요 |
 | `spacing` | `lineHeight`(글자 크기의 배수, 예 1.5), `letterSpacingEm`(예 0) — 둘 중 하나만 넣어도 돼요 | 줄 간격(자동 줄 간격 끔)과 자간을 바꿔요 | **반영 안 됨** — 포토샵에서 열면 반영돼요 |
 
 ```json
