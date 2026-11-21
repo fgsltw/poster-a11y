@@ -104,9 +104,6 @@
   .how li { background: var(--paper); border-radius: 16px; padding: 32px; }
   .how .n { display: block; font-size: 56px; font-weight: 700; line-height: 1; color: var(--navy); margin-bottom: 12px; }
   .how p { color: var(--sub); }
-  .how li.last { background: var(--navy); color: #fff; }
-  .how li.last .n { color: var(--signal); }
-  .how li.last p { color: #C9D4E2; }
   @media (max-width: 820px) {
     .band { padding: 64px 0; }
     .band-navy { margin-top: 56px; }
@@ -565,7 +562,8 @@
   .gchk input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--navy); flex: none; }
   .gchk b { display: block; font-size: 17px; font-weight: 800; color: var(--navy); }
   .gchk small { display: block; font-size: 13px; color: var(--sub); line-height: 1.45; }
-  .gopt { align-self: flex-start; }
+  .gopt { align-self: flex-start; flex-wrap: wrap; max-width: 100%; }
+  .gopt small { font-size: 12px; font-weight: 400; opacity: .85; margin-left: 2px; }
   .grp.off .gopt { opacity: .45; }
   .gnote { margin: 0; font-size: 13px; color: var(--sub); }
   .grp.off .gnote { opacity: .45; }
@@ -728,7 +726,7 @@
     <ol class="how">
       <li><span class="n" aria-hidden="true">1</span><b>준비</b><p>포스터 용도와 보는 사람을 고르고 PSD를 올려요.</p></li>
       <li><span class="n" aria-hidden="true">2</span><b>고치기</b><p>잘 안 보이는 글자를 알려드려요. 고친 모습을 원본 옆에서 보고 골라요.</p></li>
-      <li class="last"><span class="n" aria-hidden="true">3</span><b>받기</b><p>고친 포스터를 PSD·이미지로 받아요. 필요하면 큰 글씨 안내문도 만들어요.</p></li>
+      <li><span class="n" aria-hidden="true">3</span><b>받기</b><p>고친 포스터를 PSD·이미지로 받아요. 필요하면 큰 글씨 안내문도 만들어요.</p></li>
     </ol>
   </section>
 </main>
@@ -762,9 +760,9 @@
       <div class="grp">
         <label class="gchk"><input type="checkbox" id="gLow" checked><span><b>저시력</b><small>안경을 써도 잘 안 보여요</small></span></label>
         <div class="seg gopt" role="radiogroup" aria-label="저시력 정도">
-          <label><input type="radio" name="viewer0" value="low" checked><span>시력 0.3</span></label>
-          <label><input type="radio" name="viewer0" value="disability"><span>0.2</span></label>
-          <label><input type="radio" name="viewer0" value="severe"><span>0.06</span></label>
+          <label><input type="radio" name="viewer0" value="low" checked><span>저시력 <small>시력 0.3</small></span></label>
+          <label><input type="radio" name="viewer0" value="disability"><span>시각장애 <small>0.2</small></span></label>
+          <label><input type="radio" name="viewer0" value="severe"><span>심한 시각장애 <small>0.06</small></span></label>
         </div>
       </div>
       <div class="grp">
@@ -774,8 +772,8 @@
       <div class="grp">
         <label class="gchk"><input type="checkbox" id="gField" checked><span><b>시야가 좁은 사람</b><small>한 번에 보이는 범위가 좁아요</small></span></label>
         <div class="seg gopt" role="radiogroup" aria-label="시야">
-          <label><input type="radio" name="field0" value="narrow" checked><span>10°</span></label>
-          <label><input type="radio" name="field0" value="veryNarrow"><span>5°</span></label>
+          <label><input type="radio" name="field0" value="narrow" checked><span>좁은 시야 <small>10°</small></span></label>
+          <label><input type="radio" name="field0" value="veryNarrow"><span>아주 좁은 시야 <small>5°</small></span></label>
         </div>
       </div>
     </div>
