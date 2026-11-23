@@ -872,6 +872,10 @@
       var tied = sizes.filter(function (s) { return round(s, 1) === me; }).length;
       var sizeRes = layerResults[l.id] && layerResults[l.id].size;
       var small = (l.sizePt || 0) < median;
+      // 이 글자의 목적(예술/정보)에 맞춰 판정해요. 예술 글자는 '주의' 대신 '참고'
+      var purpose = sizeRes ? sizeRes.purpose : docPurpose === "art" ? "art" : null;
+      var pol = purpose && P.purposes[purpose];
+      var bad = pol && pol.judge === "advisory" ? "advisory" : "warn";
       // 저시력은 크기 검사에서 '참고'로 알려줘요. 여기서는 고칠 수 없는 경고를 남기지 않아요
       var lowVision = sizeRes && sizeRes.detail.lowVisionReadable;
       out.push({
@@ -879,8 +883,10 @@
         layerName: l.name,
         text: l.text,
         role: role,
+        purpose: purpose,
+        purposeSource: sizeRes ? sizeRes.purposeSource : null,
         check: "hierarchy",
-        status: small ? "warn" : "pass",
+        status: small ? bad : "pass",
         metric: R.LABELS[role] + " · 크기 " + (tied > 1 ? "공동 " : "") + rank + "위 (글자 " + sizes.length + "개 중" + (tied > 1 ? ", 같은 크기 " + tied + "개" : "") + ")" +
           (small ? " · 중간 크기보다 작아요" : ""),
         message: small ? R.LABELS[role] + "이(가) 다른 글자보다 작아요. 눈에 잘 띄게 키우거나 굵게 해 주세요." : undefined,

@@ -236,3 +236,30 @@ test("고쳐도 기준을 못 넘으면 '이 색으로 바꾸면 기준을 넘�
   assert.equal(c.fix.passes, false);
   assert.doesNotMatch(c.message, /기준을 넘어요/);
 });
+
+test("일시·장소가 작을 때: 예술 글자는 '참고', 정보 글자는 '주의'", () => {
+  const hier = (r, id) => r.results.find((x) => x.layerId === id && x.check === "hierarchy");
+  // 일시(6)는 글자 중 작은 편이에요
+  const art = fresh();
+  art.document.purpose = "art";
+  const a = hier(E.checkDocument(art, { medium: "wall" }), 6);
+  assert.equal(a.detail.smallerThanMedian, true);
+  assert.equal(a.status, "advisory");
+  assert.equal(a.purpose, "art");
+
+  const info = fresh();
+  info.document.purpose = "info";
+  const i = hier(E.checkDocument(info, { medium: "wall" }), 6);
+  assert.equal(i.status, "warn");
+  assert.equal(i.purpose, "info");
+
+  // 복합 문서에서 디자이너가 일시 글자만 예술로 정하면 그 글자도 '참고'
+  const mixed = fresh();
+  mixed.document.purpose = "mixed";
+  const date = mixed.layers.find((l) => l.id === 6);
+  date.purpose = "art";
+  date.purposeSource = "layer";
+  const m = hier(E.checkDocument(mixed, { medium: "wall" }), 6);
+  assert.equal(m.status, "advisory");
+  assert.equal(m.purposeSource, "layer");
+});
