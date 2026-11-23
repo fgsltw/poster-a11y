@@ -737,6 +737,23 @@
   .mark.fixed .pin { border-color: #fff; }
   .mark.coach::after { background: var(--signal); color: var(--navy); border: 2px solid var(--navy); }
   .mark:is(:hover, :focus-visible, .hl, .open) { border-color: var(--signal) !important; background: rgba(255,212,0,.12); }
+
+  /* ================================================================ 앱 전체 색: 흰색 · 남색 · 노란색 (+ 좋아진 표시는 초록)
+     바탕은 흰색, 칸·선은 남색을 옅게, 주의는 노란색. 빨강·주황·연파랑 같은 다른 색은 쓰지 않아요 */
+  :root { --bg: #FFFFFF; --mist: #EEF1F6; --line: #D3DAE4; }
+  #work, .finish { background: var(--paper); }
+  .card { border: 1.5px solid var(--line); box-shadow: none; }
+  .finget { border: 1.5px solid var(--line); }
+  .bar, .finbar { border-bottom: 1px solid var(--line); }
+  .stage { background: var(--mist); }
+  .fincmp img { background: var(--navy); }
+  /* 상태 점: 고쳐야 해요 = 남색, 확인해 보세요 = 노랑, 참고 = 테두리만 */
+  .sdot { background: var(--paper); border: 2px solid var(--navy); box-sizing: border-box; }
+  .sdot.s-fail, .sdot.s-conflict { background: var(--navy); }
+  .sdot.s-warn { background: var(--signal); }
+  /* 주의 상자: 노란색 + 남색 글자 */
+  .finwarn, .guide .pwarn, #popBody .pwarn { background: #FFF6CC; color: var(--navy); border-left: 4px solid var(--signal); border-radius: 0 8px 8px 0; }
+  .finwarn .linkbtn { color: var(--navy); }
 </style>
 </head>
 <body>
