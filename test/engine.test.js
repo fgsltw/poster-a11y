@@ -157,3 +157,49 @@ test("검사 → 수정 목록 → A의 수정 적용 → 다시 검사하면 �
   for (const id of [6, 11]) assert.equal(find(again, id, "contrast").status, "pass", `레이어 ${id}`);
   assert.equal(find(again, 11, "size").status, "pass");
 });
+
+// 같은 이미지를 다른 해상도(ppi)로 저장한 것처럼 바꿔요. 픽셀은 그대로, 인쇄 크기(sizePt)만 달라져요.
+function withPpi(d, ppi) {
+  d.document.ppi = ppi;
+  d.layers.forEach((l) => (l.sizePt = Math.round(((l.sizePx * 72) / ppi) * 10) / 10));
+  return d;
+}
+
+test("SNS는 '큰 글자'를 휴대폰 화면에 보이는 크기로 판단한다 (ppi와 상관없음)", () => {
+  // 장소(44px)는 인쇄로는 21pt라 큰 글자지만, 휴대폰 화면(390px 너비)에서는 약 7pt예요
+  const sns = find(E.checkDocument(fresh(), { medium: "sns" }), 8, "contrast");
+  assert.equal(sns.detail.sizeBasis, "screen");
+  assert.equal(sns.detail.large, false);
+  assert.equal(sns.detail.target, 4.5);
+  assert.ok(Math.abs(sns.detail.shownPt - (44 * (390 / 1754) * 3) / 4) < 0.1, String(sns.detail.shownPt));
+
+  // 같은 이미지를 72ppi·300ppi로 저장해도 SNS 판정은 같아요
+  for (const ppi of [72, 300]) {
+    const r = find(E.checkDocument(withPpi(fresh(), ppi), { medium: "sns" }), 8, "contrast");
+    assert.equal(r.detail.large, false, `${ppi}ppi`);
+    assert.equal(r.detail.target, 4.5, `${ppi}ppi`);
+  }
+
+  // 아주 큰 제목(220px)은 휴대폰에서도 큰 글자예요
+  assert.equal(find(E.checkDocument(fresh(), { medium: "sns" }), 2, "contrast").detail.large, true);
+});
+
+test("벽 포스터·전단은 지금처럼 인쇄 크기로 '큰 글자'를 판단한다", () => {
+  for (const medium of ["wall", "flyer"]) {
+    const c = find(E.checkDocument(fresh(), { medium }), 8, "contrast");
+    assert.equal(c.detail.sizeBasis, "print", medium);
+    assert.equal(c.detail.large, true, medium); // 44px ÷ 150ppi = 21pt
+    assert.equal(c.detail.target, 3, medium);
+  }
+});
+
+test("얇은 글꼴의 '충분히 큰 글자'도 SNS는 화면에 보이는 크기로 판단한다", () => {
+  const d = fresh();
+  d.layers.find((l) => l.id === 8).font.weightGuess = "light";
+  d.layers.forEach((l) => { if (l.id === 8) l.sizePt = 40; }); // 인쇄로는 36pt 넘음
+  const wall = E.checkDocument(JSON.parse(JSON.stringify(d)), { medium: "wall" }).results.find((x) => x.layerId === 8 && x.check === "weight");
+  const sns = E.checkDocument(JSON.parse(JSON.stringify(d)), { medium: "sns" }).results.find((x) => x.layerId === 8 && x.check === "weight");
+  assert.equal(wall.status, "pass");
+  assert.notEqual(sns.status, "pass");
+  assert.match(sns.metric, /화면에 보이는 크기/);
+});

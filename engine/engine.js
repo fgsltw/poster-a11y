@@ -79,8 +79,20 @@
       // 색각이상(적·녹·청색맹)인 사람도 보나요 (기본: 예)
       colorVision: env.colorVision !== false,
       // SNS: 휴대폰 화면 너비에 맞춰 보이는 크기
-      displayScaleMmPerPx: base.screenWidthMm ? base.screenWidthMm / doc.document.widthPx : null
+      displayScaleMmPerPx: base.screenWidthMm ? base.screenWidthMm / doc.document.widthPx : null,
+      // 글자 크기(pt)를 무엇으로 잴지: "print"(인쇄 크기) / "screen"(휴대폰 화면에 보이는 크기)
+      sizeBasis: base.sizeBasis || (base.screenWidthMm ? "screen" : "print"),
+      screenCssPxPerPx: base.screenWidthCssPx ? base.screenWidthCssPx / doc.document.widthPx : null
     };
+  }
+
+  // 절대 크기 기준(큰 글자, 얇아도 괜찮은 크기)에 쓰는 글자 크기(pt)
+  //   인쇄 매체: 인쇄 크기(sizePt) 그대로
+  //   SNS: 휴대폰 화면에 보이는 크기. 화면 CSS px → pt (1pt = 4/3 px)
+  function effectivePt(l, env, doc) {
+    if (env.sizeBasis !== "screen" || !env.screenCssPxPerPx) return l.sizePt || 0;
+    var px = l.sizePx != null ? l.sizePx : ((l.sizePt || 0) * doc.document.ppi) / 72;
+    return (px * env.screenCssPxPerPx * 3) / 4;
   }
 
   // ---------------------------------------------------------------- 글자 크기
@@ -199,7 +211,7 @@
     return out;
   }
 
-  function checkContrast(l, env, pol, P, policyKey, docPurpose, altText) {
+  function checkContrast(l, env, pol, P, policyKey, docPurpose, altText, doc) {
     var bgs = backgroundRgbs(l);
     var hexes = colorRunsOf(l);
     if (!hexes.length || !bgs) {
@@ -213,7 +225,8 @@
     var worstRun = runs.reduce(function (a, b) { return b.worst < a.worst ? b : a; });
     var worst = worstRun.worst;
     var bold = l.font && l.font.weightGuess === "bold";
-    var large = l.sizePt >= P.contrast.largePt || (bold && l.sizePt >= P.contrast.largeBoldPt);
+    var shownPt = effectivePt(l, env, doc);
+    var large = shownPt >= P.contrast.largePt || (bold && shownPt >= P.contrast.largeBoldPt);
     var dim = env.lighting === "dim" && policyKey === "info";
     var target = large ? (dim ? P.contrast.dimLarge : P.contrast.large) : dim ? P.contrast.dimNormal : P.contrast.normal;
     // 보는 사람이 저시력이면 정보 글자는 WCAG 1.4.6(AAA) 기준
@@ -232,6 +245,7 @@
         (multi ? " · 글자색 " + runs.length + "가지 중 가장 낮은 색 " + worstRun.color : ""),
       detail: {
         worst: round(worst, 2), min: round(worstRun.min, 2), target: target, large: large, complexity: complexity, dimLighting: dim,
+        shownPt: round(shownPt, 1), sizeBasis: env.sizeBasis,
         runs: runs.map(function (r) { return { color: r.color, worst: round(r.worst, 2), passes: r.worst >= target }; })
       },
       fix: null,
@@ -459,16 +473,17 @@
   }
 
   // ---------------------------------------------------------------- ① 글자 굵기
-  function checkWeight(l, pol, P) {
+  function checkWeight(l, pol, P, env, doc) {
     var w = l.font && l.font.weightGuess;
     if (P.weight.thinWeights.indexOf(w) < 0) return null; // 얇은 글꼴일 때만 결과를 만들어요
-    var big = (l.sizePt || 0) >= P.weight.okAbovePt;
+    var shownPt = effectivePt(l, env, doc);
+    var big = shownPt >= P.weight.okAbovePt;
     var status = big ? "pass" : pol.judge === "advisory" ? "advisory" : "warn";
     var res = {
       check: "weight",
       status: status,
-      metric: "얇은 글꼴 (" + (l.font.name || "이름 없음") + ") · " + l.sizePt + "pt" + (big ? " — 충분히 커서 괜찮아요" : ""),
-      detail: { weightGuess: w, fontName: l.font.name, okAbovePt: P.weight.okAbovePt },
+      metric: "얇은 글꼴 (" + (l.font.name || "이름 없음") + ") · " + round(shownPt, 1) + "pt" + (env.sizeBasis === "screen" ? " (화면에 보이는 크기)" : "") + (big ? " — 충분히 커서 괜찮아요" : ""),
+      detail: { weightGuess: w, fontName: l.font.name, okAbovePt: P.weight.okAbovePt, shownPt: round(shownPt, 1), sizeBasis: env.sizeBasis },
       fix: null
     };
     if (status !== "pass") {
@@ -898,7 +913,7 @@
         purposeSource: source
       };
       var size = Object.assign({}, common, checkSize(l, env, pol, P, doc, roles[l.id].role));
-      var contrast = Object.assign({}, common, checkContrast(l, env, pol, P, purpose, docPurpose, altText));
+      var contrast = Object.assign({}, common, checkContrast(l, env, pol, P, purpose, docPurpose, altText, doc));
       perLayer[l.id] = { size: size, contrast: contrast };
       results.push(size, contrast);
       if (env.colorVision) {
@@ -909,7 +924,7 @@
       }
       var font = checkFont(l, pol, P);
       if (font) results.push(Object.assign({}, common, font));
-      var weight = checkWeight(l, pol, P);
+      var weight = checkWeight(l, pol, P, env, doc);
       if (weight) results.push(Object.assign({}, common, weight));
       var spacing = checkSpacing(l, pol, P);
       if (spacing) results.push(Object.assign({}, common, spacing));

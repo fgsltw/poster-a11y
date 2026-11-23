@@ -20,10 +20,15 @@
 
     // ---------------------------------------------------------------- 보는 환경
     // 매체를 고르면 관람 거리 기본값이 정해져요. 패널에서 직접 바꿀 수도 있어요.
+    // sizeBasis: 글자 크기(pt)를 무엇으로 잴지
+    //   "print"  인쇄 크기 = 글자 픽셀 × 72 ÷ 문서 해상도(ppi). 종이에 뽑는 매체
+    //   "screen" 휴대폰 화면에 보이는 크기. 이미지를 화면 너비에 맞춰 보여준다고 봐요.
+    //            SNS 이미지의 ppi는 인쇄하지 않아서 의미가 없는 값이라 쓰지 않아요.
+    //            screenWidthCssPx: 휴대폰 화면 너비(CSS px). 1pt = 4/3 CSS px (WCAG 큰 글자 18pt = 24 CSS px)
     environments: {
-      wall: { label: "벽에 붙이는 포스터", distanceM: 2 },
-      flyer: { label: "손에 드는 전단", distanceM: 0.4 },
-      sns: { label: "SNS 이미지 (휴대폰)", distanceM: 0.35, screenWidthMm: 65 }
+      wall: { label: "벽에 붙이는 포스터", distanceM: 2, sizeBasis: "print" },
+      flyer: { label: "손에 드는 전단", distanceM: 0.4, sizeBasis: "print" },
+      sns: { label: "SNS 이미지 (휴대폰)", distanceM: 0.35, screenWidthMm: 65, sizeBasis: "screen", screenWidthCssPx: 390 } // 390: 많이 쓰는 휴대폰 너비 (임시값, 기획 확인 필요)
     },
     lighting: {
       normal: { label: "보통 조명" },
