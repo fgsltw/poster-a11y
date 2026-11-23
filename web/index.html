@@ -120,6 +120,23 @@
   .stats em { font-style: normal; font-size: 13px; color: var(--sub); }
   /* 스크롤해서 보이면 떠올라요. 자바스크립트가 켜 주고, 움직임 줄이기 설정이면 처음부터 그대로 보여요 */
   /* 천천히: 나타나기 1.6~1.8초, 차례 간격은 --d 의 2.5배 */
+  /* 홈: 한 화면에 한 장씩 (살짝 내리면 다음 장으로). 큰 화면에서만, 휴대폰·낮은 화면은 보통 스크롤 */
+  @media (min-width: 821px) and (min-height: 640px) {
+    html:has(#home:not([hidden])) { scroll-snap-type: y mandatory; scroll-padding: 0; }
+    html:has(#home:not([hidden])) .top { scroll-snap-align: start; }
+    #home { padding-top: 0; padding-bottom: 0; }
+    #home > section { scroll-snap-align: start; scroll-snap-stop: always; min-height: 100vh; min-height: 100svh; box-sizing: border-box; padding-top: 56px; padding-bottom: 56px; margin-top: 0; }
+    #home > .hero { scroll-snap-align: none; min-height: calc(100svh - var(--top-h, 56px)); padding-top: 32px; padding-bottom: 32px; }
+    #home > .eyes-sec, #home > .steps-sec { display: flex; flex-direction: column; justify-content: center; }
+    #home > .why, #home > .nums { align-content: center; }
+    #home .people { margin-top: 48px; }
+    #home .bars { height: 300px; }
+    #home .stats { margin-top: 40px; padding-top: 32px; }
+    /* 첫 화면 비교 그림은 화면 높이에 맞춰 줄여요 (첫 장이 한 화면을 넘지 않게) */
+    #home .demo { justify-self: end; width: fit-content; }
+    #home .demo .cmp { height: calc(100svh - var(--top-h, 56px) - 220px); width: auto; aspect-ratio: 720 / 1018; max-width: 420px; margin: 0 auto; }
+    #home .demo .cap { max-width: calc((100svh - var(--top-h, 56px) - 220px) * 720 / 1018); }
+  }
   .motion .rv { opacity: 0; transform: translateY(36px); transition: opacity 1.6s ease, transform 1.8s cubic-bezier(.16, .8, .24, 1); transition-delay: calc(var(--d, 0s) * 2.5); }
   .motion .rv.in { opacity: 1; transform: none; }
   /* 제목: 흐릿했다가 초점이 맞듯 또렷해져요 (이 도구의 주제 — 잘 보이게 하기). 글자 덩어리에만 써서 가벼워요 */
@@ -1241,6 +1258,10 @@
     if (t && t.id === "home") { t.focus(); return; }
     if (t) { if (!t.hasAttribute("tabindex")) t.tabIndex = -1; t.focus(); t.scrollIntoView(); }
   };
+
+  // 첫 장 = 머리글 + 첫 화면이 한 화면 높이가 되게 머리글 높이를 알려줘요
+  const setTopH = () => document.documentElement.style.setProperty("--top-h", document.querySelector(".top").offsetHeight + "px");
+  setTopH(); window.addEventListener("resize", setTopH);
 
   // ------------------------------------------------------------------ 홈: 숫자로 보면 (2m에서 읽기 편한 글자 높이)
   //   글자 높이 = 2 × 거리 × tan(각도/2), 각도 = 5′ ÷ 시력 × 여유(policies.lowVisionReading.acuityReserve)
