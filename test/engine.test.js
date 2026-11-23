@@ -203,3 +203,36 @@ test("얇은 글꼴의 '충분히 큰 글자'도 SNS는 화면에 보이는 크�
   assert.notEqual(sns.status, "pass");
   assert.match(sns.metric, /화면에 보이는 크기/);
 });
+
+// 색·배경 띠를 거의 못 바꾸게 해서 '고쳐도 기준을 못 넘는' 상황을 만들어요
+function weakFixPolicy() {
+  const p = JSON.parse(JSON.stringify(P));
+  p.purposes.info.fix.maxLightnessShift = 0.01;
+  p.purposes.info.fix.backplateMaxOpacity = 0.01;
+  return p;
+}
+
+test("충돌은 그림 위 정보 글자일 때만: 단색 배경 위 글자는 못 고쳐도 '실패'", () => {
+  const r = E.checkDocument(fresh(), { medium: "wall" }, weakFixPolicy());
+  assert.equal(r.document.purpose, "mixed");
+  const date = find(r, 6, "contrast"); // 일시: 단색 배경
+  assert.equal(date.detail.complexity, "simple");
+  assert.equal(date.fix.passes, false);
+  assert.equal(date.status, "fail");
+  assert.doesNotMatch(date.message, /그림|예술 이미지/);
+  assert.match(date.message, /배경 띠만으로는/);
+
+  const overArt = find(r, 5, "contrast"); // 그림 위 일정: 복잡한 그림 배경
+  assert.equal(overArt.status, "conflict");
+  assert.match(overArt.message, /예술 이미지 위/);
+  assert.ok(overArt.alternative);
+});
+
+test("고쳐도 기준을 못 넘으면 '이 색으로 바꾸면 기준을 넘어요'라고 하지 않는다", () => {
+  const d = fresh();
+  d.document.purpose = "info";
+  const c = find(E.checkDocument(d, { medium: "wall", lighting: "dim" }), 5, "contrast");
+  assert.equal(c.status, "fail");
+  assert.equal(c.fix.passes, false);
+  assert.doesNotMatch(c.message, /기준을 넘어요/);
+});

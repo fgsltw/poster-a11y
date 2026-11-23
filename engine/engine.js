@@ -282,7 +282,8 @@
 
     // 2) 글자 뒤 배경 띠 (복합 목적에서 그림 위 정보 글자는 그림을 가리지 않도록 막아요)
     var overArt = complexity === "busy";
-    var plateAllowed = pol.fix.allowBackplate && !(docPurpose === "mixed" && overArt && !P.purposes.mixed.allowBackplateOverArt);
+    var plateBlockedByArt = docPurpose === "mixed" && overArt && !P.purposes.mixed.allowBackplateOverArt;
+    var plateAllowed = pol.fix.allowBackplate && !plateBlockedByArt;
     if (plateAllowed) {
       var plate = tryBackplate(hexes.map(C.hexToRgb), bgs, alpha, target, pol.fix.backplateMaxOpacity, P);
       if (plate.passes) {
@@ -292,8 +293,11 @@
     }
 
     // 3) 고쳐도 기준을 못 넘음 → 가장 나은 수정 + 대체 정보
+    //    '충돌'은 그림 위 정보 글자라서 그림을 가리는 배경 띠를 막았을 때만이에요.
+    //    그림 위가 아닌데도 못 고치면 그냥 '실패'이고, 색만으로는 어렵다고 알려요.
     res.fix = colorFix("minimal", false);
-    if (policyKey === "info" && docPurpose === "mixed") {
+    if (res.status === "fail" && pol.messages.contrastNoFix) res.message = pol.messages.contrastNoFix;
+    if (policyKey === "info" && plateBlockedByArt) {
       res.status = "conflict";
       res.message = "정보 글자가 예술 이미지 위에 있어서, 그림을 가리지 않고는 기준을 넘기 어려워요. 같은 정보를 다른 곳(대체텍스트, 별도 안내문)에서도 제공해 주세요.";
     }
