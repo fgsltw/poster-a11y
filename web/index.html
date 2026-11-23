@@ -120,6 +120,27 @@
   .stats em { font-style: normal; font-size: 13px; color: var(--sub); }
   /* 스크롤해서 보이면 떠올라요. 자바스크립트가 켜 주고, 움직임 줄이기 설정이면 처음부터 그대로 보여요 */
   /* 천천히: 나타나기 1.6~1.8초, 차례 간격은 --d 의 2.5배 */
+  /* ================================================================ 홈 색: 흰색 · 남색 · 노란색 (+ 필요할 때 초록)
+     회색 띠·연파랑·크림색을 없애고, 장은 흰색과 남색만 번갈아요. 선·옅은 칸은 남색을 옅게 써요 */
+  #home .eyes-sec, #home .steps-sec, #home .band-mist { background: var(--paper); box-shadow: 0 0 0 100vmax var(--paper); }
+  #home .people li { border: 2px solid var(--navy); }
+  #home .see .half { background: var(--paper); color: var(--navy); }
+  #home .see .half .lab { color: var(--navy); }
+  #home .see .half.sim { background: var(--navy); color: #fff; border-top: 0; }
+  #home .see .half.sim .lab { color: var(--signal); }
+  #home .see-field .mini { background: var(--paper); border: 1.5px solid rgba(14,42,71,.25); }
+  #home .see-field .half.sim .mini { border-color: transparent; }
+  #home .bars .bar { background: rgba(14,42,71,.18); }
+  #home .bars .bar.hl { background: var(--navy); }
+  #home .stats .big small { color: var(--navy); }
+  #home .stats { border-top-color: rgba(14,42,71,.15); }
+  #home .people .tag, #home .people p, #home .sub2, #home .how p, #home .bars .who { color: #44546A; }
+  #home .band-navy .sub2, #home .band-navy .checks p { color: rgba(255,255,255,.78); }
+  #home .demo .cap, #home .demo .cap b { color: rgba(255,255,255,.85); }
+  .steps-cta { display: flex; justify-content: center; margin-top: 72px; }
+  .steps-cta .btn { padding: 16px 40px; font-size: 18px; }
+  @media (max-width: 820px) { .steps-cta { margin-top: 40px; } .steps-cta .btn { width: 100%; } }
+
   /* 홈: 한 화면에 한 장씩 (살짝 내리면 다음 장으로). 큰 화면에서만, 휴대폰·낮은 화면은 보통 스크롤 */
   @media (min-width: 821px) and (min-height: 640px) {
     html:has(#home:not([hidden])) { scroll-snap-type: y mandatory; scroll-padding: 0; }
@@ -816,16 +837,14 @@
 
   <section class="band band-mist steps-sec" aria-labelledby="stepsTitle">
     <div class="steps-head rv">
-      <div>
-        <h2 id="stepsTitle" class="focus">3단계면 끝나요</h2>
-      </div>
-      <button class="btn primary" type="button" id="goStart2">내 포스터 확인하기</button>
+      <h2 id="stepsTitle" class="focus">3단계면 끝나요</h2>
     </div>
     <ol class="how">
       <li class="rv" style="--d:0s"><span class="n" aria-hidden="true">1</span><b>준비</b><p>포스터 용도와 보는 사람을 고르고 PSD를 올려요.</p></li>
       <li class="rv" style="--d:.12s"><span class="n" aria-hidden="true">2</span><b>고치기</b><p>잘 안 보이는 글자를 알려드려요. 고친 모습을 원본 옆에서 보고 골라요.</p></li>
       <li class="rv" style="--d:.24s"><span class="n" aria-hidden="true">3</span><b>받기</b><p>고친 포스터를 PSD·이미지로 받아요. 필요하면 큰 글씨 안내문도 만들어요.</p></li>
     </ol>
+    <div class="steps-cta rv" style="--d:.36s"><button class="btn primary" type="button" id="goStart2">내 포스터 확인하기</button></div>
   </section>
 </main>
 
