@@ -60,6 +60,10 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 
 ### 대비 (`contrast`)
 - WCAG 1.4.3: 일반 4.5:1, 큰 글자(18pt 이상, 굵으면 14pt 이상) 3:1
+- **큰 글자인지 재는 크기는 쓰는 곳마다 달라요** (`policies.environments[매체].sizeBasis`)
+  - 벽 포스터·전단 `print`: 인쇄 크기 (`sizePt` = 글자 픽셀 × 72 ÷ ppi)
+  - SNS `screen`: 휴대폰 화면에 보이는 크기. 이미지를 화면 너비(`screenWidthCssPx`, 임시 390)에 맞춰 보여준다고 보고 화면 px → pt(1pt = 4/3 px)로 바꿔요. SNS 이미지의 ppi는 인쇄하지 않아서 의미 없는 값이라 쓰지 않아요 (같은 이미지를 72ppi·300ppi로 저장해도 결과가 같아요)
+  - 결과의 `detail.shownPt`(판단에 쓴 크기), `detail.sizeBasis`로 확인할 수 있어요
 - **이미지 배경 포함:** 배경 픽셀 샘플 하나하나와 대비를 구해서, 가장 낮은 쪽(아주 드문 얼룩 2%는 제외)으로 판정
 - 반투명 글자는 배경과 섞은 색으로 계산
 - **글자색이 여러 가지면**(강조색 등) 색마다 계산하고 가장 낮은 색으로 판정해요. 수정은 **기준에 못 미치는 색만** 바꿔요 (`fix.runs`)
@@ -98,7 +102,7 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 
 ### 글자 굵기 (`weight`) — 기준 ① 텍스트 가독성
 - 글꼴 이름이 Thin·Light·ExtraLight 등이면 **얇은 글씨**로 봐요 (`font.weightGuess`)
-- 36pt 이상이면 통과 (큰 제목에 얇은 글꼴은 흔해요). 그보다 작으면 정보 글자는 **주의** + 굵게(`weight`) 제안, 예술 글자는 **참고**
+- 36pt 이상이면 통과 (큰 제목에 얇은 글꼴은 흔해요). 이 크기도 대비의 '큰 글자'와 같이 쓰는 곳별 기준(SNS는 화면에 보이는 크기)으로 재요. 그보다 작으면 정보 글자는 **주의** + 굵게(`weight`) 제안, 예술 글자는 **참고**
 - 보통 굵기 글자는 결과를 만들지 않아요
 
 ### 텍스트 간격 (`spacing`) — 기준 ④ (WCAG 1.4.12)
