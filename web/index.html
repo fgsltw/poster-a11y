@@ -599,6 +599,11 @@
   .gdots li.cur { background: var(--signal); border-color: var(--navy); transform: scale(1.3); }
   .guide #guideTitle { font-size: 19px; margin: 12px 0 4px; display: flex; gap: 8px; align-items: center; color: var(--navy); }
   .guide .pnum { width: 30px; height: 30px; font-size: 14px; font-weight: 800; background: var(--navy) !important; border: 3px solid var(--signal); }
+  .guide .ptitle { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+  .sdot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: #6F86A3; }
+  .sdot.s-fail, .sdot.s-conflict { background: var(--fail); } .sdot.s-warn { background: #D08A00; }
+  .guide .pmore summary { font-weight: 700; color: var(--navy); }
+  .guide .pmore .pmsg { margin: 8px 0 6px; font-size: 14px; color: var(--ink); }
   .guide .pdoc { font-size: 13px; font-weight: 600; color: var(--sub); }
   .guide .pitem { padding: 10px 0; border-top: 1px solid var(--line); }
   .guide .pitem:first-of-type { border-top: 0; }
@@ -614,6 +619,12 @@
   .gacts .btn.primary { padding: 10px 22px; font-size: 16px; }
   .gacts .linkbtn { font-size: 15px; font-weight: 700; color: var(--navy); padding: 8px 2px; }
   .gall { margin: 6px 0 0; }
+  /* 오른쪽 맨 위: 한 번에 고치기 */
+  .topauto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 18px; padding: 14px; background: var(--navy); border-radius: 12px; }
+  .topauto .autofix { flex: 1 1 100%; padding: 12px 16px; font-size: 17px; font-weight: 800; background: var(--signal); color: var(--navy); border: 2px solid var(--signal); border-radius: 999px; }
+  .topauto .autofix:hover { background: #FFE14D; }
+  .topauto .gallnote { flex: 1; margin: 0; font-size: 13px; color: #C9D4E2; }
+  .topauto .linkbtn { color: #fff; font-size: 13px; font-weight: 700; }
   .gall { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 10px 0 2px; padding: 10px 12px; background: var(--brand-soft); border-radius: 10px; }
   .gall .autofix { border: 2px solid var(--navy); background: var(--paper); font-weight: 800; padding: 8px 14px; }
   .gall .autofix:hover { background: var(--signal); }
@@ -857,19 +868,10 @@
             <optgroup label="시력">
               <option value="acuity">고른 시력으로 (흐림)</option>
             </optgroup>
-            <optgroup label="저시력 유형">
-              <option value="amd">황반변성 (가운데가 안 보임)</option>
-              <option value="glaucoma">녹내장 (시야가 좁음)</option>
-              <option value="cataract">백내장 (뿌옇고 누렇게)</option>
-              <option value="dr">당뇨망막병증 (군데군데 얼룩)</option>
-            </optgroup>
             <optgroup label="색각">
               <option value="protan">적색맹</option>
               <option value="deutan">녹색맹</option>
               <option value="tritan">청색맹</option>
-            </optgroup>
-            <optgroup label="환경">
-              <option value="dark">어두운 조명</option>
             </optgroup>
           </select>
           <button class="help" type="button" data-help="sim" aria-label="다른 눈으로 보기 설명">?</button></div>
@@ -948,7 +950,7 @@
         <option value="info">정보 전달</option><option value="mixed">복합 목적</option>
       </select>
       <button class="help" type="button" data-help="purpose" aria-label="목적 설명">?</button></div>
-    <div class="field"><label><input type="checkbox" id="dim"> 어두운 곳에 붙여요</label>
+    <div class="field" hidden><label><input type="checkbox" id="dim"> 어두운 곳에 붙여요</label>
       <button class="help" type="button" data-help="dim" aria-label="어두운 곳 설명">?</button></div>
           <h4>그룹마다 목적 정하기</h4>
           <p style="margin:0 0 8px;color:var(--sub);font-size:13px">복합 목적이면 그룹마다 예술 / 정보를 고를 수 있어요. 정한 목적은 PSD 안에 저장돼요.</p>
@@ -1146,7 +1148,7 @@
     field: "<h4>시야</h4>시야가 좁으면 한 번에 보이는 범위가 작아요.<div class='row'><b>좁음 10°</b>: 두 눈의 시야가 각각 모든 방향에서 10도 이하 = 시각장애(심하지 않은 장애)</div><div class='row'><b>아주 좁음 5°</b>: 5도 이하 = 심한 장애</div><div class='row'>관람 거리에서 한 번에 보이는 지름 안에 핵심 정보가 모여 있는지 검사하고, 녹내장 미리보기도 이 범위로 보여줘요.</div>",
     heat: "<h4>정보 전달 지도</h4>중요한 정보가 어디에 있고 얼마나 알아보기 쉬운지 색으로 보여줘요.<div class='row'><b>빨강</b>: 중요한데 잘 안 보여요 (먼저 검토) · <b>주황</b>: 확인 · <b>초록</b>: 괜찮아요 (잘 보이거나 덜 중요한 정보)</div><div class='row'>실제 사람의 시선을 잰 것이 아니라, 글자 크기·대비·위치·정보 중요도(일시·장소가 가장 중요)를 조합한 <b>검토 우선순위</b>예요.</div><div class='row'>'고친 모습'을 고르면 고친 뒤의 지도가 보여요.</div>",
     largePrint: "<h4>큰 글씨 안내문</h4>A4 세로, 300ppi로 만들어요. 줄 간격은 글자 크기의 1.5배예요.<div class='row'>저시력자는 검은 바탕에 노랑·흰 글씨를 더 편하게 느끼는 경우가 많아요. 받는 분께 맞는 색을 고르세요.</div><div class='row'>PDF는 그림으로 된 PDF예요. 화면낭독기용으로는 대체텍스트를 함께 주세요.</div>",
-    sim: "<h4>다른 눈으로 보기</h4>저시력, 색각이상, 어두운 조명에서 포스터가 어떻게 보이는지 근사로 보여줘요. 판정은 오른쪽 검사 결과가 해요.<div class='row'><b>황반변성·녹내장</b>: 마우스를 움직이면 '보고 있는 곳'이 따라가요.</div>"
+    sim: "<h4>다른 눈으로 보기</h4>근거가 있는 것만 보여줘요. 저시력: 시력의 정의와 거리로 계산한 흐림. 색각이상: Machado 외(2009) 모델. 판정은 검사 결과가 해요."
   };
 
   // ------------------------------------------------------------------ 주석(툴팁)
@@ -1321,7 +1323,7 @@
 
   // ------------------------------------------------------------------ 마무리 화면
   const FIN_EYES = [
-    ["normal", "보통 눈"], ["acuity", "저시력"], ["cataract", "백내장"], ["protan", "적색맹"], ["deutan", "녹색맹"], ["tritan", "청색맹"], ["tunnel", "시야 좁음"], ["dark", "어두운 곳"]
+    ["normal", "보통 눈"], ["acuity", "저시력"], ["protan", "적색맹"], ["deutan", "녹색맹"], ["tritan", "청색맹"], ["tunnel", "시야 좁음"]
   ];
   let finEye = "acuity", finToken = 0;
   const finCache = new Map();
@@ -1338,12 +1340,12 @@
     const acuity = (EnginePolicies.viewers[$("viewer").value] || {}).acuity || 0.3, dist = parseFloat($("dist").value) || 2;
     return {
       normal: "보통 눈으로 본 모습이에요. 디자인이 크게 바뀌지 않았는지 확인해 보세요.",
-      acuity: `시력 ${acuity}인 사람이 ${dist < 1 ? Math.round(dist * 100) + "cm" : dist + "m"}에서 본 모습이에요. 고친 뒤에 날짜·장소가 읽히는지 보세요.`,
+      acuity: `시력 ${acuity}인 사람이 ${dist < 1 ? Math.round(dist * 100) + "cm" : dist + "m"}에서 본 모습이에요. 시력의 정의(구분할 수 있는 가장 작은 각도)와 거리로 흐림 정도를 계산했어요.`,
       cataract: "백내장이 있으면 뿌옇고 누렇게 보여요. 옅은 색 글자가 특히 약해져요.",
-      protan: "적색맹(빨강을 잘 못 느껴요)으로 본 모습이에요. 색으로만 구분한 정보가 사라지지 않는지 보세요.",
-      deutan: "녹색맹(초록을 잘 못 느껴요)으로 본 모습이에요. 가장 흔한 색각이상이에요.",
-      tritan: "청색맹(파랑·노랑을 잘 못 느껴요)으로 본 모습이에요.",
-      tunnel: (() => { const f = fieldInfo(); return f ? `시야가 ${f.deg}°로 좁으면 한 번에 밝은 원만큼만 보여요 (지름 약 ${Math.round(f.viewMm / 10)}cm). 핵심 정보가 원 안에 다 들어오는지 보세요.` : ""; })(),
+      protan: "적색맹(빨강을 잘 못 느껴요)으로 본 모습이에요. 색각이상 연구 모델(Machado 외, 2009)로 계산했어요.",
+      deutan: "녹색맹(초록을 잘 못 느껴요)으로 본 모습이에요. 가장 흔한 색각이상이에요. Machado 외(2009) 모델로 계산했어요.",
+      tritan: "청색맹(파랑·노랑을 잘 못 느껴요)으로 본 모습이에요. Machado 외(2009) 모델로 계산했어요.",
+      tunnel: (() => { const f = fieldInfo(); return f ? `시야가 ${f.deg}°로 좁으면 한 번에 밝은 원만큼만 보여요 (지름 약 ${Math.round(f.viewMm / 10)}cm). 보건복지부 장애 판정 기준의 시야 각도와 보는 거리로 계산한 범위예요.` : ""; })(),
       dark: "어두운 곳에서 본 모습이에요."
     }[eye];
   }
@@ -1565,15 +1567,13 @@
   // 오른쪽 요약: 몇 군데인지 + 번호를 눌러 보라는 안내 + 고친 곳 진행 막대 (자세한 내용은 번호 설명 창에서)
   function renderSummary() {
     const env = S.check.environment, n = S.marks.length;
-    $("summary").innerHTML = `<h2>${n ? `잘 안 보이는 곳 ${n}군데` : "고칠 곳이 없어요"}</h2>
-      <p class="lead2">${n ? "중요한 곳부터 <b>하나씩</b> 보여드릴게요. 포스터의 번호를 눌러 바로 가도 돼요." : "모든 검사를 통과했어요. 바로 받아도 돼요."}</p>
-      ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>
-      <p class="pinkey"><span><i class="k-todo">3</i>아직이에요 · 눌러서 골라요</span><span><i class="k-done">✓</i>고쳤어요 · 확인해 보세요</span></p>` : ""}
+    $("summary").innerHTML = (n ? `<div class="topauto"><button class="btn autofix" type="button" id="autoFix">자동으로 모두 고치고 받기</button>
+        <p class="gallnote">또는 아래에서 한 곳씩 보고 고쳐요.</p><button class="linkbtn" type="button" id="clearAll" hidden>넣은 수정 모두 빼기</button></div>` : "") +
+      `<h2>${n ? `잘 안 보이는 곳 ${n}군데` : "고칠 곳이 없어요"}</h2>
+      ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>` : `<p class="lead2">모든 검사를 통과했어요. 바로 받아도 돼요.</p>`}
       <p class="cond">${esc(env.viewerLabel)}${env.colorVision ? " · 색각이상" : ""}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>
       ${n ? `<section class="guide" id="guide" aria-labelledby="guideTitle"><div class="ghead"><span class="gcount" id="gCount"></span><ol class="gdots" id="gDots" aria-hidden="true"></ol></div>
-        <div class="gall"><button class="btn autofix" type="button" id="autoFix">자동으로 모두 고치고 받기</button><button class="linkbtn" type="button" id="clearAll" hidden>모두 빼기</button>
-          <p class="gallnote">하나씩 보기 귀찮으면, 고칠 수 있는 곳을 한 번에 고쳐요.</p></div>
         <div id="guideBody"></div><div class="gacts" id="guideActs"></div></section>` : ""}`;
     updateAfterBox();
     // '바꾸기'는 준비 단계로 (보는 사람·용도·쓰는 곳을 한곳에서 바꿔요)
@@ -1727,7 +1727,7 @@
     if ($("autoFix")) {
       const plan = autoFixPlan(), none = !plan.chosen.size && !plan.custom.size;
       $("autoFix").hidden = none;
-      document.querySelector(".gallnote").textContent = !none ? "하나씩 보기 귀찮으면, 고칠 수 있는 곳을 한 번에 고쳐요."
+      document.querySelector(".gallnote").textContent = !none ? "또는 아래에서 한 곳씩 보고 고쳐요."
         : S.check.document.purpose === "art" ? "예술 포스터라 디자인을 지키려고 자동으로 고치지 않아요. 하나씩 보고 필요한 것만 골라 주세요."
         : "자동으로 고칠 수 있는 곳이 없어요. 하나씩 보고 직접 골라 주세요.";
       $("autoFix").onclick = () => { if (autoFixAll()) showFinish(); };
@@ -1859,13 +1859,16 @@
     if (!m.items.length) html += `<p class="pnone">이 글자는 검사에서 고칠 곳이 없어요. 잘 보여요.</p>`;
     m.items.forEach((x) => {
       const i = S.items.indexOf(x);
-      html += `<section class="pitem"><div class="ptitle"><span class="chip c-${x.status}">${STATUS_TEXT[x.status]}</span> <b>${esc(titleOf(x))}</b></div>` +
-        `<p class="pmsg">${esc(x.message || why(x))}</p>` +
-        (x.fix ? `<p class="pfix"><span class="lbl">이렇게 고쳐요</span> ${esc(fixText(x.fix))}${x.fix.passes === false ? " (기준에는 조금 못 미쳐요)" : ""}</p>` : "") +
-        (x.fix && x.fix.layoutWarning ? `<p class="pwarn">키우면 다른 글자와 겹쳐서 기본으로 꺼 뒀어요. 위치를 옮긴 뒤 켜 주세요.</p>` : "") +
-        (x.alternative ? `<p class="pfix"><span class="lbl">대신</span> ${esc(x.alternative.notice)} ${x.alternative.type === "largePrint" ? `<button class="linkbtn" data-golp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-goalt>대체텍스트 보기</button>`}</p>` : "") +
+      // 핵심만: 무엇이 문제인지(제목) + 지금/고친 뒤 그림. 설명·수정 내용·측정값은 '자세히'
+      html += `<section class="pitem"><div class="ptitle"><span class="sdot s-${x.status}" aria-hidden="true"></span><b>${esc(titleOf(x))}</b><span class="sr"> (${STATUS_TEXT[x.status]})</span></div>` +
         compareHtml(previewSpecOf(x), i) +
-        `<details class="pmore"><summary>자세히 (측정값·기준)</summary><dl class="dlist"><dt>측정</dt><dd>${esc(x.metric)}</dd>
+        `<details class="pmore"><summary>자세히</summary>
+          <p class="pmsg">${esc(x.message || why(x))}</p>
+          <dl class="dlist">${x.fix ? `<dt>고치는 법</dt><dd>${esc(fixText(x.fix))}${x.fix.passes === false ? " (기준에는 조금 못 미쳐요)" : ""}</dd>` : ""}
+          ${x.fix && x.fix.layoutWarning ? `<dt>주의</dt><dd>키우면 다른 글자와 겹쳐서 기본으로 꺼 뒀어요. 위치를 옮긴 뒤 켜 주세요.</dd>` : ""}
+          ${x.alternative ? `<dt>대신</dt><dd>${esc(x.alternative.notice)} ${x.alternative.type === "largePrint" ? `<button class="linkbtn" data-golp>큰 글씨 안내문 만들기</button>` : `<button class="linkbtn" data-goalt>대체텍스트 보기</button>`}</dd>` : ""}
+          <dt>판정</dt><dd>${STATUS_TEXT[x.status]}</dd>
+          <dt>측정</dt><dd>${esc(x.metric)}</dd>
           <dt>왜?</dt><dd>${esc(why(x))}</dd>
           ${x.purpose ? `<dt>목적</dt><dd>${PL[x.purpose]}${x.purposeSource === "suggested" ? " (자동 추천)" : ""}</dd>` : ""}
           ${x.fix && x.fix.contrastAfter ? `<dt>고친 뒤</dt><dd>대비 ${x.fix.contrastAfter}:1</dd>` : ""}
