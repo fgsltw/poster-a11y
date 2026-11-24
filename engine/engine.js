@@ -579,10 +579,11 @@
     layers.forEach(function (l) {
       after[l.id] = scaledBox(l, sizeFixFactor(l, perLayer[l.id] && perLayer[l.id].size));
     });
-    function problemsAt(l, factor) {
+    function problemsAt(l, factor, boxes) {
+      boxes = boxes || after;
       var box = scaledBox(l, factor);
       if (!box) return null;
-      var hits = layers.filter(function (o) { return o.id !== l.id && after[o.id] && overlaps(box, after[o.id], L.overlapTolerancePx); });
+      var hits = layers.filter(function (o) { return o.id !== l.id && boxes[o.id] && overlaps(box, boxes[o.id], L.overlapTolerancePx); });
       var over = overflowOf(box, W, H, L.canvasMarginPx);
       return hits.length || over ? { hits: hits, overflow: over } : null;
     }
@@ -591,6 +592,34 @@
       if (p.overflow) parts.push("포스터 밖으로 나가요 (" + Object.keys(p.overflow).map(function (k) { return SIDE_LABELS[k] + " " + p.overflow[k] + "px"; }).join(", ") + ")");
       if (p.hits.length) parts.push(p.hits.map(function (o) { return "'" + short(o.text) + "'"; }).join(", ") + "와(과) 겹쳐요");
       return parts.join(" · ");
+    }
+
+    // 겹치지 않는 최대 크기: 추천 크기로 키우면 겹치는 글자끼리는 서로 추천 크기가 아니라
+    // 실제로 키울 크기를 기준으로 재요. 모두 지금 크기에서 시작해 조금씩(L.fitStep배) 함께 키우고,
+    // 더 키우면 겹치거나 잘리는 글자는 거기서 멈춰요. 한 글자가 자리를 다 차지하지 않고 고르게 나눠 가져요.
+    //   (모두 추천 크기로 키운 상자와 비교하면, 줄이 촘촘한 글자들은 서로 막혀 조금도 못 키웠어요)
+    // 키울 때는 이웃 글자와 줄 사이(글자 높이 × fitGapOfHeight), 포스터 가장자리(폭 × fitMarginOfWidth) 여백을 남겨요
+    function fitsAt(l, factor) {
+      var b = scaledBox(l, factor);
+      if (!b) return false;
+      var g = (b.bottom - b.top) * L.fitGapOfHeight, m = W * L.fitMarginOfWidth;
+      var pb = { left: b.left, right: b.right, top: b.top - g, bottom: b.bottom + g };
+      if (b.left < Math.min(m, l.bounds.left) || b.right > W - m || b.top < 0 || b.bottom > H) return false;
+      return !layers.some(function (o) { return o.id !== l.id && fitted[o.id] && overlaps(pb, fitted[o.id], L.overlapTolerancePx); });
+    }
+    var fitted = {}, fitF = {}, growing = [];
+    layers.forEach(function (l) {
+      var f = sizeFixFactor(l, perLayer[l.id] && perLayer[l.id].size);
+      if (f > 1 && problemsAt(l, f)) { fitted[l.id] = scaledBox(l, 1); fitF[l.id] = 1; if (fitsAt(l, 1)) growing.push({ l: l, max: f }); }
+      else fitted[l.id] = after[l.id];
+    });
+    for (var round_ = 0; growing.length && round_ < L.fitMaxRounds; round_++) {
+      growing = growing.filter(function (g) {
+        var next = Math.min(g.max, fitF[g.l.id] * L.fitStep);
+        if (!fitsAt(g.l, next)) return false;
+        fitF[g.l.id] = next; fitted[g.l.id] = scaledBox(g.l, next);
+        return next < g.max;
+      });
     }
 
     var reported = {};
@@ -605,10 +634,8 @@
           return;
         }
         // 겹치지 않는 가장 큰 크기 찾기
-        var lo = 1, hi = factor;
-        if (problemsAt(l, 1)) lo = 1;
-        else for (var i = 0; i < 20; i++) { var mid = (lo + hi) / 2; if (problemsAt(l, mid)) hi = mid; else lo = mid; }
-        var maxFitPt = problemsAt(l, lo) ? null : Math.floor(l.sizePt * lo * 2) / 2;
+        var lo = fitF[l.id] || 1;
+        var maxFitPt = problemsAt(l, lo, fitted) ? null : Math.floor(l.sizePt * lo * 2) / 2;
         var res = Object.assign({}, common, {
           status: "warn",
           metric: "추천 크기 " + sizeRes.fix.valuePt + "pt로 키우면 " + describeProblem(p),

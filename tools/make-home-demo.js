@@ -5,7 +5,8 @@
  *                          web/home/{before,after}-cvd.jpg (적색맹 눈), web/home/{before,after}-field.jpg (시야 10°)
  *
  * 샘플 포스터를 검사하고, 엔진이 '모두 적용'에 넣는 수정을 적용한 뒤,
- * 시력 0.3인 사람이 2m에서 본 모습(흐림)으로 바꿔 저장해요. 겹치는 크기 수정은 앱 기본값처럼 빼요.
+ * 시력 0.3인 사람이 2m에서 본 모습(흐림)으로 바꿔 저장해요.
+ * 수정은 앱의 '자동으로 모두 고치기'와 같아요: 추천 크기로 키우면 겹치는 글자는 겹치지 않는 최대 크기(maxFitPt)까지만 키워요.
  * 색각이상·좁은 시야 그림은 그런 문제를 일부러 넣은 색 샘플(sample-color.psd)로 만들어요.
  *   - 적색맹: Machado 외(2009) 모델로 바꿔요
  *   - 시야 10°: 2m에서 한 번에 보이는 원(지름 = 2·거리·tan10°) 밖을 어둡게 해요.
@@ -77,6 +78,19 @@ function tunnel(img, cx, cy, r) {
   return img;
 }
 
+// 앱의 '자동으로 모두 고치기'(autoFixPlan)와 같은 수정 목록
+function autoFixes(check, doc) {
+  const fixes = Engine.toApplyFixes(check);
+  const has = new Set(fixes.map((f) => f.layerId + ":" + f.type));
+  check.results.forEach((r) => {
+    if (r.check !== "size" || !r.fix || !r.fix.layoutWarning || r.status === "advisory" || r.status === "pass") return;
+    const l = doc.layers.find((x) => x.id === r.layerId), fit = r.fix.maxFitPt;
+    if (!l || !fit || fit <= (l.sizePt || 0) + 0.25 || has.has(r.layerId + ":size")) return;
+    fixes.push({ layerId: r.layerId, type: "size", valuePt: fit, reason: r.metric + " (겹치지 않는 최대 크기)" });
+  });
+  return fixes;
+}
+
 function loadInfo(name) {
   const psd = agPsd.readPsd(fs.readFileSync(path.join(ROOT, "samples", name)), { useImageData: true });
   const doc = extractFromPsd(psd, { fileName: name });
@@ -91,7 +105,7 @@ function colorAndField() {
   const { psd, doc } = loadInfo("sample-color.psd");
   const env = Object.assign({}, ENV, { field: "narrow" });
   const check = Engine.checkDocument(doc, env);
-  const fixes = Engine.toApplyFixes(check);
+  const fixes = autoFixes(check, doc);
   const fixed = applyFixes(psd, fixes, { renderText }).psd;
   const save = (img, name, fn) => {
     const small = Simulate.downscale(img, WIDTH).image;
@@ -123,7 +137,7 @@ function main() {
   PurposeStore.applyToDocument(doc, info);
 
   const check = Engine.checkDocument(doc, ENV);
-  const fixes = Engine.toApplyFixes(check);
+  const fixes = autoFixes(check, doc);
   const fixed = applyFixes(psd, fixes).psd;
 
   fs.mkdirSync(OUT, { recursive: true });

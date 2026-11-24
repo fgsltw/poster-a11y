@@ -107,6 +107,18 @@ test("③ 추천 크기로 키웠을 때 다른 글자와 겹치면 '주의'와 
   if (x.detail.maxFitPt) assert.ok(x.detail.maxFitPt < size.fix.valuePt);
 });
 
+test("③ 촘촘한 줄이 함께 커져야 하면, 서로 실제로 키울 크기를 기준으로 겹치지 않는 최대 크기를 나눠 가진다", () => {
+  // 저시력(0.3) 2m: 아래쪽 일시·장소·가격·접근성 안내는 모두 69pt가 필요해서 서로 겹쳐요
+  const r = E.checkDocument(fresh(), { medium: "wall", distanceM: 2, viewer: "low" });
+  const fits = [6, 8, 9, 10].map((id) => {
+    const x = of(r, id, "layout")[0];
+    assert.ok(x && x.status === "warn", "id " + id + " 겹침 주의");
+    return { id, pt: x.detail.maxFitPt, now: layer(fresh(), id).sizePt };
+  });
+  // 모두 지금보다 1.5배 넘게 키울 수 있어요 (예전에는 이웃의 69pt 상자에 막혀 거의 못 키웠어요)
+  fits.forEach((f) => assert.ok(f.pt && f.pt > f.now * 1.5, JSON.stringify(f)));
+});
+
 test("③ 키우면 포스터 밖으로 나가는 글자를 찾는다", () => {
   const d = fresh();
   const l = layer(d, 9);
