@@ -99,3 +99,18 @@ test("좁은 시야: '핵심 정보 띠' 수정 → 새 글자 레이어가 생�
   const again = E.checkDocument(doc, env).results.find((y) => y.check === "field");
   assert.equal(again.status, "pass");
 });
+
+test("같은 글자에 글자색 수정과 강조 수정이 함께 있어도 둘 다 들어가요 (강조를 먼저 처리)", () => {
+  const psd = read();
+  const layer = psd.children.find((l) => l.name === "일시");
+  // 강조할 구간(#C62828)과 다른 구간 색을 함께 바꾸는 글자색 수정
+  const fixes = [
+    { layerId: layer.id, type: "color", runs: [{ from: "#222222", value: "#111111" }, { from: "#C62828", value: "#B71C1C" }, { from: "#2E7D32", value: "#1B5E20" }] },
+    { layerId: layer.id, type: "emphasis", runs: [{ from: "#C62828", bold: true, underline: true }] }
+  ];
+  const r = applyFixes(psd, fixes);
+  assert.deepEqual(r.skipped, []);
+  assert.equal(r.applied.length, 2);
+  const out = r.psd.children.find((l) => l.name === "일시");
+  assert.ok(out.text.styleRuns.some((x) => x.style.fauxBold && x.style.underline), "매진 구간이 굵게·밑줄");
+});
