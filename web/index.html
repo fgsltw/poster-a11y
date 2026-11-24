@@ -48,7 +48,7 @@
   .demo { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; min-width: 0; }
   .demo .eyes { display: flex; gap: 6px; margin-bottom: 10px; }
   .cmp { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 720 / 1018; background: #DDE1E7; user-select: none; touch-action: pan-y; }
-  .cmp img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+  .cmp img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; object-fit: contain; }
   .cmp .after { clip-path: inset(0 0 0 var(--cut, 50%)); }
   .cmp .divider { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 3px; margin-left: -1.5px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); pointer-events: none; }
   .cmp .knob { position: absolute; top: 50%; left: var(--cut, 50%); width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: #fff; border: 2px solid var(--brand); display: grid; place-items: center; color: var(--brand); font-weight: 700; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
@@ -170,8 +170,12 @@
     #home .stats { margin-top: 40px; padding-top: 32px; }
     /* 첫 화면 비교 그림은 화면 높이에 맞춰 줄여요 (첫 장이 한 화면을 넘지 않게) */
     #home .demo { justify-self: end; width: fit-content; }
-    #home .demo .cmp { height: calc(100svh - var(--top-h, 56px) - 220px); width: auto; aspect-ratio: 720 / 1018; max-width: 420px; margin: 0 auto; }
-    #home .demo .cap { max-width: calc((100svh - var(--top-h, 56px) - 220px) * 720 / 1018); }
+    /* 폭을 화면 높이에서 계산하고 높이는 비율로 정해요 (높이만 정하고 폭을 자르면 그림이 옆으로 눌려 보였어요) */
+    #home .demo { --demo-w: min(460px, calc((100svh - var(--top-h, 56px) - 230px) * 720 / 1018)); }
+    #home .demo .cmp { width: var(--demo-w); height: auto; aspect-ratio: 720 / 1018; margin: 0 auto; }
+    #home .demo .seg { width: var(--demo-w); box-sizing: border-box; }
+    #home .demo .seg label { flex: 1; text-align: center; }
+    #home .demo .cap { width: var(--demo-w); max-width: none; }
   }
   .motion .rv { opacity: 0; transform: translateY(36px); transition: opacity 1.1s ease, transform 1.3s cubic-bezier(.16, .8, .24, 1); transition-delay: calc(var(--d, 0s) * 1.8); }
   .motion .rv.in { opacity: 1; transform: none; }
@@ -728,6 +732,7 @@
   @media (min-width: 901px) {
     #work .panel { position: sticky; top: var(--bar-h, 72px); max-height: calc(100vh - var(--bar-h, 72px) - var(--top-h, 56px) - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
     #work .viewer { top: var(--bar-h, 72px); }
+    #work .panel .gacts { bottom: -16px; } /* 창 아래 여백(16px)까지 덮어서, 버튼 줄 아래로 글이 비치지 않게 */
   }
   .gacts .btn.primary { flex: 1 1 auto; }
   .gstate { flex-basis: 100%; margin: 0; font-size: 14px; color: var(--sub); }
@@ -773,6 +778,42 @@
   /* 주의 상자: 노란색 + 남색 글자 */
   .finwarn, .guide .pwarn, #popBody .pwarn { background: #FFF6CC; color: var(--navy); border-left: 4px solid var(--signal); border-radius: 0 8px 8px 0; }
   .finwarn .linkbtn { color: var(--navy); }
+
+  /* ================================================================ 전체 무드 (홈 '숫자로 보면'처럼)
+     흰 바탕 · 큰 글자와 큰 숫자 · 상자 대신 여백과 가는 선. 색은 남색(글자·고른 것), 노랑(주 버튼), 초록(좋아진 것)만 */
+  :root { --hair: #E3E8EF; }
+  input[type=radio], input[type=checkbox], input[type=range] { accent-color: var(--navy); }
+  /* 큰 제목 */
+  .start h1, .finwrap h1 { font-size: 48px; font-weight: 700; letter-spacing: -0.045em; line-height: 1.15; color: var(--navy); }
+  .start .preplead { color: #44546A; }
+  @media (max-width: 600px) { .start h1, .finwrap h1 { font-size: 32px; } }
+  /* 큰 숫자 + 짧은 설명 (고치기 요약, 받기 요약) */
+  .stat { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin: 0; }
+  .stat .big { font-size: 72px; line-height: .9; font-weight: 700; letter-spacing: -0.05em; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .stat .big small { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-left: 4px; }
+  .stat .lbl { font-size: 17px; font-weight: 600; color: var(--navy); padding-bottom: 6px; }
+  .summary h2.stat { margin-bottom: 4px; }
+  .finbig.stat { margin: 8px 0 12px; }
+  .finbig.stat .big { font-size: 88px; }
+  @media (max-width: 600px) { .stat .big { font-size: 56px; } .finbig.stat .big { font-size: 64px; } }
+  /* 준비: 동그라미 번호 대신 큰 숫자, 단계 사이는 가는 선 */
+  .pstep { grid-template-columns: 72px minmax(0, 1fr); padding-top: 36px; margin-bottom: 36px; border-top: 1px solid var(--hair); }
+  .pstep-n, .pstep-n.go { width: auto; height: auto; background: none; border: 0; border-radius: 0; box-sizing: content-box;
+    color: var(--navy); font-size: 64px; font-weight: 700; letter-spacing: -0.05em; line-height: .85; display: block; }
+  @media (max-width: 600px) { .pstep { grid-template-columns: 40px minmax(0, 1fr); } .pstep-n, .pstep-n.go { font-size: 40px; } }
+  /* 고르는 칸: 크림 바탕·굵은 테두리 대신 흰 바탕 + 가는 선, 고른 것만 남색 테두리 */
+  .grp, .grp.off { background: var(--paper); border: 1px solid var(--hair); border-radius: 14px; padding: 18px; }
+  .grp:not(.off) { border-color: rgba(14,42,71,.35); }
+  .olist .opt, .olist li { border: 1px solid var(--hair); border-radius: 10px; }
+  .olist .opt:has(input:checked) { border-color: var(--navy); box-shadow: inset 0 0 0 1px var(--navy); background: var(--paper); }
+  .start .use span { border: 1px solid var(--hair); }
+  .start .use input:checked + span { border: 2px solid var(--navy); padding: 19px; box-shadow: none; background: var(--paper); }
+  .pstep .prepsum { background: none; border-radius: 0; padding: 2px 0 2px 16px; border-left: 3px solid var(--signal); }
+  /* 카드·패널: 그림자·진한 선 없이 가는 선 */
+  .card { border-color: var(--hair); box-shadow: none; }
+  .finget { border: 1px solid var(--hair); }
+  .guide { border: 1px solid var(--hair); }
+  .bar, .finbar { border-bottom-color: var(--hair); }
 </style>
 </head>
 <body>
@@ -1575,7 +1616,7 @@
     if (!S.doc) return;
     // 요약: 고친 곳 / 남은 곳
     const n = S.marks.length, done = S.marks.filter(layerFixed), left = S.marks.filter((m) => !layerFixed(m)), nf = chosenFixes().length;
-    let html = n ? `<p class="finbig">${n}군데 중 <b>${done.length}군데</b>를 고쳤어요.</p>` : `<p class="finbig">고칠 곳이 없는 포스터예요.</p>`;
+    let html = n ? `<p class="finbig stat"><span class="big">${done.length}<small>/ ${n}</small></span><span class="lbl">군데를 고쳤어요</span></p>` : `<p class="finbig">고칠 곳이 없는 포스터예요.</p>`;
     if (S.autoNote && nf) html += `<p class="finauto">${esc(S.autoNote)}</p>`;
     if (left.length) html += `<p class="finleft">아직: ${left.slice(0, 4).map((m) => `<button class="linkbtn" type="button" data-fin-go="${S.marks.indexOf(m)}">${m.n}. ${m.doc ? "포스터 전체 (배치)" : `“${esc(short(m.layer.text, 12))}”`}</button>`).join(" ")}${left.length > 4 ? ` 외 ${left.length - 4}곳` : ""}</p>`;
     if (!nf && n) html += `<p class="finwarn">아직 넣은 수정이 없어서 받을 게 없어요. <button class="linkbtn" type="button" id="finFixAll">자동으로 모두 고치기</button> 또는 <button class="linkbtn" type="button" data-fin-go="0">하나씩 고치러 가기</button></p>`;
@@ -1769,7 +1810,7 @@
   function renderSummary() {
     const env = S.check.environment, n = S.marks.length;
     $("autoFix").hidden = !n;
-    $("summary").innerHTML = `<h2>${n ? `잘 안 보이는 곳 ${n}군데` : "고칠 곳이 없어요"}</h2>
+    $("summary").innerHTML = `${n ? `<h2 class="stat"><span class="big">${n}<small>군데</small></span><span class="lbl">잘 안 보이는 곳</span></h2>` : `<h2>고칠 곳이 없어요</h2>`}
       ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>
         <p class="gallnote"><span id="gallNote"></span> <button class="linkbtn" type="button" id="clearAll" hidden>넣은 수정 모두 빼기</button></p>` : `<p class="lead2">모든 검사를 통과했어요. 바로 받아도 돼요.</p>`}
       <p class="cond">${esc(env.viewerLabel)}${env.colorVision ? " · 색각이상" : ""}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
