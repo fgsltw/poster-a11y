@@ -31,7 +31,11 @@ const FILES = [
   ["web/home/before.jpg", "home/before.jpg"],
   ["web/home/after.jpg", "home/after.jpg"],
   ["web/home/before-low.jpg", "home/before-low.jpg"],
-  ["web/home/after-low.jpg", "home/after-low.jpg"]
+  ["web/home/after-low.jpg", "home/after-low.jpg"],
+  ["web/home/before-cvd.jpg", "home/before-cvd.jpg"],
+  ["web/home/after-cvd.jpg", "home/after-cvd.jpg"],
+  ["web/home/before-field.jpg", "home/before-field.jpg"],
+  ["web/home/after-field.jpg", "home/after-field.jpg"]
 ];
 
 const PAGES = ["index.html", "dev.html"];
