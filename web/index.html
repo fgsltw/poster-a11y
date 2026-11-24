@@ -867,6 +867,29 @@
   .pair img { display: block; width: 100%; height: auto; aspect-ratio: 720 / 1019; }
   .pair .tag { position: absolute; top: 8px; padding: 3px 10px; border-radius: 980px; font-size: 13px; font-weight: 700; color: #fff; background: rgba(29,29,31,.78); }
   .pair .tag.l { left: 8px; } .pair .tag.r { left: 8px; background: var(--blue); }
+  /* 고치기 화면: 지금 볼 번호 하나만 + 그 자리 밝게(주변은 살짝 어둡게) + 바로 옆 말풍선 */
+  #stage .mark:not(.open) { display: none; }
+  #stage .mark.open { box-shadow: 0 0 0 2px #fff, 0 0 0 4000px rgba(0,0,0,.32); border-color: transparent; background: transparent; border-radius: 6px; z-index: 2; }
+  #stage .mark.open .pin { animation: none; }
+  .bubble { position: absolute; z-index: 3; background: #fff; color: var(--ink); border-radius: 16px; padding: 14px 16px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .bubble::before { content: ""; position: absolute; left: 22px; top: -7px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); border-radius: 2px; }
+  .bubble.above::before { top: auto; bottom: -7px; }
+  .bubble .bstep { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub); font-variant-numeric: tabular-nums; }
+  .bubble .bn { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 13px; font-weight: 700; }
+  .bubble .btitle { margin: 6px 0 2px; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+  .bubble .bissues { margin: 0 0 10px; padding: 0; list-style: none; font-size: 14px; color: var(--sub); }
+  .bubble .bissues li::before { content: "· "; }
+  .bacts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .bacts .btn.primary { padding: 9px 18px; font-size: 15px; }
+  .bacts .linkbtn { font-size: 14px; font-weight: 600; padding: 6px 2px; }
+  .bacts .gstate { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--sub); }
+  .bacts .gstate.ok { color: var(--pass); font-weight: 700; font-size: 14px; }
+  /* 점: 눌러서 그 곳으로 */
+  .gdots li { width: auto; height: auto; background: none; border: 0; }
+  .gdots button { display: block; width: 12px; height: 12px; padding: 0; border-radius: 50%; background: #E8E8ED; border: 0; cursor: pointer; }
+  .gdots button.seen { background: #AEAEB2; }
+  .gdots button.done { background: var(--pass); }
+  .gdots button.cur { background: var(--blue); transform: scale(1.35); }
   /* 머리글: 흰 반투명 막대 (Apple 내비처럼) */
   .top { background: rgba(255,255,255,.86); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0,0,0,.08); position: relative; z-index: 6; }
   .top .brand, .top .brand b { color: var(--ink); }
@@ -1126,7 +1149,7 @@
       </div>
       <div class="stages" id="stages">
         <figure class="sfig"><figcaption class="scap" id="beforeCap" hidden>원본</figcaption>
-          <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="simfx" id="simfx" aria-hidden="true"></div><div class="heat" id="heat" hidden></div><div class="busy">만드는 중…</div></div></figure>
+          <div class="stage" id="stage"><img id="poster" alt="올린 포스터"><div class="bubble" id="bubble" hidden role="group" aria-labelledby="bTitle"><p class="bstep" id="bStep"></p><p class="btitle" id="bTitle"></p><ul class="bissues" id="bIssues"></ul><div class="bacts" id="bubbleActs"></div></div><div class="simfx" id="simfx" aria-hidden="true"></div><div class="heat" id="heat" hidden></div><div class="busy">만드는 중…</div></div></figure>
         <figure class="sfig" id="afterFig" hidden><figcaption class="scap">고친 모습 <span id="afterCapN"></span></figcaption>
           <div class="stage" id="stageAfter"><img id="posterAfter" alt="수정을 적용한 포스터"><div class="heat" id="heatAfter" hidden></div><div class="busy">만드는 중…</div></div></figure>
       </div>
@@ -1311,6 +1334,7 @@
   // ------------------------------------------------------------------ 상태
   const S = {
     seen: new Set(), // 설명을 열어 본 글자 (번호 깜빡임을 멈춰요)
+    done: new Set(), // 확인한 글자 (고쳤거나 건너뛴 곳) — 진행 막대
     fileName: "", psd: null, doc: null, purposeInfo: PurposeStore.empty(),
     check: null, items: [], marks: [], chosen: new Set(),
     fixed: null, fixedKey: "", afterCheck: null, view: "before",
@@ -1736,7 +1760,7 @@
     await new Promise((r) => setTimeout(r, 20));
     try {
       const psd = agPsd.readPsd(await file.arrayBuffer(), { useImageData: true, useRawThumbnail: true });
-      S.fileName = file.name; S.psd = psd; S.lpEdited = false; S.seen = new Set();
+      S.fileName = file.name; S.psd = psd; S.lpEdited = false; S.seen = new Set(); S.done = new Set();
       S.purposeInfo = PurposeStore.readFromPsd(psd) || PurposeStore.empty();
       // 시작 화면에서 고른 용도가 있으면 그걸로 (PSD에 저장된 목적보다 우선)
       $("viewer").value = prepViewer();
@@ -1864,12 +1888,12 @@
     const env = S.check.environment, n = S.marks.length;
     $("autoFix").hidden = !n;
     $("summary").innerHTML = `${n ? `<h2 class="stat"><span class="big">${n}<small>군데</small></span><span class="lbl">잘 안 보이는 곳</span></h2>` : `<h2>고칠 곳이 없어요</h2>`}
-      ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>
+      ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">확인 0 / ${n} · 고침 0</span></div>
         <p class="gallnote"><span id="gallNote"></span> <button class="linkbtn" type="button" id="clearAll" hidden>넣은 수정 모두 빼기</button></p>` : `<p class="lead2">모든 검사를 통과했어요. 바로 받아도 돼요.</p>`}
       <p class="cond">${esc(env.viewerLabel)}${env.colorVision ? " · 색각이상" : ""}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>
       ${n ? `<section class="guide" id="guide" aria-labelledby="guideTitle"><div class="ghead"><span class="gcount" id="gCount"></span><ol class="gdots" id="gDots" aria-hidden="true"></ol></div>
-        <div id="guideBody"></div><div class="gacts" id="guideActs"></div></section>` : ""}`;
+        <div id="guideBody"></div></section>` : ""}`;
     updateAfterBox();
     // '바꾸기'는 준비 단계로 (보는 사람·용도·쓰는 곳을 한곳에서 바꿔요)
     $("openSettings").onclick = () => document.querySelector('#work .stepbtn[data-go="prep"]').click();
@@ -1972,9 +1996,32 @@
     $("guideBody").innerHTML = popHtml(m, "guideTitle");
     $("guideLive").textContent = `${k + 1}번째 곳 (전체 ${S.marks.length}곳): “${short(m.layer.text, 20)}”`;
     renderGuideActs();
+    placeBubble();
     fillPreviews();
     if (fromPin && window.matchMedia("(max-width: 900px)").matches) $("guide").scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  // 말풍선: 지금 볼 글자 바로 옆(아래, 자리가 없으면 위)에. 포스터 밖으로 나가지 않게
+  function placeBubble() {
+    const b = $("bubble"), stage = $("stage"), m = S.marks[S.step];
+    if (!m || !S.marks.length) { b.hidden = true; return; }
+    b.hidden = false;
+    const W = stage.clientWidth, H = stage.clientHeight;
+    if (!W) return;
+    const el = stage.querySelector(`.mark[data-layer="${m.layer.id}"]`), bw = Math.min(300, W - 16);
+    b.style.width = bw + "px";
+    const bh = b.offsetHeight, gap = 12;
+    let x = 8, y = 8;
+    if (el) {
+      const r = { l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+      x = Math.max(8, Math.min(W - bw - 8, r.l));
+      y = r.t + r.h + gap;
+      if (y + bh > H - 8) y = r.t - bh - gap;
+      if (y < 8) y = Math.max(8, Math.min(H - bh - 8, r.t + r.h / 2 - bh / 2));
+      b.classList.toggle("above", y < r.t);
+    }
+    b.style.left = x + "px"; b.style.top = y + "px";
+  }
+  if (window.ResizeObserver) new ResizeObserver(() => S.marks && placeBubble()).observe($("stage"));
   // 한 번에 다 고치기 / 다 빼기 (엔진 추천 묶음)
   // 자동으로 모두 고치기: 엔진이 고칠 수 있는 건 다 넣어요
   //   · 기준을 넘는 수정 + 기준에는 못 미쳐도 나아지는 '가장 나은 수정'
@@ -2030,21 +2077,27 @@
       $("clearAll").onclick = clearAll;
     }
     const k = S.step, n = S.marks.length, m = S.marks[k], last = k === n - 1;
-    // 위: ‹ 2 / 7 › (고치지 않고 오가기)
-    $("gCount").innerHTML = `<button class="gnav" type="button" data-g="prev" aria-label="이전 곳"${k === 0 ? " disabled" : ""}>‹</button>` +
-      `<span><b>${k + 1}</b> / ${n} · ${k === 0 ? "가장 먼저 볼 곳" : last ? "마지막" : "다음으로 볼 곳"}</span>` +
-      `<button class="gnav" type="button" data-g="next" aria-label="다음 곳"${last ? " disabled" : ""}>›</button>`;
-    $("gDots").innerHTML = S.marks.map((x, i) => `<li class="${i === k ? "cur" : layerFixed(x) ? "done" : S.seen.has(x.layer.id) ? "seen" : ""}"></li>`).join("");
+    // 위: 2 / 7 과 점 (점을 누르면 그 곳으로). 고치기·건너뛰기 버튼은 포스터 위 말풍선에 있어요
+    $("gCount").innerHTML = `<span><b>${k + 1}</b> / ${n} · ${k === 0 ? "가장 먼저 볼 곳" : last ? "마지막" : "다음으로 볼 곳"}</span>`;
+    $("gDots").innerHTML = S.marks.map((x, i) => `<li><button type="button" class="${i === k ? "cur" : layerFixed(x) ? "done" : S.done.has(x.layer.id) || S.seen.has(x.layer.id) ? "seen" : ""}" data-dot="${i}" aria-label="${i + 1}번째 곳으로"${i === k ? ' aria-current="step"' : ""}></button></li>`).join("");
+    $("gDots").querySelectorAll("[data-dot]").forEach((d) => (d.onclick = () => goStep(+d.dataset.dot)));
+    // 말풍선 위쪽 글: 몇 번째 곳인지, 어떤 글자인지, 무엇이 문제인지 (짧게)
+    $("bStep").innerHTML = `<span class="bn">${m.n}</span>${k + 1} / ${n}`;
+    $("bTitle").textContent = m.doc ? "포스터 전체" : `“${short(m.layer.text, 22)}”`;
+    $("bIssues").innerHTML = m.items.slice(0, 3).map((x) => `<li>${esc(titleOf(x))}</li>`).join("");
     const qi = quickFixItems(m.layer.id), fixed = layerFixed(m);
     // 아래: 늘 '주 버튼 하나 + 글자 버튼 하나'. 고치면 바로 다음 곳으로 넘어가요
-    const go = last ? "finish" : "next", goText = last ? "마무리하기" : "다음으로";
+    //   고칠 수 있으면: [이렇게 고칠게요] 건너뛰기  ·  고쳤으면: ✓ 고쳤어요 [다음] 빼기  ·  못 고치면: 안내 [다음]
+    //   어느 버튼이든 누르면 다음 곳으로 가요 (다음/건너뛰기를 따로 두지 않아요)
+    const go = last ? "finish" : "next", goText = last ? "받기로 →" : "다음 →";
     let html;
-    if (fixed) html = `<p class="gstate ok">✓ 고쳤어요</p><button class="btn primary" type="button" data-g="${go}">${goText}</button><button class="linkbtn" type="button" data-g="undo">고친 것 빼기</button>`;
-    else if (qi.length) html = `<button class="btn primary" type="button" data-g="fix">${last ? "고치고 마무리하기" : "고치고 다음으로"}</button><button class="linkbtn" type="button" data-g="${go}">${last ? "고치지 않고 마무리" : "그냥 넘어가기"}</button>`;
-    else html = `<p class="gstate">${m.doc ? (m.items.every((x) => x.check === "keyInfoAsArt") ? "같은 정보를 대체텍스트나 안내문에도 넣어 주세요." : "포스터 전체 배치는 자동으로 바꿀 수 없어요. 위 그림을 참고해 디자인에서 정보를 옮겨 주세요.") : "자동으로 고치기 어려운 곳이에요. 위 ‘고친 뒤’ 그림을 눌러 직접 고를 수 있어요."}</p><button class="btn primary" type="button" data-g="${go}">${goText}</button>`;
-    $("guideActs").innerHTML = html;
-    $("guide").querySelectorAll(".gacts [data-g], .gnav").forEach((b) => (b.onclick = () => {
+    if (fixed) html = `<p class="gstate ok">✓ 고쳤어요</p><button class="btn primary" type="button" data-g="${go}">${goText}</button><button class="linkbtn" type="button" data-g="undo">빼기</button>`;
+    else if (qi.length) html = `<button class="btn primary" type="button" data-g="fix">이렇게 고칠게요</button><button class="linkbtn" type="button" data-g="${go}">건너뛰기</button>`;
+    else html = `<p class="gstate">${m.doc ? (m.items.every((x) => x.check === "keyInfoAsArt") ? "같은 정보를 대체텍스트나 안내문에도 넣어 주세요." : "배치는 자동으로 바꿀 수 없어요. 오른쪽 그림을 참고해 주세요.") : "자동으로 고치기 어려워요. 오른쪽 ‘고친 뒤’ 그림을 눌러 골라 주세요."}</p><button class="btn primary" type="button" data-g="${go}">${goText}</button>`;
+    $("bubbleActs").innerHTML = html;
+    $("bubbleActs").querySelectorAll("[data-g]").forEach((b) => (b.onclick = () => {
       const g = b.dataset.g;
+      if (g === "fix" || g === "next" || g === "finish") S.done.add(m.layer.id);
       if (g === "fix") {
         quickFix(m.layer.id);
         if (last) document.querySelector('#work .stepbtn[data-go="get"]').click(); else goStep(k + 1);
@@ -2061,7 +2114,7 @@
       focusGuide();
     }));
   }
-  function focusGuide() { const b = $("guideActs").querySelector(".btn.primary"); if (b) b.focus({ preventScroll: true }); }
+  function focusGuide() { updatePins(); const b = $("bubbleActs").querySelector(".btn.primary"); if (b) b.focus({ preventScroll: true }); }
 
   // 번호끼리 겹치지 않게: 위에서부터 글자 영역 왼쪽 끝 → 오른쪽 끝 → (둘 다 막히면) 왼쪽에서 아래로 밀기
   function placePins() {
@@ -2101,7 +2154,9 @@
       const t = els.find((e) => !e.classList.contains("fixed")) || els[0];
       if (t) t.classList.add("coach");
     }
-    if ($("fixBar")) { $("fixBar").style.setProperty("--p", S.marks.length ? fixed / S.marks.length : 0); $("fixCount").textContent = `고친 곳 ${fixed} / ${S.marks.length}`; }
+    // 진행 막대는 '확인한 곳'(고쳤거나 건너뛴 곳)만큼 차요. 고친 곳 수는 옆에 따로
+    const checked = S.marks.filter((m) => S.done.has(m.layer.id) || layerFixed(m)).length;
+    if ($("fixBar")) { $("fixBar").style.setProperty("--p", S.marks.length ? checked / S.marks.length : 0); $("fixCount").textContent = `확인 ${checked} / ${S.marks.length} · 고침 ${fixed}`; }
   }
 
   // 툴팁 내용: 항목 하나(목록) 또는 한 레이어의 항목들(포스터 번호)
