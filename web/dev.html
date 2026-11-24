@@ -387,7 +387,7 @@
   // ---------------- 검사 (B 엔진)
   let lastCheck = null;
   const STATUS_CLASS = { pass: "st-pass", warn: "st-warn", fail: "st-fail", advisory: "st-adv", conflict: "st-conf" };
-  const CHECK_LABELS = { size: "글자 크기", contrast: "대비", weight: "글자 굵기", spacing: "텍스트 간격", layout: "확대·배치", hierarchy: "정보 계층" };
+  const CHECK_LABELS = { size: "글자 크기", contrast: "대비", weight: "글자 굵기", spacing: "텍스트 간격", layout: "확대·배치", hierarchy: "정보 계층", keyInfoAsArt: "핵심 정보 목적" };
   $("envMedium").onchange = () => { $("envDist").value = EnginePolicies.environments[$("envMedium").value].distanceM; };
 
   function engineFixToApply(r) {

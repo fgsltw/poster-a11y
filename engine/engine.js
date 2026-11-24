@@ -632,6 +632,52 @@
     return out;
   }
 
+  // ---------------------------------------------------------------- 핵심 정보를 예술로 정했을 때
+  // 일시·장소·가격·접근성 정보가 예술 목적이면 판정은 '참고'로 하되, 같은 정보를 글로도 제공하라고 알려요.
+  // 가장 큰 글자라 '제목'이 됐지만 내용이 일시·장소인 경우(날짜를 그래픽처럼 크게 쓴 포스터)도 잡아요.
+  // "일시" → "일시 정보", "접근성 정보" → 그대로
+  function infoLabel(role) {
+    var t = R.LABELS[role];
+    return /정보$/.test(t) ? t : t + " 정보";
+  }
+  function checkKeyInfoAsArt(l, roleInfo, purpose, P, altText) {
+    if (purpose !== "art" || !P.keyInfoAsArt) return null;
+    var keyRoles = P.keyInfoAsArt.roles;
+    var role = keyRoles.indexOf(roleInfo.role) >= 0 ? roleInfo.role : null;
+    if (!role && roleInfo.role === "title") {
+      for (var i = 0; i < keyRoles.length && !role; i++) if (roleInfo.matches.indexOf(keyRoles[i]) >= 0) role = keyRoles[i];
+    }
+    if (!role) return null;
+    return {
+      check: "keyInfoAsArt",
+      status: "advisory",
+      metric: infoLabel(role) + " · 예술적 표현으로 정해져 있어요" + (roleInfo.role === "title" ? " (가장 큰 글자라 제목으로 봤어요)" : ""),
+      message: P.purposes.art.messages.keyInfoAsArt,
+      detail: { role: role, asTitle: roleInfo.role === "title" },
+      fix: null,
+      alternative: { type: "altText", draft: altText }
+    };
+  }
+
+  // 문서 전체가 예술이면 같은 알림이 글자마다 반복되지 않게 하나로 묶어요
+  function mergeKeyInfoAsArt(list, docPurpose, P, altText) {
+    if (docPurpose !== "art" || list.length < 2) return list;
+    var roles = [];
+    list.forEach(function (x) { if (roles.indexOf(x.detail.role) < 0) roles.push(x.detail.role); });
+    roles.sort(function (a, b) { return P.keyInfoAsArt.roles.indexOf(a) - P.keyInfoAsArt.roles.indexOf(b); });
+    return [{
+      layerId: null,
+      check: "keyInfoAsArt",
+      purpose: "art",
+      status: "advisory",
+      metric: roles.map(function (r) { return R.LABELS[r]; }).join(", ") + " · 글자 " + list.length + "개 · 문서 전체를 예술적 표현으로 정했어요",
+      message: P.purposes.art.messages.keyInfoAsArt,
+      detail: { roles: roles, layerIds: list.map(function (x) { return x.layerId; }) },
+      fix: null,
+      alternative: { type: "altText", draft: altText }
+    }];
+  }
+
   // ---------------------------------------------------------------- 핵심 정보 위계 · ⑤ 계층과 그룹화
   function gapBetween(a, b) {
     var dx = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right));
@@ -908,6 +954,7 @@
 
     var results = [];
     var perLayer = {};
+    var keyInfoAsArt = [];
     layers.forEach(function (l) {
       l.purposeSuggested = sug.layers[l.id];
       // 실제 목적: 디자이너가 정한 값 → 없으면 문서 목적(복합이 아니면) → 추천값
@@ -938,7 +985,10 @@
       if (weight) results.push(Object.assign({}, common, weight));
       var spacing = checkSpacing(l, pol, P);
       if (spacing) results.push(Object.assign({}, common, spacing));
+      var keyInfo = checkKeyInfoAsArt(l, roles[l.id], purpose, P, altText);
+      if (keyInfo) keyInfoAsArt.push(Object.assign({}, common, keyInfo));
     });
+    results = results.concat(mergeKeyInfoAsArt(keyInfoAsArt, docPurpose, P, altText));
     results = results.concat(checkLayout(doc, layers, perLayer, P));
     results = results.concat(checkHierarchy(doc, roles, perLayer, docPurpose, P));
     results = results.concat(checkGrouping(doc, roles, docPurpose, P));
@@ -964,7 +1014,8 @@
         counts: counts,
         applyAllAllowed: docPurpose !== "art",
         accessibleVersionRecommended: docPurpose !== "art" && needsWork,
-        alternativeRecommended: counts.conflict > 0 || (docPurpose === "art" && counts.advisory > 0),
+        alternativeRecommended: counts.conflict > 0 || (docPurpose === "art" && counts.advisory > 0) ||
+          results.some(function (r) { return r.check === "keyInfoAsArt"; }),
         largePrintRecommended: results.some(function (r) { return r.alternative && r.alternative.type === "largePrint"; })
       },
       altTextDraft: altText,
