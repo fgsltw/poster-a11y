@@ -895,6 +895,45 @@
   .top .brand, .top .brand b { color: var(--ink); }
   .top .brand small, .top a.dev { color: var(--sub); }
   .top :focus-visible { outline-color: var(--blue); }
+
+  /* ================================================================ 검은 면 줄이기 (검은색이 너무 많아 무거워요)
+     검은 바탕·굵은 검은 테두리 → 옅은 회색·옅은 하늘색 면과 가는 선. 검정은 글자에만 */
+  /* 홈 '세 사람의 눈' 카드: 테두리 없이 옅은 회색 카드, 아래 칸은 옅은 하늘색 */
+  #home .people li { border: 0; background: #F5F5F7; border-radius: 22px; }
+  #home .see .half { background: #FFFFFF; color: var(--ink); margin: 10px 10px 0; border-radius: 14px; }
+  #home .see .half .lab { color: var(--sub); }
+  #home .see .half.sim { background: var(--sky); color: var(--ink); margin: 8px 10px 0; }
+  #home .see .half.sim .lab { color: var(--blue); }
+  #home .see { height: 268px; }
+  #home .see-field .mini { border: 1px solid var(--hair); }
+  #home .see-field .half.sim .mini { border-color: #C9DDF7; }
+  .see-field .mask { background: radial-gradient(circle at 50% 50%, rgba(232,242,255,0) 34px, #CBD9EE 37px); }
+  /* 3단계 번호: 옅은 하늘색 원 + 파란 숫자 */
+  .how .n { background: var(--sky); color: var(--blue); }
+  .how::before { background: var(--blue); opacity: .15; }
+  /* 숫자 막대·자주 묻는 질문 */
+  .bars .bar.hl, #home .bars .bar.hl { background: var(--blue); }
+  .bars .barbox { border-bottom-color: var(--hair); }
+  .faq { border-top: 1px solid var(--hair); }
+  .faq summary::after { border: 1.5px solid #C7C7CC; color: var(--ink); }
+  .faq details[open] summary::after { background: var(--sky); border-color: var(--sky); color: var(--blue); }
+  /* 고르는 칸·탭 */
+  .seg input:checked + span { background: var(--sky); color: var(--blue); }
+  .olist .dot { border-color: #AEAEB2; }
+  .olist .opt input:checked ~ .dot { border-color: var(--blue); }
+  .olist .opt input:checked ~ .dot::after, .olist .tick { background: var(--blue); }
+  .sdot { border-color: #AEAEB2; }
+  .sdot.s-fail, .sdot.s-conflict { background: var(--blue); border-color: var(--blue); }
+  .guide .pnum { background: var(--blue) !important; border-color: #fff; }
+  .pinkey .k-todo { background: var(--blue); border-color: #fff; }
+  /* 받기 화면 비교 카드: 검정 → 옅은 회색 */
+  .fineye { background: #F5F5F7; }
+  .eyeseg { background: #E8E8ED; border: 0; }
+  .eyeseg span { color: var(--ink); }
+  .eyeseg input:checked + span { background: #fff; color: var(--ink); }
+  .fincmp img { background: #F5F5F7; }
+  .fineye .fincap, .fineye .fincap b { color: var(--sub); }
+  .eyeseg label + label span { border-left-color: transparent; }
 </style>
 </head>
 <body>
