@@ -344,3 +344,37 @@ test("추천색은 반올림한 #RRGGBB 그대로 다시 검사해도 기준을 
   }
   assert.ok(checked > 500, String(checked));
 });
+
+test("날짜를 소리 내어 읽기: 연도·기간·밤 시간·영어 날짜", () => {
+  const cases = {
+    "2026.11.8(일) 오후 3시": "2026년 11월 8일 일요일 오후 3시",
+    "2026-11-08 19:00": "2026년 11월 8일 저녁 7시",
+    "11/8(토) 22:00": "11월 8일 토요일 밤 10시",
+    "12.24 00:30": "12월 24일 밤 12시 30분",
+    "04:30 출발": "새벽 4시 30분 출발",
+    "11.8(토)~11.10(월)": "11월 8일 토요일부터 11월 10일 월요일까지",
+    "11.8 - 11.10": "11월 8일부터 11월 10일까지",
+    "11.8~10": "11월 8일부터 10일까지",
+    "19:30~21:00": "저녁 7시 30분부터 밤 9시까지",
+    "Nov 8, 2026": "2026년 11월 8일",
+    "7:30pm~9:00pm": "저녁 7시 30분부터 밤 9시까지",
+    "1.5km 걷기": "1.5km 걷기",
+    "할인 2.5%": "할인 2.5%"
+  };
+  for (const [from, want] of Object.entries(cases)) assert.equal(R.speakDate(from), want, from);
+});
+
+test("역할 알아보기: 제목에 든 '홀·무대·센터'는 장소가 아니고, 숫자 단위는 날짜가 아니다", () => {
+  const roles = (t) => R.matchRoles(t);
+  for (const t of ["홀로 서는 밤", "무대 위의 삶", "모두를 위한 무대", "센터 포워드의 하루"]) assert.ok(!roles(t).includes("place"), t);
+  for (const t of ["IBK챔버홀", "롯데콘서트홀 2층", "아트센터 나비", "서울숲 야외무대", "세종문화회관 대극장"]) assert.ok(roles(t).includes("place"), t);
+  for (const t of ["1.5km 걷기", "할인 2.5%", "13.40 버스"]) assert.ok(!roles(t).includes("date"), t);
+  for (const t of ["2026.11.8", "2026-11-08", "Nov 8", "11/8", "11.8(토)"]) assert.ok(roles(t).includes("date"), t);
+});
+
+test("제목이 '무대 위의 삶'이어도 장소를 예술로 정했다는 알림이 나오지 않는다", () => {
+  const d = fresh();
+  d.layers.find((l) => l.id === 2).text = "무대 위의 삶";
+  const r = E.checkDocument(d, { medium: "sns" });
+  assert.equal(r.results.filter((x) => x.check === "keyInfoAsArt" && x.layerId === 2).length, 0);
+});
