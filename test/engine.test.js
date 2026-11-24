@@ -263,3 +263,61 @@ test("일시·장소가 작을 때: 예술 글자는 '참고', 정보 글자는 
   assert.equal(m.status, "advisory");
   assert.equal(m.purposeSource, "layer");
 });
+
+test("핵심 정보를 예술로 정하면: 문서 전체가 예술이면 알림 하나로 묶는다", () => {
+  const d = fresh();
+  d.document.purpose = "art";
+  const r = E.checkDocument(d, { medium: "sns" });
+  const notes = r.results.filter((x) => x.check === "keyInfoAsArt");
+  assert.equal(notes.length, 1);
+  const n = notes[0];
+  assert.equal(n.layerId, null);
+  assert.equal(n.status, "advisory");
+  assert.deepEqual(n.detail.roles, ["date", "place", "price", "access"]);
+  assert.deepEqual([...n.detail.layerIds].sort((a, b) => a - b), [5, 6, 8, 9, 10]);
+  assert.equal(n.message, P.purposes.art.messages.keyInfoAsArt);
+  assert.match(n.alternative.draft, /봄의 제전/);
+  assert.equal(r.summary.alternativeRecommended, true);
+});
+
+test("핵심 정보를 예술로 정하면: 복합 문서에서 그 글자만 알림, 정보 전달 문서에는 없음", () => {
+  const mixed = fresh();
+  mixed.document.purpose = "mixed";
+  const date = mixed.layers.find((l) => l.id === 6);
+  date.purpose = "art";
+  date.purposeSource = "layer";
+  const r = E.checkDocument(mixed, { medium: "sns" });
+  const notes = r.results.filter((x) => x.check === "keyInfoAsArt");
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].layerId, 6);
+  assert.equal(notes[0].detail.role, "date");
+  assert.match(notes[0].metric, /^일시 정보/);
+  assert.equal(r.summary.alternativeRecommended, true);
+
+  const info = fresh();
+  info.document.purpose = "info";
+  assert.equal(E.checkDocument(info, { medium: "sns" }).results.filter((x) => x.check === "keyInfoAsArt").length, 0);
+});
+
+test("핵심 정보를 예술로 정하면: 날짜가 가장 큰 글자라 제목이 된 경우도 알린다", () => {
+  const d = fresh();
+  d.layers.find((l) => l.id === 2).text = "11.8 토요일"; // 가장 큰 글자를 날짜로
+  const r = E.checkDocument(d, { medium: "sns" });
+  const n = r.results.find((x) => x.check === "keyInfoAsArt" && x.layerId === 2);
+  assert.ok(n, "제목 자리의 날짜도 알려야 해요");
+  assert.equal(n.role, "title");
+  assert.equal(n.detail.role, "date");
+  assert.equal(n.detail.asTitle, true);
+  assert.match(n.metric, /가장 큰 글자라 제목으로/);
+});
+
+test("핵심 정보 알림 대상은 정책 파일에서 바꿀 수 있다", () => {
+  const p = JSON.parse(JSON.stringify(P));
+  p.keyInfoAsArt.roles = ["place"];
+  const d = fresh();
+  d.document.purpose = "art";
+  const notes = E.checkDocument(d, { medium: "sns" }, p).results.filter((x) => x.check === "keyInfoAsArt");
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].layerId, 8);
+  assert.equal(notes[0].detail.role, "place");
+});
