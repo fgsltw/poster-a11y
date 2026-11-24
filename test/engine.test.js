@@ -378,3 +378,35 @@ test("제목이 '무대 위의 삶'이어도 장소를 예술로 정했다는 �
   const r = E.checkDocument(d, { medium: "sns" });
   assert.equal(r.results.filter((x) => x.check === "keyInfoAsArt" && x.layerId === 2).length, 0);
 });
+
+test("문구·배경 띠·목적 추천 비율은 정책 파일에서 바꾼다 (엔진 코드에 직접 쓰지 않음)", () => {
+  const p = JSON.parse(JSON.stringify(P));
+  p.messages.conflict = "충돌 문구 바꿈";
+  p.messages.missingRole = "{role} 없음";
+  p.contrast.backplate = { colors: ["#000000"], paddingMm: 3 };
+  const r = E.checkDocument(fresh(), { medium: "wall" }, p);
+  assert.equal(find(r, 5, "contrast").message, "충돌 문구 바꿈");
+
+  const noPlace = fresh();
+  noPlace.layers = noPlace.layers.filter((l) => !/극장|층/.test(l.text));
+  const miss = E.checkDocument(noPlace, { medium: "wall" }, p).results.find((x) => x.detail && x.detail.missingRole === "place");
+  assert.equal(miss.message, "장소 없음");
+
+  const info = fresh();
+  info.document.purpose = "info";
+  const plate = find(E.checkDocument(info, { medium: "wall" }, p), 5, "contrast").fix;
+  assert.equal(plate.type, "backplate");
+  assert.equal(plate.color, "#000000");
+  assert.equal(plate.paddingMm, 3);
+
+  // 목적 추천 비율: 0으로 하면 제목 그룹 밖의 모든 '그 외' 글자가 예술로 추천돼요
+  p.purposeSuggestion.artSizeRatio = 0;
+  assert.equal(find(E.checkDocument(fresh(), { medium: "wall" }, p), 11, "size").purpose, "art");
+  assert.equal(find(E.checkDocument(fresh(), { medium: "wall" }), 11, "size").purpose, "info");
+});
+
+test("엔진 코드에는 안내 문구를 직접 쓰지 않는다", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "engine", "engine.js"), "utf8");
+  const hits = src.split("\n").filter((line) => /(message|notice|note)\s*[:=][^;]*"[^"]*[가-힣]/.test(line));
+  assert.deepEqual(hits, [], "문구는 engine/policies.js의 messages에 두세요");
+});

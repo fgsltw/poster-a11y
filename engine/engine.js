@@ -30,6 +30,10 @@
     t = String(t || "");
     return t.length > 12 ? t.slice(0, 11) + "…" : t;
   }
+  // 정책 문구의 {이름} 자리를 채워요 (policies.messages)
+  function fmt(t, vars) {
+    return String(t).replace(/\{(\w+)\}/g, function (m, k) { return vars && vars[k] != null ? vars[k] : m; });
+  }
   function ceilHalf(n) {
     return Math.ceil(n * 2) / 2;
   }
@@ -37,7 +41,8 @@
   // ---------------------------------------------------------------- 목적 추천
   // 일시·장소·가격·접근성 정보 → 정보 전달
   // 제목, 제목과 같은 그룹의 글자, 제목 크기의 40% 이상인 큰 글자 → 예술적 표현
-  function suggestPurposes(layers, roles) {
+  function suggestPurposes(layers, roles, P) {
+    P = P || DEFAULT_POLICIES;
     var title = null;
     layers.forEach(function (l) { if (roles[l.id].role === "title") title = l; });
     var titleSize = title ? title.sizePt || 0 : 0;
@@ -49,7 +54,7 @@
       if (role === "date" || role === "place" || role === "price" || role === "access") p = "info";
       else if (role === "title") p = "art";
       else if (titleGroup != null && (l.groupIds || []).indexOf(titleGroup) >= 0) p = "art";
-      else p = (l.sizePt || 0) >= titleSize * 0.4 ? "art" : "info";
+      else p = (l.sizePt || 0) >= titleSize * P.purposeSuggestion.artSizeRatio ? "art" : "info";
       out[l.id] = p;
     });
     var kinds = {};
@@ -153,13 +158,16 @@
     };
     if (status !== "pass") {
       res.message = secondary && pol.judge !== "advisory"
-        ? "주최·후원 같은 부가 정보라서 핵심 정보보다 덜 엄격하게 봐요. 그래도 읽히게 하려면 " + recommendedPt + "pt 이상을 권장해요."
+        ? fmt(P.messages.sizeSecondary, { pt: recommendedPt })
         : pol.messages.size;
       if (tooBig && !secondary) {
         // 포스터 글자만 키워서는 어려워요 → 큰 글씨 안내문·대체텍스트
-        res.message = (V ? env.viewerLabel + " 기준으로 " : "") + "읽으려면 글자가 " + recommendedPt + "pt(포스터 높이의 " +
-          Math.round((needGlyphPx / doc.document.heightPx) * 100) + "%)는 돼야 해요. 포스터 글자만 키워서는 어려워요. 큰 글씨 안내문이나 대체텍스트를 함께 제공해 주세요.";
-        res.alternative = { type: "largePrint", notice: "큰 글씨 안내문(A4, 고대비)을 만들어 포스터 옆에 붙이거나 QR로 연결해 주세요." };
+        res.message = fmt(P.messages.sizeTooBig, {
+          viewer: V ? env.viewerLabel + " 기준으로 " : "",
+          pt: recommendedPt,
+          percent: Math.round((needGlyphPx / doc.document.heightPx) * 100)
+        });
+        res.alternative = { type: "largePrint", notice: P.messages.largePrintNotice };
       } else if (pol.fix.allowSize) {
         // '참고'인 부가 정보 수정은 '모두 추가'에 들어가지 않아요 (하나씩 추가는 가능)
         res.fix = { type: "size", valuePt: recommendedPt, strategy: pol.fix.strategy, passes: true };
@@ -193,7 +201,7 @@
   // 배경 띠: 흰색·짙은색 중 나은 쪽, 정책이 허락하는 불투명도에서 (모든 글자색이) 기준을 넘는지
   function tryBackplate(textRgbs, bgs, alpha, target, maxOpacity, P) {
     var best = null;
-    ["#FFFFFF", "#1B1A22"].forEach(function (hex) {
+    P.contrast.backplate.colors.forEach(function (hex) {
       var plate = C.hexToRgb(hex);
       var under = bgs.map(function (bg) { return C.blend(plate, bg, maxOpacity); });
       var worst = Math.min.apply(null, textRgbs.map(function (t) { return percentile(contrastsFor(t, under, alpha), P.contrast.worstPercentile); }));
@@ -215,7 +223,7 @@
     var bgs = backgroundRgbs(l);
     var hexes = colorRunsOf(l);
     if (!hexes.length || !bgs) {
-      return { check: "contrast", status: "warn", metric: "글자색이나 배경을 읽지 못해 대비를 계산하지 못했어요", detail: {}, fix: null };
+      return { check: "contrast", status: "warn", metric: P.messages.contrastUnreadable, detail: {}, fix: null };
     }
     var alpha = l.opacity == null ? 1 : l.opacity;
     var runs = hexes.map(function (hex) {
@@ -251,7 +259,7 @@
       fix: null,
       alternative: null
     };
-    if (l.blendMode && l.blendMode !== "normal") res.detail.note = "혼합 모드(" + l.blendMode + ") 때문에 실제 보이는 색이 다를 수 있어요";
+    if (l.blendMode && l.blendMode !== "normal") res.detail.note = fmt(P.messages.blendModeNote, { blendMode: l.blendMode });
     if (status === "pass") return res;
     res.message = pol.messages.contrast;
 
@@ -287,7 +295,7 @@
     if (plateAllowed) {
       var plate = tryBackplate(hexes.map(C.hexToRgb), bgs, alpha, target, pol.fix.backplateMaxOpacity, P);
       if (plate.passes) {
-        res.fix = { type: "backplate", color: plate.color, opacity: plate.opacity, paddingMm: 1.5, strategy: pol.fix.strategy, passes: true, contrastAfter: round(plate.contrast, 2) };
+        res.fix = { type: "backplate", color: plate.color, opacity: plate.opacity, paddingMm: P.contrast.backplate.paddingMm, strategy: pol.fix.strategy, passes: true, contrastAfter: round(plate.contrast, 2) };
         return res;
       }
     }
@@ -299,10 +307,10 @@
     if (res.status === "fail" && pol.messages.contrastNoFix) res.message = pol.messages.contrastNoFix;
     if (policyKey === "info" && plateBlockedByArt) {
       res.status = "conflict";
-      res.message = "정보 글자가 예술 이미지 위에 있어서, 그림을 가리지 않고는 기준을 넘기 어려워요. 같은 정보를 다른 곳(대체텍스트, 별도 안내문)에서도 제공해 주세요.";
+      res.message = P.messages.conflict;
     }
     if (res.status === "conflict" || pol.support === "alternative") {
-      res.alternative = { type: "altText", draft: altText, notice: "포스터 아래나 SNS 본문에 같은 정보를 글로 함께 적어 주세요." };
+      res.alternative = { type: "altText", draft: altText, notice: P.messages.altTextNotice };
     }
     return res;
   }
@@ -341,8 +349,7 @@
       status: pol.judge === "advisory" || !lostAll.length ? "advisory" : "warn",
       metric: "“" + short(p0.a) + "”, “" + short(p0.b) + "” 두 부분이 모양은 같고 색만 달라요 (" + p0.colors.join(" · ") + ")" +
         (lostAll.length ? " · " + names + "이면 두 색이 거의 같아 보여요" : ""),
-      message: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1)." +
-        (fix ? " 자동 수정은 강조한 부분을 굵게 하고 밑줄을 그어요" + (fix.runs[0].value ? " (밝기도 함께 바꿔요)" : "") + "." : ""),
+      message: P.messages.colorOnly + (fix ? " " + (fix.runs[0].value ? P.messages.colorOnlyFixWithColor : P.messages.colorOnlyFix) : ""),
       detail: { pairs: pairs, lostFor: lostAll },
       fix: fix
     };
@@ -407,7 +414,7 @@
       status: pol.judge === "advisory" ? "advisory" : "warn",
       metric: CV.labels[d0.type] + "으로 보면 대비 " + d0.worst + ":1 (기준 " + target + ":1) · 일반 눈 " + round(contrastRes.detail.worst, 1) + ":1" +
         (drops.length > 1 ? " · " + drops.slice(1).map(function (d) { return CV.labels[d.type] + " " + d.worst + ":1"; }).join(", ") : ""),
-      message: "빨강·초록처럼 색은 다르지만 밝기가 비슷한 조합은 색각이상이 있으면 잘 안 보여요. 글자와 배경의 밝기 차이를 더 크게 해 주세요.",
+      message: P.messages.cvdContrast,
       detail: { drops: drops, target: target, normalWorst: contrastRes.detail.worst },
       fix: fix
     };
@@ -605,7 +612,7 @@
         var res = Object.assign({}, common, {
           status: "warn",
           metric: "추천 크기 " + sizeRes.fix.valuePt + "pt로 키우면 " + describeProblem(p),
-          message: "여러 줄로 나누거나, 위치를 옮기거나, 주변 여백을 늘려 주세요." + (maxFitPt && maxFitPt > l.sizePt ? " 지금 자리에서 겹치지 않는 최대 크기는 " + maxFitPt + "pt예요." : ""),
+          message: P.messages.layoutAfterResize + (maxFitPt && maxFitPt > l.sizePt ? " " + fmt(P.messages.layoutMaxFit, { pt: maxFitPt }) : ""),
           detail: { factor: round(factor, 2), overflow: p.overflow, overlapsWith: p.hits.map(function (o) { return o.id; }), maxFitPt: maxFitPt },
           fix: null
         });
@@ -624,7 +631,7 @@
       out.push(Object.assign({}, common, {
         status: sizeRes && sizeRes.purpose === "art" ? "advisory" : "warn",
         metric: "지금 " + describeProblem({ hits: hits, overflow: now.overflow }),
-        message: "글자끼리 겹치거나 잘리면 읽기 어려워요. 위치나 간격을 조정해 주세요.",
+        message: P.messages.layoutNow,
         detail: { overflow: now.overflow, overlapsWith: hits.map(function (o) { return o.id; }) },
         fix: null
       }));
@@ -703,7 +710,7 @@
         layerId: title.id, layerName: title.name, text: title.text, role: "title", check: "hierarchy",
         status: ok ? "pass" : bad,
         metric: "제목이 본문보다 " + round(ratio, 1) + "배 커요 (기준 " + Hc.titleRatioMin + "배)",
-        message: ok ? undefined : "제목과 본문의 크기 차이가 작아 무엇이 제목인지 알기 어려워요. 제목을 키우거나 본문을 줄여 주세요.",
+        message: ok ? undefined : P.messages.titleRatio,
         detail: { titleRatio: round(ratio, 2), median: med }
       });
     }
@@ -723,7 +730,7 @@
         layerId: best.b.id, layerName: best.b.name, text: best.b.text, role: pair[1], check: "hierarchy",
         status: near ? "pass" : bad,
         metric: R.LABELS[pair[0]] + "–" + R.LABELS[pair[1]] + " 거리: 포스터 높이의 " + Math.round(r * 100) + "% (기준 " + Math.round(Hc.relatedMaxGapRatio * 100) + "% 이하)",
-        message: near ? undefined : R.LABELS[pair[0]] + "와(과) " + R.LABELS[pair[1]] + "이(가) 멀리 떨어져 있어요. 함께 읽어야 하는 정보는 가까이 모아 주세요.",
+        message: near ? undefined : fmt(P.messages.relatedFar, { roleA: R.LABELS[pair[0]], roleB: R.LABELS[pair[1]] }),
         detail: { pair: pair, gapPx: Math.round(best.gap), gapRatio: round(r, 3), layerIds: [best.a.id, best.b.id] }
       });
     });
@@ -741,7 +748,7 @@
             layerId: visible[j].id, layerName: visible[j].name, text: visible[j].text, check: "hierarchy",
             status: bad,
             metric: "'" + short(visible[i].text) + "'와(과) 사이가 " + Math.round(gap) + "px (글자 크기의 " + round(gap / em, 2) + "배, 기준 " + Hc.crowdedGapEm + "배 이상)",
-            message: "글자 묶음이 너무 붙어 있어 한 덩어리로 보여요. 사이 여백을 늘려 주세요.",
+            message: P.messages.crowded,
             detail: { crowdedWith: visible[i].id, gapPx: Math.round(gap), gapEm: round(gap / em, 2) }
           });
         }
@@ -755,7 +762,7 @@
       layerId: null, check: "hierarchy",
       status: cov <= Hc.maxTextCoverage ? "pass" : bad,
       metric: "글자가 차지하는 면적: 포스터의 " + Math.round(cov * 100) + "% (기준 " + Math.round(Hc.maxTextCoverage * 100) + "% 이하)",
-      message: cov <= Hc.maxTextCoverage ? undefined : "글자가 너무 많아 복잡해 보여요. 덜 중요한 정보는 줄이거나 다른 곳으로 옮겨 주세요.",
+      message: cov <= Hc.maxTextCoverage ? undefined : P.messages.textCoverage,
       detail: { textCoverage: round(cov, 3) }
     });
     return out;
@@ -806,10 +813,9 @@
       check: "field",
       status: n === 1 ? "pass" : bad,
       metric: env.fieldLabel + " · " + env.distanceM + "m에서 한 번에 보이는 지름 약 " + Math.round(viewMm / 10) + "cm · 핵심 정보가 " + n + "군데" + (n === 1 ? " (한눈에 보여요)" : "로 흩어져 있어요"),
-      message: n === 1 ? (gathered ? "흩어진 핵심 정보를 한곳에 모은 글자(핵심 정보 띠)가 있어요." : undefined) : "시야가 좁은 사람은 한 번에 지름 " + Math.round(viewMm / 10) + "cm만 보여요. 핵심 정보를 보려면 시선을 " + n + "번 옮겨 찾아야 해요. 일시·장소·가격·접근성 정보를 한곳에 모아 주세요." +
-        " 자동 수정은 핵심 정보를 한데 모은 '핵심 정보 띠'를 새 글자 레이어로 넣어요 (원래 글자는 그대로).",
+      message: n === 1 ? (gathered ? P.messages.fieldGathered : undefined) : fmt(P.messages.fieldScattered, { cm: Math.round(viewMm / 10), count: n }),
       fix: n === 1 ? null : infoStripFix(doc, roles, items, clusters, viewPx, VF),
-      alternative: n === 1 ? null : { type: "largePrint", notice: "큰 글씨 안내문에도 핵심 정보를 한곳에 모아 포스터 옆에 함께 붙여 주세요." },
+      alternative: n === 1 ? null : { type: "largePrint", notice: P.messages.fieldLargePrintNotice },
       detail: {
         fieldDeg: env.fieldDeg, viewMm: round(viewMm), viewPx: round(viewPx), clusterCount: n,
         clusters: clusters.map(function (c) { return { box: c.box, ids: c.ids }; }),
@@ -902,7 +908,7 @@
         check: "hierarchy",
         status: docPurpose === "art" ? "advisory" : "fail",
         metric: R.LABELS[role] + " 정보를 찾지 못했어요",
-        message: R.LABELS[role] + "이(가) 포스터에 없거나 이미지로 되어 있어요. 관람에 꼭 필요한 정보예요.",
+        message: fmt(P.messages.missingRole, { role: R.LABELS[role] }),
         detail: { missingRole: role }
       });
     });
@@ -935,7 +941,7 @@
         status: small ? bad : "pass",
         metric: R.LABELS[role] + " · 크기 " + (tied > 1 ? "공동 " : "") + rank + "위 (글자 " + sizes.length + "개 중" + (tied > 1 ? ", 같은 크기 " + tied + "개" : "") + ")" +
           (small ? " · 중간 크기보다 작아요" : ""),
-        message: small ? R.LABELS[role] + "이(가) 다른 글자보다 작아요. 눈에 잘 띄게 키우거나 굵게 해 주세요." : undefined,
+        message: small ? fmt(P.messages.keyInfoSmall, { role: R.LABELS[role] }) : undefined,
         detail: { role: role, rank: rank, tied: tied, total: sizes.length, smallerThanMedian: small, lowVisionReadable: lowVision }
       });
     });
@@ -948,7 +954,7 @@
     var env = resolveEnv(envInput, P, doc);
     var layers = doc.layers.filter(function (l) { return l.visible !== false && l.text && l.text.trim(); });
     var roles = R.classify(doc.layers);
-    var sug = suggestPurposes(layers, roles);
+    var sug = suggestPurposes(layers, roles, P);
     var docPurpose = doc.document.purpose || sug.document;
     var altText = R.altTextDraft(doc.layers, roles);
 
