@@ -171,7 +171,9 @@
     /* 첫 화면 비교 그림은 화면 높이에 맞춰 줄여요 (첫 장이 한 화면을 넘지 않게) */
     #home .demo { justify-self: end; width: fit-content; }
     /* 폭을 화면 높이에서 계산하고 높이는 비율로 정해요 (높이만 정하고 폭을 자르면 그림이 옆으로 눌려 보였어요) */
-    #home .demo { --demo-w: min(460px, calc((100svh - var(--top-h, 56px) - 230px) * 720 / 1018)); }
+    /* 비교 그림 칸은 그림 폭만큼, 글자 칸은 남은 만큼 (그림이 글자 위로 넘어가 가리지 않게) */
+    #home > .hero { grid-template-columns: minmax(0, 1fr) auto; }
+    #home .demo { --demo-w: min(460px, 40vw, calc((100svh - var(--top-h, 56px) - 230px) * 720 / 1018)); }
     #home .demo .cmp { width: var(--demo-w); height: auto; aspect-ratio: 720 / 1018; margin: 0 auto; }
     #home .demo .seg { width: var(--demo-w); box-sizing: border-box; }
     #home .demo .seg label { flex: 1; text-align: center; }
