@@ -119,7 +119,7 @@
   .stats span { font-size: 17px; font-weight: 600; color: var(--ink); }
   .stats em { font-style: normal; font-size: 13px; color: var(--sub); }
   /* 스크롤해서 보이면 떠올라요. 자바스크립트가 켜 주고, 움직임 줄이기 설정이면 처음부터 그대로 보여요 */
-  /* 천천히: 나타나기 1.6~1.8초, 차례 간격은 --d 의 2.5배 */
+  /* 천천히: 나타나기 1.1~1.3초, 차례 간격은 --d 의 1.8배 */
   /* ================================================================ 홈 색: 흰색 · 남색 · 노란색 (+ 필요할 때 초록)
      회색 띠·연파랑·크림색을 없애고, 장은 흰색과 남색만 번갈아요. 선·옅은 칸은 남색을 옅게 써요 */
   #home .eyes-sec, #home .steps-sec, #home .band-mist { background: var(--paper); box-shadow: 0 0 0 100vmax var(--paper); }
@@ -158,21 +158,21 @@
     #home .demo .cmp { height: calc(100svh - var(--top-h, 56px) - 220px); width: auto; aspect-ratio: 720 / 1018; max-width: 420px; margin: 0 auto; }
     #home .demo .cap { max-width: calc((100svh - var(--top-h, 56px) - 220px) * 720 / 1018); }
   }
-  .motion .rv { opacity: 0; transform: translateY(36px); transition: opacity 1.6s ease, transform 1.8s cubic-bezier(.16, .8, .24, 1); transition-delay: calc(var(--d, 0s) * 2.5); }
+  .motion .rv { opacity: 0; transform: translateY(36px); transition: opacity 1.1s ease, transform 1.3s cubic-bezier(.16, .8, .24, 1); transition-delay: calc(var(--d, 0s) * 1.8); }
   .motion .rv.in { opacity: 1; transform: none; }
   /* 제목: 흐릿했다가 초점이 맞듯 또렷해져요 (이 도구의 주제 — 잘 보이게 하기). 글자 덩어리에만 써서 가벼워요 */
-  .motion .rv .focus, .motion .rv.focus { filter: blur(12px); opacity: .25; transition: filter 2.2s cubic-bezier(.16, .8, .24, 1) .3s, opacity 1.6s ease .3s; }
+  .motion .rv .focus, .motion .rv.focus { filter: blur(12px); opacity: .25; transition: filter 1.5s cubic-bezier(.16, .8, .24, 1) .2s, opacity 1.1s ease .2s; }
   .motion .rv.in .focus, .motion .rv.in.focus { filter: none; opacity: 1; }
   /* 움직임 줄이기 설정: 움직임·흐림 없이 짧게 나타나기만 */
-  .calm .rv { opacity: 0; transition: opacity 1.2s ease; transition-delay: calc(var(--d, 0s) * 2.5); }
+  .calm .rv { opacity: 0; transition: opacity .85s ease; transition-delay: calc(var(--d, 0s) * 1.8); }
   .calm .rv.in { opacity: 1; }
   /* 첫 화면: 시력표 제목이 한 줄씩 초점이 맞춰져요 (페이지를 열 때 한 번) */
-  .motion h1.chart span { animation: focusIn 1.8s cubic-bezier(.16, .8, .24, 1) .2s both; }
-  .motion h1.chart .l2 { animation-delay: .8s; } .motion h1.chart .l3 { animation-delay: 1.4s; }
+  .motion h1.chart span { animation: focusIn 1.3s cubic-bezier(.16, .8, .24, 1) .15s both; }
+  .motion h1.chart .l2 { animation-delay: .55s; } .motion h1.chart .l3 { animation-delay: .95s; }
   @keyframes focusIn { from { filter: blur(14px); opacity: 0; } to { filter: none; opacity: 1; } }
-  .motion .bars .bar { transform: scaleY(0); transition: transform 2s cubic-bezier(.16, .8, .24, 1); transition-delay: calc(.4s + var(--d, 0s) * 2.5); }
+  .motion .bars .bar { transform: scaleY(0); transition: transform 1.4s cubic-bezier(.16, .8, .24, 1); transition-delay: calc(.3s + var(--d, 0s) * 1.8); }
   .motion .bars.in .bar { transform: scaleY(1); }
-  .motion .bars .v { opacity: 0; transition: opacity .8s ease 2.4s; }
+  .motion .bars .v { opacity: 0; transition: opacity .6s ease 1.7s; }
   .motion .bars.in .v { opacity: 1; }
   /* 3단계: 순서가 있는 내용이라 번호 + 이어진 선 (카드 상자 없이) */
   .how { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; position: relative; }
@@ -781,8 +781,10 @@
     </div>
     <figure class="demo" aria-labelledby="demoCap">
       <div class="eyes seg" role="radiogroup" aria-label="어떤 눈으로 볼까요">
-        <label><input type="radio" name="demoEye" value="low" checked><span>저시력자 눈으로</span></label>
-        <label><input type="radio" name="demoEye" value="normal"><span>보통 눈으로</span></label>
+        <label><input type="radio" name="demoEye" value="low" checked><span>저시력</span></label>
+        <label><input type="radio" name="demoEye" value="cvd"><span>색각이상</span></label>
+        <label><input type="radio" name="demoEye" value="field"><span>좁은 시야</span></label>
+        <label><input type="radio" name="demoEye" value="normal"><span>보통 눈</span></label>
       </div>
       <div class="cmp" id="cmp">
         <img id="demoBefore" src="home/before-low.jpg" width="720" height="1018" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜와 영문 제목이 흐려서 읽기 어려워요.">
@@ -1356,10 +1358,12 @@
   $("cmpRange").addEventListener("input", cmpSet); cmpSet();
   const DEMO = {
     low: { note: "시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜(“11월 8일 단 하루”)와 영문 제목이 흐려서 안 읽혀요. 고치면 읽혀요.", before: "원본 포스터를 시력 0.3인 사람이 본 모습. 날짜와 영문 제목이 흐려서 읽기 어려워요.", after: "고친 포스터를 시력 0.3인 사람이 본 모습. 날짜가 커지고 제목 뒤에 배경 띠가 생겨 읽을 수 있어요." },
+    cvd: { note: "적색맹인 사람이 본 모습이에요. 원본은 빨간 ‘매진’과 초록 ‘예매 가능’이 같은 색으로 보여요. 고치면 ‘매진’이 굵게, 밑줄로 달라 보이고, 검은 띠 위 빨간 글자도 더 밝아져요.", before: "색 샘플 포스터를 적색맹인 사람이 본 모습. 매진과 예매 가능이 같은 색으로 보여 구분되지 않아요.", after: "고친 포스터를 적색맹인 사람이 본 모습. 매진이 굵게 밑줄로 바뀌어 구분돼요." },
+    field: { note: "시야가 10°인 사람이 2m에서 볼 때 한 번에 보이는 범위예요. 원본은 일시와 장소가 떨어져 있어 장소가 안 보여요. 고치면 일시·장소·가격을 모은 ‘핵심 정보 띠’가 한눈에 들어와요.", before: "색 샘플 포스터를 시야 10°로 본 모습. 위쪽 일시를 보면 아래쪽 장소가 보이지 않아요.", after: "고친 포스터를 시야 10°로 본 모습. 일시·장소·가격을 한데 모은 핵심 정보 띠가 한 번에 보여요." },
     normal: { note: "보통 눈으로 보면 차이가 작아요. 디자인은 거의 그대로 두고, 글자 크기·밝기·배경 띠만 조금 바꿨어요.", before: "원본 포스터", after: "고친 포스터. 날짜가 커지고 제목 뒤에 배경 띠가 생겼어요." }
   };
   document.querySelectorAll("input[name=demoEye]").forEach((r) => (r.onchange = () => {
-    const d = DEMO[r.value], sfx = r.value === "low" ? "-low" : "";
+    const d = DEMO[r.value], sfx = r.value === "normal" ? "" : "-" + r.value;
     $("demoBefore").src = `home/before${sfx}.jpg`; $("demoBefore").alt = d.before;
     $("demoAfter").src = `home/after${sfx}.jpg`; $("demoAfter").alt = d.after;
     $("demoNote").textContent = d.note;
