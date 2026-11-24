@@ -121,7 +121,7 @@ test("안내문 기본 글: 제목, 일시(읽기 쉬운 말), 장소, 가격, �
   const text = LP.draftText(d.layers, r.roles, R.speakDate);
   const lines = text.split("\n");
   assert.equal(lines[0], "봄의 제전");
-  assert.match(text, /일시: .*11월 8일 토요일 저녁 7시 30분/);
+  assert.match(text, /일시: .*11월 8일 토요일 오후 7시 30분/);
   assert.match(text, /장소: 예술의전당 오페라극장 3층/);
   assert.match(text, /가격·예매: R석 70,000원, S석 50,000원, 예매 필수/);
   assert.match(text, /접근성: 음성해설, 수어통역, 휠체어석 운영/);
