@@ -577,7 +577,10 @@
     var sizedIds = [], spacingNote = false;
     // 배경 띠는 레이어 순서를 바꾸니까 맨 마지막에, 핵심 정보 띠는 맨 위에 새로 넣으니까 그다음에 처리해요
     var late = { backplate: 1, infoStrip: 2 };
-    var ordered = fixes.filter(function (f) { return !late[f.type]; })
+    // 강조(굵게·밑줄)는 원래 글자색으로 구간을 찾으니까, 글자색을 바꾸기 전에 먼저 처리해요
+    //   (같은 글자에 글자색 수정이 함께 있으면, 색이 먼저 바뀌어 강조할 구간을 못 찾았어요)
+    var ordered = fixes.filter(function (f) { return f.type === "emphasis"; })
+      .concat(fixes.filter(function (f) { return !late[f.type] && f.type !== "emphasis"; }))
       .concat(fixes.filter(function (f) { return f.type === "backplate"; }), fixes.filter(function (f) { return f.type === "infoStrip"; }));
 
     for (var i = 0; i < ordered.length; i++) {

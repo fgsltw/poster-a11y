@@ -173,8 +173,9 @@
     /* 폭을 화면 높이에서 계산하고 높이는 비율로 정해요 (높이만 정하고 폭을 자르면 그림이 옆으로 눌려 보였어요) */
     /* 비교 그림 칸은 그림 폭만큼, 글자 칸은 남은 만큼 (그림이 글자 위로 넘어가 가리지 않게) */
     #home > .hero { grid-template-columns: minmax(0, 1fr) auto; }
-    #home .demo { --demo-w: min(460px, 40vw, calc((100svh - var(--top-h, 56px) - 230px) * 720 / 1018)); }
-    #home .demo .cmp { width: var(--demo-w); height: auto; aspect-ratio: 720 / 1018; margin: 0 auto; }
+    /* 포스터 한 장 폭 (두 장 나란히) */
+    #home .demo { --demo-w: calc(2 * min(320px, 24vw, calc((100svh - var(--top-h, 56px) - 250px) * 720 / 1019)) + 12px); }
+    #home .demo .pair { width: var(--demo-w); }
     #home .demo .seg { width: var(--demo-w); box-sizing: border-box; }
     #home .demo .seg label { flex: 1; text-align: center; }
     #home .demo .cap { width: var(--demo-w); max-width: none; }
@@ -855,7 +856,17 @@
   #home .band-navy, .band-navy { background: #F5F5F7; box-shadow: 0 0 0 100vmax #F5F5F7; color: var(--ink); }
   #home .band-navy h2, #home .band-navy b, .band-navy h2, .band-navy b { color: var(--ink); }
   #home .band-navy .sub2, #home .band-navy .checks p { color: var(--sub); }
-  .demo { background: #1D1D1F; }
+  /* 홈 비교: 원본·고친 뒤를 나란히 한 번에 (옅은 회색 카드) */
+  #home .demo { background: #F5F5F7; border-radius: 22px; padding: 18px; }
+  #home .demo .cap, #home .demo .cap b { color: var(--sub); }
+  #home .demo .seg { background: #E8E8ED; border: 0; border-radius: 10px; padding: 3px; gap: 2px; }
+  #home .demo .seg span { color: var(--ink); border: 0 !important; border-radius: 8px; padding: 7px 10px; font-weight: 500; }
+  #home .demo .seg input:checked + span { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pair figure { margin: 0; position: relative; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .pair img { display: block; width: 100%; height: auto; aspect-ratio: 720 / 1019; }
+  .pair .tag { position: absolute; top: 8px; padding: 3px 10px; border-radius: 980px; font-size: 13px; font-weight: 700; color: #fff; background: rgba(29,29,31,.78); }
+  .pair .tag.l { left: 8px; } .pair .tag.r { left: 8px; background: var(--blue); }
   /* 머리글: 흰 반투명 막대 (Apple 내비처럼) */
   .top { background: rgba(255,255,255,.86); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0,0,0,.08); position: relative; z-index: 6; }
   .top .brand, .top .brand b { color: var(--ink); }
@@ -893,14 +904,11 @@
         <label><input type="radio" name="demoEye" value="field"><span>좁은 시야</span></label>
         <label><input type="radio" name="demoEye" value="normal"><span>보통 눈</span></label>
       </div>
-      <div class="cmp" id="cmp">
-        <img id="demoBefore" src="home/before-low.jpg" width="720" height="1018" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·영문 제목과 아래쪽 장소·가격 안내가 흐려서 읽기 어려워요.">
-        <img id="demoAfter" class="after" src="home/after-low.jpg" width="720" height="1018" fetchpriority="high" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜와 아래쪽 장소·가격·접근성 안내가 커지고 제목 뒤에 배경 띠가 생겨 읽을 수 있어요.">
-        <span class="divider"></span><span class="knob" aria-hidden="true">⇆</span>
-        <span class="tag l">원본</span><span class="tag r">고친 뒤</span>
-        <input type="range" id="cmpRange" min="0" max="100" value="50" aria-label="원본과 고친 뒤 비교. 왼쪽으로 밀면 고친 뒤가 더 보여요">
+      <div class="pair" id="cmp">
+        <figure><span class="tag l">원본</span><img id="demoBefore" src="home/before-low.jpg" width="720" height="1019" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요."></figure>
+        <figure><span class="tag r">고친 뒤</span><img id="demoAfter" src="home/after-low.jpg" width="720" height="1019" fetchpriority="high" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 커지고 진해져서 읽혀요."></figure>
       </div>
-      <figcaption class="cap" id="demoCap"><b>가운데 손잡이를 좌우로 밀어 보세요.</b> <span id="demoNote">시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜(“11월 8일 단 하루”)·영문 제목과 아래쪽 장소·가격·접근성 안내가 흐려서 안 읽혀요. 고치면 읽혀요.</span></figcaption>
+      <figcaption class="cap" id="demoCap"><span id="demoNote">시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요. 고치면 글자가 커지고 진해져서 읽혀요.</span></figcaption>
     </figure>
   </section>
 
@@ -1487,13 +1495,11 @@
   $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-poster.psd"]').click(); };
   route();
   // 원본 ↔ 고친 뒤 비교 손잡이
-  const cmpSet = () => $("cmp").style.setProperty("--cut", $("cmpRange").value + "%");
-  $("cmpRange").addEventListener("input", cmpSet); cmpSet();
   const DEMO = {
-    low: { note: "시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜(“11월 8일 단 하루”)·영문 제목과 아래쪽 장소·가격·접근성 안내가 흐려서 안 읽혀요. 고치면 읽혀요.", before: "원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·영문 제목과 아래쪽 장소·가격 안내가 흐려서 읽기 어려워요.", after: "고친 포스터를 시력 0.3인 사람이 본 모습. 날짜와 아래쪽 장소·가격·접근성 안내가 커지고 제목 뒤에 배경 띠가 생겨 읽을 수 있어요." },
-    cvd: { note: "적색맹인 사람이 본 모습이에요. 원본은 빨간 ‘매진’과 초록 ‘예매 가능’이 같은 색으로 보여요. 고치면 ‘매진’이 굵게, 밑줄로 달라 보이고, 검은 띠 위 빨간 글자도 더 밝아져요.", before: "색 샘플 포스터를 적색맹인 사람이 본 모습. 매진과 예매 가능이 같은 색으로 보여 구분되지 않아요.", after: "고친 포스터를 적색맹인 사람이 본 모습. 매진이 굵게 밑줄로 바뀌어 구분돼요." },
-    field: { note: "시야가 10°인 사람이 2m에서 볼 때 한 번에 보이는 범위예요. 원본은 일시와 장소가 떨어져 있어 장소가 안 보여요. 고치면 일시·장소·가격을 모은 ‘핵심 정보 띠’가 한눈에 들어와요.", before: "색 샘플 포스터를 시야 10°로 본 모습. 위쪽 일시를 보면 아래쪽 장소가 보이지 않아요.", after: "고친 포스터를 시야 10°로 본 모습. 일시·장소·가격을 한데 모은 핵심 정보 띠가 한 번에 보여요." },
-    normal: { note: "보통 눈으로 보면 차이가 작아요. 디자인은 거의 그대로 두고, 글자 크기·밝기·배경 띠만 조금 바꿨어요.", before: "원본 포스터", after: "고친 포스터. 날짜와 아래쪽 안내 글자가 커지고 제목 뒤에 배경 띠가 생겼어요." }
+    low: { note: "시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요. 고치면 글자가 커지고 진해져서 읽혀요.", before: "원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요.", after: "고친 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 커지고 진해져서 읽혀요." },
+    cvd: { note: "적색맹인 사람이 본 모습이에요. 원본은 빨간 ‘매진’과 초록 ‘예매 가능’이 비슷한 색으로 보여요. 고치면 ‘매진’이 굵게, 밑줄로 달라 보여요.", before: "원본 포스터를 적색맹인 사람이 본 모습. 매진과 예매 가능이 비슷한 색으로 보여 구분되지 않아요.", after: "고친 포스터를 적색맹인 사람이 본 모습. 매진이 굵게 밑줄로 바뀌어 구분돼요." },
+    field: { note: "시야가 10°인 사람이 2m에서 볼 때 한 번에 보이는 범위예요 (흩어진 정보를 담은 다른 예시). 원본은 일시와 장소가 떨어져 있어 장소가 안 보여요. 고치면 일시·장소·가격을 모은 ‘핵심 정보 띠’가 한눈에 들어와요.", before: "예시 포스터를 시야 10°로 본 모습. 위쪽 일시를 보면 아래쪽 장소가 보이지 않아요.", after: "고친 포스터를 시야 10°로 본 모습. 일시·장소·가격을 한데 모은 핵심 정보 띠가 한 번에 보여요." },
+    normal: { note: "보통 눈으로 보면 디자인은 거의 그대로예요. 글자 크기와 진하기만 바뀌었어요.", before: "원본 포스터", after: "고친 포스터. 날짜·장소·가격 글자가 커지고 진해졌어요." }
   };
   document.querySelectorAll("input[name=demoEye]").forEach((r) => (r.onchange = () => {
     const d = DEMO[r.value], sfx = r.value === "normal" ? "" : "-" + r.value;

@@ -7,9 +7,10 @@
  * 샘플 포스터를 검사하고, 엔진이 '모두 적용'에 넣는 수정을 적용한 뒤,
  * 시력 0.3인 사람이 2m에서 본 모습(흐림)으로 바꿔 저장해요.
  * 수정은 앱의 '자동으로 모두 고치기'와 같아요: 추천 크기로 키우면 겹치는 글자는 겹치지 않는 최대 크기(maxFitPt)까지만 키워요.
- * 색각이상·좁은 시야 그림은 그런 문제를 일부러 넣은 색 샘플(sample-color.psd)로 만들어요.
+ * 저시력·색각이상·보통 눈: 고치면 확실히 좋아 보이게 만든 예시(sample-showcase.psd)를 써요.
  *   - 적색맹: Machado 외(2009) 모델로 바꿔요
- *   - 시야 10°: 2m에서 한 번에 보이는 원(지름 = 2·거리·tan10°) 밖을 어둡게 해요.
+ * 좁은 시야: 핵심 정보가 흩어진 색 샘플(sample-color.psd)을 써요. (예시 포스터는 정보가 한곳에 모여 있어 고칠 게 없어요)
+ *   - 2m에서 한 번에 보이는 원(지름 = 2·거리·tan10°) 밖을 어둡게 해요.
  *     원본은 가장 큰 핵심 정보 묶음을, 고친 뒤는 새로 넣은 '핵심 정보 띠'를 보고 있을 때예요
  * 샘플 PSD(8MB)를 홈에서 바로 읽으면 느려서, 작은 JPG로 미리 만들어 둬요.
  * 샘플 PSD나 엔진 기준이 바뀌면 다시 돌려 주세요.
@@ -36,7 +37,8 @@ const OUT = path.join(ROOT, "web", "home");
 // 벽 포스터를 2m에서 보는 저시력(0.3) 사람 기준 — 흐림 차이가 가장 잘 드러나요
 //   (SNS 0.35m 기준은 흐림이 거의 안 보여서 비교 그림으로는 쓰지 않아요)
 const VIEWER = "low";
-const ENV = { medium: "wall", distanceM: 2, lighting: "normal", viewer: VIEWER, field: "normal" };
+const ENV = { medium: "wall", distanceM: 2, lighting: "normal", viewer: VIEWER, field: "narrow" };
+const SAMPLE = "sample-showcase.psd"; // 고치면 확실히 좋아 보이게 만든 예시 (tools/make-showcase-psd.js)
 const WIDTH = 720; // 홈 화면에 쓰기 충분한 크기
 
 function saveJpg(img, file) {
@@ -100,63 +102,51 @@ function loadInfo(name) {
   return { psd, doc };
 }
 
-// 색각이상·좁은 시야: 색 샘플로 만들어요
-function colorAndField() {
+// 좁은 시야: 색 샘플로
+function field() {
   const { psd, doc } = loadInfo("sample-color.psd");
-  const env = Object.assign({}, ENV, { field: "narrow" });
-  const check = Engine.checkDocument(doc, env);
+  const check = Engine.checkDocument(doc, ENV);
+  const fixed = applyFixes(psd, autoFixes(check, doc), { renderText }).psd;
+  const f = check.results.find((r) => r.check === "field");
+  if (!f || !f.detail.viewPx || !f.fix) throw new Error("색 샘플에서 시야 문제·핵심 정보 띠를 찾지 못했어요");
+  const r = f.detail.viewPx / 2;
+  const big = f.detail.clusters.slice().sort((a, b) => b.ids.length - a.ids.length)[0].box;
+  const sf = f.fix; // 띠의 위치·크기 (toApplyFixes 에는 크기가 없어요)
+  const sw = sf.widthPx || 0, sh = sf.heightPx || 0;
+  const save = (img, name, cx, cy) => {
+    const small = Simulate.downscale(img, WIDTH).image, k = img.width / small.width;
+    saveJpg(tunnel(small, cx / k, cy / k, r / k), path.join(OUT, name));
+  };
+  save(psd.imageData, "before-field.jpg", (big.left + big.right) / 2, (big.top + big.bottom) / 2);
+  save(fixed.imageData, "after-field.jpg", sf.left + sw / 2, sf.top + sh / 2);
+}
+
+// 예시 포스터 하나를 '자동으로 모두 고치기'로 고치고, 같은 원본·고친 뒤를 네 가지 눈으로 봐요
+function main() {
+  const { psd, doc } = loadInfo(SAMPLE);
+  const check = Engine.checkDocument(doc, ENV);
   const fixes = autoFixes(check, doc);
   const fixed = applyFixes(psd, fixes, { renderText }).psd;
+  fs.mkdirSync(OUT, { recursive: true });
+  const ppi = doc.document.ppi;
   const save = (img, name, fn) => {
     const small = Simulate.downscale(img, WIDTH).image;
-    saveJpg(fn(small, img.width / small.width), path.join(OUT, name));
+    saveJpg(fn ? fn(small, img.width / small.width) : small, path.join(OUT, name));
   };
-  // 적색맹: 빨강 '매진'·초록 '예매 가능'이 같아 보이고, 검은 띠 위 빨간 글자가 어두워져요
+  // 보통 눈
+  save(psd.imageData, "before.jpg");
+  save(fixed.imageData, "after.jpg");
+  // 저시력: 흐림은 원래 해상도 기준으로 계산하고, 저장할 때만 작게 줄여요
+  const SIM = { acuity: Engine.DEFAULT_POLICIES.viewers[VIEWER].acuity, distanceM: ENV.distanceM, ppi, maxWidth: WIDTH };
+  saveJpg(Simulate.simulate(psd.imageData, SIM).image, path.join(OUT, "before-low.jpg"));
+  saveJpg(Simulate.simulate(fixed.imageData, SIM).image, path.join(OUT, "after-low.jpg"));
+  // 적색맹 (Machado 외 2009)
   const cvd = (img) => Simulate.applyColorVision(img, "protan");
   save(psd.imageData, "before-cvd.jpg", cvd);
   save(fixed.imageData, "after-cvd.jpg", cvd);
-  // 시야 10°
-  const field = check.results.find((r) => r.check === "field");
-  const strip = fixes.find((f) => f.type === "infoStrip");
-  if (!field || !field.detail.viewPx || !strip) throw new Error("색 샘플에서 시야 문제·핵심 정보 띠를 찾지 못했어요");
-  const r = field.detail.viewPx / 2;
-  const big = field.detail.clusters.slice().sort((a, b) => b.ids.length - a.ids.length)[0].box;
-  const sf = field.fix; // 띠의 위치·크기 (toApplyFixes 에는 크기가 없어요)
-  const sw = sf.widthPx || 0, sh = sf.heightPx || 0;
-  save(psd.imageData, "before-field.jpg", (img, k) => tunnel(img, (big.left + big.right) / 2 / k, (big.top + big.bottom) / 2 / k, r / k));
-  save(fixed.imageData, "after-field.jpg", (img, k) => tunnel(img, (sf.left + sw / 2) / k, (sf.top + sh / 2) / k, r / k));
-  console.log(`색각이상·시야 비교 그림 (수정 ${fixes.length}개: ${fixes.map((f) => f.type).join(", ")})`);
-}
-
-function main() {
-  const file = path.join(ROOT, "samples", "sample-poster.psd");
-  const psd = agPsd.readPsd(fs.readFileSync(file), { useImageData: true });
-  const doc = extractFromPsd(psd, { fileName: "sample-poster.psd" });
-  const info = PurposeStore.empty();
-  info.document = "info";
-  PurposeStore.applyToDocument(doc, info);
-
-  const check = Engine.checkDocument(doc, ENV);
-  const fixes = autoFixes(check, doc);
-  const fixed = applyFixes(psd, fixes).psd;
-
-  fs.mkdirSync(OUT, { recursive: true });
-  const ppi = doc.document.ppi;
-  const SIM = { acuity: Engine.DEFAULT_POLICIES.viewers[VIEWER].acuity, distanceM: ENV.distanceM };
-  const shots = [
-    ["before.jpg", psd.imageData, null],
-    ["after.jpg", fixed.imageData, null],
-    ["before-low.jpg", psd.imageData, SIM],
-    ["after-low.jpg", fixed.imageData, SIM]
-  ];
-  for (const [name, img, sim] of shots) {
-    // 흐림은 원래 해상도 기준으로 계산하고, 저장할 때만 작게 줄여요
-    const out = sim ? Simulate.simulate(img, Object.assign({ ppi, maxWidth: WIDTH }, sim)).image : Simulate.downscale(img, WIDTH).image;
-    saveJpg(out, path.join(OUT, name));
-  }
-  colorAndField();
+  field();
   const counts = check.summary.counts;
-  console.log(`홈 비교 그림 → ${path.relative(ROOT, OUT)} (수정 ${fixes.length}개 적용, 고칠 곳 ${counts.fail + counts.conflict + counts.warn}개)`);
+  console.log(`홈 비교 그림 → ${path.relative(ROOT, OUT)} (${SAMPLE}, 수정 ${fixes.length}개: ${fixes.map((f) => f.type).join(", ")} · 고칠 곳 ${counts.fail + counts.conflict + counts.warn}개)`);
 }
 
 main();
