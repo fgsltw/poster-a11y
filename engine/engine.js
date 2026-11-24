@@ -362,7 +362,7 @@
         for (var step = 1; step <= 100; step++) {
           var shift = (step / 100) * dir;
           if (Math.abs(shift) > pol.fix.maxLightnessShift + 1e-9 || base.L + shift < 0 || base.L + shift > 1) break;
-          var rgb = C.oklchToRgb({ L: base.L + shift, C: base.C, h: base.h });
+          var rgb = C.oklchToHexRgb({ L: base.L + shift, C: base.C, h: base.h }); // 실제로 넣을(반올림한) 색으로 계산
           var dE = Math.min.apply(null, types.map(function (t) { return C.deltaE(C.simulateCvd(rgb, t), C.simulateCvd(other, t)); }));
           var bgWorst = percentile(contrastsFor(rgb, bgs, alpha), P.contrast.worstPercentile);
           var cand = { from: o[0], value: C.rgbToHex(rgb), deltaE: dE, bgContrast: bgWorst, shift: Math.abs(shift), passes: dE >= CV.fixDeltaE && bgWorst >= target };
