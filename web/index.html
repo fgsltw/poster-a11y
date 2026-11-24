@@ -576,8 +576,6 @@
   .finget .downloads .btn { padding: 10px 16px; font-size: 15px; }
   .finget .downloads .btn.primary { flex-basis: 100%; padding: 12px 16px; font-size: 17px; }
   .finget .downloads #dlLabel { display: none; }
-  .tofinish { margin: 16px 0 0; }
-  .tofinish .btn { width: 100%; padding: 12px 16px; font-size: 17px; }
   .panel > .downloads { display: none; } /* 받기는 마무리 화면에서 */
   .stepbar li + li::before { content: ""; display: inline-block; width: 18px; height: 2px; background: var(--line); vertical-align: middle; margin-right: 4px; }
   .bar { gap: 12px 24px; justify-content: space-between; }
@@ -700,16 +698,25 @@
   .gacts .linkbtn { font-size: 15px; font-weight: 700; color: var(--navy); padding: 8px 2px; }
   .gall { margin: 6px 0 0; }
   /* 오른쪽 맨 위: 한 번에 고치기 */
-  .topauto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 18px; padding: 14px; background: var(--navy); border-radius: 12px; }
-  .topauto .autofix { flex: 1 1 100%; padding: 12px 16px; font-size: 17px; font-weight: 700; background: var(--signal); color: var(--navy); border: 2px solid var(--signal); border-radius: 999px; }
-  .topauto .autofix:hover { background: #FFE14D; }
-  .topauto .gallnote { flex: 1; margin: 0; font-size: 13px; color: #C9D4E2; }
-  .topauto .linkbtn { color: #fff; font-size: 13px; font-weight: 700; }
   .gall { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 10px 0 2px; padding: 10px 12px; background: var(--brand-soft); border-radius: 10px; }
   .gall .autofix { border: 2px solid var(--navy); background: var(--paper); font-weight: 700; padding: 8px 14px; }
   .gall .autofix:hover { background: var(--signal); }
   .gall .linkbtn { font-size: 14px; font-weight: 700; color: var(--navy); }
   .gallnote { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--sub); }
+  #summary .gallnote { margin: 8px 0 0; }
+  #summary .gallnote .linkbtn { font-size: 13px; font-weight: 700; color: var(--navy); }
+  /* 위 막대 오른쪽: 한 번에 고치기(보조) · 받기로(주). 오른쪽 창을 내리지 않아도 늘 보여요 */
+  .baracts { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .baracts .btn { padding: 9px 18px; font-size: 15px; font-weight: 700; border-radius: 999px; }
+  .baracts .autotop { background: var(--paper); color: var(--navy); border: 2px solid var(--navy); }
+  .baracts .autotop:hover { background: var(--signal); border-color: var(--signal); }
+  @media (max-width: 900px) { .baracts { margin-left: 0; width: 100%; } .baracts .btn { flex: 1 1 auto; } }
+  /* 넓은 화면: 오른쪽 창은 화면 높이에 맞춰 그 안에서만 스크롤해요 (페이지 전체를 오르내리지 않게).
+     '고치고 다음으로' 버튼 줄은 창 아래에 붙어 있어요 */
+  @media (min-width: 901px) {
+    #work .panel { position: sticky; top: var(--bar-h, 72px); max-height: calc(100vh - var(--bar-h, 72px) - var(--top-h, 56px) - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+    #work .viewer { top: var(--bar-h, 72px); }
+  }
   .gacts .btn.primary { flex: 1 1 auto; }
   .gstate { flex-basis: 100%; margin: 0; font-size: 14px; color: var(--sub); }
   .gstate.ok { color: var(--pass); font-weight: 700; }
@@ -959,6 +966,10 @@
       <li data-step="3"><button type="button" class="stepbtn" data-go="get"><i>3</i>받기</button></li>
     </ol>
     <div class="file"><span class="sr">파일</span><b id="fileName"></b><button class="btn small" id="another">다른 파일</button></div>
+    <div class="baracts">
+      <button class="btn autotop" type="button" id="autoFix" hidden>자동으로 고치고 받기</button>
+      <button class="btn primary" type="button" id="toFinish">받기로 넘어가기 →</button>
+    </div>
   </div>
 
   <div class="layout">
@@ -1014,7 +1025,6 @@
       <div class="actions" hidden>
         <button class="btn primary" id="seeAfter">고친 모습 보기</button>
       </div>
-      <p class="tofinish"><button class="btn primary" type="button" id="toFinish">마무리하고 받기</button></p>
       <div class="downloads" role="group" aria-labelledby="dlLabel">
         <span id="dlLabel">고친 포스터 받기</span>
         <button class="btn primary" id="downloadPsd" data-help="dlPsd">PSD 받기 (포토샵 파일)</button>
@@ -1441,6 +1451,9 @@
     renderFinish();
   }
   $("toFinish").onclick = showFinish;
+  // 위 막대 높이만큼 아래에서 왼쪽 그림·오른쪽 창이 붙어요 (막대가 두 줄이 되어도 맞게)
+  const workBar = document.querySelector("#work .bar");
+  if ("ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--bar-h", workBar.offsetHeight + 12 + "px")).observe(workBar);
   $("recheck").onclick = () => { applyPrep(); showWork(); window.scrollTo(0, 0); };
   function syncSteps() {
     $("recheckRow").hidden = !S.doc;
@@ -1722,10 +1735,10 @@
   // 오른쪽 요약: 몇 군데인지 + 번호를 눌러 보라는 안내 + 고친 곳 진행 막대 (자세한 내용은 번호 설명 창에서)
   function renderSummary() {
     const env = S.check.environment, n = S.marks.length;
-    $("summary").innerHTML = (n ? `<div class="topauto"><button class="btn autofix" type="button" id="autoFix">자동으로 모두 고치고 받기</button>
-        <p class="gallnote">또는 아래에서 한 곳씩 보고 고쳐요.</p><button class="linkbtn" type="button" id="clearAll" hidden>넣은 수정 모두 빼기</button></div>` : "") +
-      `<h2>${n ? `잘 안 보이는 곳 ${n}군데` : "고칠 곳이 없어요"}</h2>
-      ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>` : `<p class="lead2">모든 검사를 통과했어요. 바로 받아도 돼요.</p>`}
+    $("autoFix").hidden = !n;
+    $("summary").innerHTML = `<h2>${n ? `잘 안 보이는 곳 ${n}군데` : "고칠 곳이 없어요"}</h2>
+      ${n ? `<div class="fixprog"><div class="pbar"><span id="fixBar" style="width:0%"></span></div><span id="fixCount">고친 곳 0 / ${n}</span></div>
+        <p class="gallnote"><span id="gallNote"></span> <button class="linkbtn" type="button" id="clearAll" hidden>넣은 수정 모두 빼기</button></p>` : `<p class="lead2">모든 검사를 통과했어요. 바로 받아도 돼요.</p>`}
       <p class="cond">${esc(env.viewerLabel)}${env.colorVision ? " · 색각이상" : ""}${env.fieldDeg ? ` · ${esc(env.fieldLabel)}` : ""} · ${esc(env.mediumLabel)} 기준 <button class="linkbtn" id="openSettings">바꾸기</button></p>
       <div class="after-box" id="afterBox"></div>
       ${n ? `<section class="guide" id="guide" aria-labelledby="guideTitle"><div class="ghead"><span class="gcount" id="gCount"></span><ol class="gdots" id="gDots" aria-hidden="true"></ol></div>
@@ -1879,10 +1892,10 @@
   }
   function renderGuideActs() {
     if (!$("guide") || !S.marks.length) return;
-    if ($("autoFix")) {
+    if ($("gallNote")) {
       const plan = autoFixPlan(), none = !plan.chosen.size && !plan.custom.size;
       $("autoFix").hidden = none;
-      document.querySelector(".gallnote").textContent = !none ? "또는 아래에서 한 곳씩 보고 고쳐요."
+      $("gallNote").textContent = !none ? "위 ‘자동으로 고치고 받기’로 한 번에, 또는 아래에서 한 곳씩 고쳐요."
         : S.check.document.purpose === "art" ? "예술 포스터라 디자인을 지키려고 자동으로 고치지 않아요. 하나씩 보고 필요한 것만 골라 주세요."
         : "자동으로 고칠 수 있는 곳이 없어요. 하나씩 보고 직접 골라 주세요.";
       $("autoFix").onclick = () => { if (autoFixAll()) showFinish(); };
