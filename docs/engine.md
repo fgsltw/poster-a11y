@@ -12,7 +12,7 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 | --- | --- |
 | `engine/policies.js` | ★ **목적별 정책 표** — 기준값·문구. 기획 A가 확정할 곳 (지금은 임시값) |
 | `engine/engine.js` | 검사 본체: 크기·대비·굵기·간격·확대 후 배치·위계, 목적 추천, 수정 전략, 충돌 감지 |
-| `engine/color.js` | 대비 계산, OKLCH로 '같은 색상·밝기만 조절' 추천색 찾기 |
+| `engine/color.js` | 대비 계산, OKLCH로 '같은 색상·밝기만 조절' 추천색 찾기. 대비는 실제로 넣을 **반올림한 #RRGGBB 색**으로 계산해서, '통과'라고 한 추천색은 다시 검사해도 통과해요 |
 | `engine/roles.js` | 역할 분류(제목·일시·장소·가격·접근성), 대체텍스트 초안 |
 | `test/engine.test.js`, `test/criteria.test.js` | 샘플 포스터로 확인하는 테스트 |
 

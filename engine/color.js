@@ -81,6 +81,12 @@
     return [g, g, g];
   }
 
+  // 실제로 넣을 색: #RRGGBB로 반올림한 색. 대비는 꼭 이 색으로 계산해요.
+  //   (소수점 색으로 계산하면 4.50이 반올림 뒤 4.49가 되어, '통과'라고 한 색이 다시 검사하면 실패할 수 있어요)
+  function oklchToHexRgb(lch) {
+    return hexToRgb(rgbToHex(oklchToRgb(lch)));
+  }
+
   /*
    * 글자색의 '색상'은 두고 밝기(L)만 바꿔서, 모든 배경 색에 대해 목표 대비를 넘는 색을 찾아요.
    *   bgLums: 배경 휘도 목록 (대표값 몇 개면 충분)
@@ -112,7 +118,7 @@
         if (Math.abs(shift) > maxShift + 1e-9) break;
         var L = base.L + shift;
         if (L < 0 || L > 1) break;
-        var rgb = oklchToRgb({ L: L, C: base.C, h: base.h });
+        var rgb = oklchToHexRgb({ L: L, C: base.C, h: base.h });
         var c = worst(rgb);
         var cand = { hex: rgbToHex(rgb), contrast: c, passes: c >= target, shift: Math.abs(shift), direction: dir < 0 ? "darker" : "lighter" };
         if (cand.passes) {
@@ -158,6 +164,7 @@
     blend: blend,
     rgbToOklch: rgbToOklch,
     oklchToRgb: oklchToRgb,
+    oklchToHexRgb: oklchToHexRgb,
     findAccessibleColor: findAccessibleColor
   };
 });

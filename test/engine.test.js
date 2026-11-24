@@ -321,3 +321,26 @@ test("핵심 정보 알림 대상은 정책 파일에서 바꿀 수 있다", () 
   assert.equal(notes[0].layerId, 8);
   assert.equal(notes[0].detail.role, "place");
 });
+
+test("추천색은 반올림한 #RRGGBB 그대로 다시 검사해도 기준을 넘는다", () => {
+  // 기준선(4.5:1)에 딱 붙는 경우가 많이 나오도록 무작위 글자색·배경을 많이 시험해요 (고정 난수)
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  const randRgb = () => [rnd() * 255, rnd() * 255, rnd() * 255].map(Math.round);
+  let checked = 0;
+  for (let t = 0; t < 2000; t++) {
+    const bgs = [randRgb()];
+    if (t % 2) bgs.push(randRgb());
+    const text = C.rgbToHex(randRgb());
+    const alpha = t % 5 === 0 ? 0.6 + rnd() * 0.4 : 1;
+    const target = t % 3 === 0 ? 7 : 4.5;
+    const r = C.findAccessibleColor(text, bgs.map(C.luminance), target, { alpha, bgRgbs: alpha < 1 ? bgs : null });
+    if (!r || !r.passes) continue;
+    checked++;
+    const fg = C.hexToRgb(r.hex);
+    const actual = Math.min(...bgs.map((bg) => C.contrast(alpha < 1 ? C.blend(fg, bg, alpha) : fg, bg)));
+    assert.ok(actual >= target, `${text} → ${r.hex}: 약속 ${r.contrast.toFixed(3)}, 실제 ${actual.toFixed(3)} < ${target}`);
+    assert.ok(Math.abs(actual - r.contrast) < 1e-9, "알려준 대비가 실제 색의 대비와 같아야 해요");
+  }
+  assert.ok(checked > 500, String(checked));
+});
