@@ -71,7 +71,7 @@ test("① 글꼴 이름으로 얇은 글꼴을 알아본다", () => {
 test("④ 텍스트 간격: 여러 줄 정보 글자의 줄 간격 1.5배 미만, 좁은 자간은 '주의' + 수정 제안", () => {
   const d = fresh();
   Object.assign(layer(d, 9).spacing, { lineCount: 3, lineHeightRatio: 1.2 });
-  layer(d, 10).spacing.letterSpacingEm = -0.05;
+  layer(d, 10).spacing.letterSpacingEm = -0.08;
   const r = E.checkDocument(d, { medium: "flyer" });
   const s9 = of(r, 9, "spacing")[0];
   assert.equal(s9.status, "warn");
@@ -82,6 +82,20 @@ test("④ 텍스트 간격: 여러 줄 정보 글자의 줄 간격 1.5배 미만
   assert.equal(of(r, 6, "spacing").length, 0, "한 줄이고 자간이 괜찮으면 결과 없음");
   const fx = E.toApplyFixes(r).filter((f) => f.type === "spacing");
   assert.deepEqual(fx.map((f) => f.layerId).sort(), [10, 9]);
+});
+
+test("④ 자간 기준 -0.05em(포토샵 -50): 살짝 좁힌 자간은 넘기고, 더 좁을 때만 잡아서 0으로 고쳐요", () => {
+  const at = (em) => {
+    const d = fresh();
+    layer(d, 10).spacing.letterSpacingEm = em;
+    return of(E.checkDocument(d, { medium: "flyer" }), 10, "spacing")[0];
+  };
+  assert.equal(at(-0.02), undefined, "-20 은 흔한 자간이라 결과 없음");
+  assert.equal(at(-0.05), undefined, "-50 까지는 괜찮아요");
+  const r = at(-0.06);
+  assert.equal(r.status, "warn");
+  assert.match(r.metric, /자간 -0.06em \(기준 -0.05em 이상\)/);
+  assert.equal(r.fix.letterSpacingEm, 0, "고칠 때는 기본 간격으로");
 });
 
 test("④ 여러 줄이어도 줄 간격이 넉넉하면 통과, 예술 글자는 '참고'", () => {
@@ -212,7 +226,7 @@ test("검사 → 굵게·간격 수정 적용 → 다시 검사하면 해당 '�
   const t6 = findLayer(src.children, 6).layer.text;
   t6.style.font = { name: "NotoSansKR-Light" };
   const t10 = findLayer(src.children, 10).layer.text;
-  t10.style.tracking = -50;
+  t10.style.tracking = -80; // 기준 -50 보다 좁게
   const d = extractFromPsd(src, { fileName: "thin.psd" });
   const r = E.checkDocument(d, { medium: "flyer" });
   assert.equal(of(r, 6, "weight")[0].status, "warn");
