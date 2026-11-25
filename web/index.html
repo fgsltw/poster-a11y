@@ -1437,7 +1437,7 @@
         (env.acuity ? ` 시력 ${env.acuity}이면 겨우 보이는 크기가 ${Math.round(5 / env.acuity)}′라서, 편하게 읽으려면 그 2배가 필요해요.` : "");
       case "contrast": return "글자색과 바로 뒤 배경의 밝기 차이예요. 일반 글자는 4.5:1, 큰 글자는 3:1 이상이어야 해요 (WCAG 1.4.3). 그림 위 글자는 배경의 어두운 곳과 밝은 곳을 모두 봐요.";
       case "weight": return "얇은 글꼴은 작거나 멀리서 볼 때 획이 끊겨 보여요.";
-      case "font": return "저시력자는 글자 하나하나보다 단어 모양 전체로 알아봐요. 장식·손글씨체, 폭이 좁은 글꼴, 기울임, 영문 전부 대문자는 단어 모양을 흐리게 해요.";
+      case "font": return "장식·손글씨체, 폭이 좁은 글꼴, 기울임은 글자 하나하나를 알아보기 어렵게 해요. 영문은 긴 문장을 전부 대문자로 쓰면 읽는 속도가 느려질 수 있어요(짧은 문구는 괜찮아요. 같은 크기에서 대문자가 더 커서 저시력자에게 더 잘 보인다는 연구도 있어요).";
       case "spacing": return "여러 줄 글은 줄 간격이 글자 크기의 1.5배 이상이면 읽기 편해요 (WCAG 1.4.12). 자간이 좁으면 글자끼리 붙어 보여요.";
       case "layout": return "추천 크기로 키웠을 때 다른 글자와 겹치거나 포스터 밖으로 나가는지 미리 계산했어요.";
       case "hierarchy": return "제목·일시·장소 같은 핵심 정보가 잘 보이고, 함께 읽는 정보가 가까이 있는지 봐요.";
@@ -1462,6 +1462,7 @@
       case "color": return f.runs && f.runs.length ? `글자색 ${f.runs.map((r) => r.value).join(", ")}로 (해당 색만)` : `글자색 ${f.value}로 (밝기만 조절)`;
       case "backplate": return `글자 뒤에 ${f.color === "#FFFFFF" ? "흰" : "짙은"} 배경 띠 (${Math.round(f.opacity * 100)}%)`;
       case "weight": return "조금 굵게";
+      case "caps": return "'모두 대문자' 끄기";
       case "font": return withRo(`${f.family}${f.weightLabel && f.weightLabel !== "Regular" ? " " + f.weightLabel : ""}`) + " 바꾸기";
       case "emphasis": {
         const how = (r) => [r.bold ? "굵게" : "", r.underline ? "밑줄" : "", r.value ? `색 ${r.value}` : ""].filter(Boolean).join(" · ");
@@ -2400,8 +2401,13 @@
       if (x.fix) return asFix(x, { cvdType: type, label: `${name}으로 본 모습`, caption: x.fix.passes === false ? "기준에는 못 미쳐요" : "" });
       return { kind: "cvd", layerId: x.layerId, type, label: `${name}으로 보면` };
     }
+    if (x.check === "font" && x.fix && x.fix.type === "caps") return asFix(x, { label: "대소문자로 바꾼 모습 (근사치)" });
     if (x.check === "font" && x.fix) return asFix(x, { label: withRo(x.fix.family) + (x.fix.installed !== false ? " 바꾼 모습 (근사치)" : " 바꾼 모습 (예시: 이 컴퓨터에 글꼴이 없어 비슷한 고딕으로)") });
-    if (x.check === "font") return { kind: "font", layerId: x.layerId, allCaps: (d.issues || []).includes("allCaps"), label: "읽기 쉬운 글꼴로 바꾼 모습 (예시)" };
+    if (x.check === "font") {
+      const capsOnly = (d.issues || []).length === 1 && d.caps;
+      return { kind: "font", layerId: x.layerId, suggestedText: d.caps ? d.caps.suggestedText : null, capsOnly,
+        label: capsOnly ? "대소문자로 바꾼 모습 (예시)" : "읽기 쉬운 글꼴로 바꾼 모습 (예시)" };
+    }
     if (x.check === "layout") return asFix(sizeOf(x.layerId), { label: "추천 크기로 키운 모습" }) ||
       { kind: "none", layerIds: [x.layerId], note: "위치를 옮기거나 여러 줄로 나눠야 해서 자동으로 고친 모습을 만들 수 없어요." };
     if (x.check === "hierarchy") {
@@ -2549,13 +2555,21 @@
   function previewFont(spec) {
     const l = layerOf(spec.layerId);
     const found = PsdApply.findLayer(S.psd.children, spec.layerId).layer;
-    const text = spec.allCaps ? l.text.replace(/[A-Za-z]+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()) : l.text;
+    const text = spec.suggestedText || l.text; // 대소문자 예시는 엔진이 만들어요 (AM·PM 같은 약어는 그대로)
     const lines = text.split(/\r\n|\r|\n/);
-    const size = l.sizePx || 20, weight = l.font && l.font.weightGuess === "bold" ? 700 : 400;
+    const weight = l.font && l.font.weightGuess === "bold" ? 700 : 400;
     const mc = document.createElement("canvas").getContext("2d");
+    let size = l.sizePx || 20;
     mc.font = `${weight} ${size}px ${PLAIN_FONT}`;
-    const width = Math.max(...lines.map((t) => mc.measureText(t).width));
-    const ox = l.origin ? l.origin.x : l.bounds.left, oy = l.origin ? l.origin.y : l.bounds.bottom;
+    let width = Math.max(...lines.map((t) => mc.measureText(t).width));
+    // 가운데·오른쪽 정렬이면 그 기준으로 놓아요
+    const just = (found.text && found.text.paragraphStyle && found.text.paragraphStyle.justification) || "left";
+    const ax = l.origin ? l.origin.x : l.bounds.left, oy = l.origin ? l.origin.y : l.bounds.bottom;
+    // 예시 글꼴로 그리면 포스터 밖으로 나가면 그 안에 들어가게만 줄여요 (잘리지 않게)
+    const W = S.doc.document.widthPx;
+    const room = just === "center" ? 2 * Math.min(ax, W - ax) : just === "right" ? ax : W - ax;
+    if (width > room && room > 0) { size = Math.max(6, size * room / width); width = room; }
+    const ox = just === "center" ? ax - width / 2 : just === "right" ? ax - width : ax;
     const textBox = { left: ox, top: oy - size, right: ox + width, bottom: oy + (lines.length - 1) * size * 1.25 + size * 0.3 };
     const rect = regionAround([l.bounds, textBox]);
     const before = PsdApply.compositePsd(S.psd, rect).imageData;
@@ -2573,7 +2587,7 @@
     g.textBaseline = "alphabetic";
     const ox2 = ox - Math.floor(rect.left), oy2 = oy - Math.floor(rect.top);
     lines.forEach((t, i) => g.fillText(t, ox2, oy2 + i * size * 1.25));
-    return { before: toUrl(before, 560), after: canvasUrl(c, 560), afterCaption: "읽기 쉬운 글꼴로 (예시)" };
+    return { before: toUrl(before, 560), after: canvasUrl(c, 560), afterCaption: spec.capsOnly ? "대소문자로 (예시)" : "읽기 쉬운 글꼴로 (예시)" };
   }
 
   // 포스터 위에 '한 번에 보이는 범위' 원을 그려요

@@ -512,14 +512,43 @@
       img = opts.renderText(String(layer.text.text || ""), px, colors[0] || "#000000", fix.postScriptName, { cssFamilies: fix.cssFamilies || [], weight: fix.weight || "regular" });
     }
     if (!img) return { message: "글꼴 → " + label + " (미리보기에는 반영 안 됨, 포토샵에서 열면 반영돼요)", redrawn: false };
-    // 글자 기준점(첫 줄 베이스라인 왼쪽)에 맞춰 놓아요. renderText 는 첫 줄 베이스라인을 px × 1.05 에 그려요
+    placeRedrawn(layer, img, px);
+    return { message: "글꼴 → " + label + " (미리보기는 근사치)", redrawn: true };
+  }
+
+  // '모두 대문자(All Caps)' 끄기: 글자 내용은 그대로, 보이는 모양만 입력한 대소문자로 (fix.caps "normal")
+  //   미리보기: opts.renderText 가 있고 글자색이 하나면 입력한 글자를 다시 그려요 (원래 글꼴이 없으면 비슷한 고딕, 근사치)
+  function applyCaps(layer, fix, opts) {
+    var colors = [];
+    setTextStyle(layer.text, function (s) {
+      s.fontCaps = 0;
+      var h = fillHex(s.fillColor);
+      if (h && colors.indexOf(h) < 0) colors.push(h);
+    });
+    var st = layer.text.style || {};
+    var fontName = st.font && st.font.name;
+    var px = effectiveFontPx(layer.text);
+    var img = null;
+    if (opts && opts.renderText && layer.imageData && px && colors.length <= 1) {
+      img = opts.renderText(String(layer.text.text || ""), px, colors[0] || "#000000", fontName,
+        { cssFamilies: fontName ? [fontName] : [], weight: /bold|black|heavy/i.test(fontName || "") || st.fauxBold ? "bold" : "regular" });
+    }
+    if (!img) return { message: "'모두 대문자' 끄기 (미리보기에는 반영 안 됨, 포토샵에서 열면 반영돼요)", redrawn: false };
+    placeRedrawn(layer, img, px);
+    return { message: "'모두 대문자' 끄기 (미리보기는 근사치)", redrawn: true };
+  }
+
+  // 다시 그린 글자 그림을 원래 글자 기준점(첫 줄 베이스라인)에 놓아요. 가운데·오른쪽 정렬이면 그 기준으로.
+  //   renderText 는 첫 줄 베이스라인을 px × 1.05 에 그려요
+  function placeRedrawn(layer, img, px) {
     var t = layer.text.transform || [1, 0, 0, 1, layer.left, layer.bottom];
-    layer.imageData = img;
-    layer.left = Math.round(t[4]);
+    var just = (layer.text.paragraphStyle && layer.text.paragraphStyle.justification) || "left";
+    var ax = Math.round(t[4]);
+    layer.left = just === "center" ? Math.round(ax - img.width / 2) : just === "right" ? ax - img.width : ax;
     layer.top = Math.round(t[5] - px * 1.05);
+    layer.imageData = img;
     layer.right = layer.left + img.width;
     layer.bottom = layer.top + img.height;
-    return { message: "글꼴 → " + label + " (미리보기는 근사치)", redrawn: true };
   }
 
   // 줄 간격(글자 크기의 배수)·자간(em).
@@ -739,6 +768,11 @@
         if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f, psd.colorMode === 4) });
         else if (f.type === "size") { applied.push({ fix: f, message: applySize(found.layer, f.valuePt, ppi) }); sizedIds.push(f.layerId); }
         else if (f.type === "weight") applied.push({ fix: f, message: applyWeight(found.layer) });
+        else if (f.type === "caps") {
+          var cr = applyCaps(found.layer, f, opts);
+          applied.push({ fix: f, message: cr.message });
+          if (cr.redrawn) changedIds[f.layerId] = "대문자를 껐더니";
+        }
         else if (f.type === "font") {
           var fr = applyFont(found.layer, f, opts);
           applied.push({ fix: f, message: fr.message });
