@@ -80,11 +80,8 @@ function main() {
   const unused = REWRITES.filter(([a]) => !used.has(a)).map(([a]) => a);
   if (unused.length) throw new Error("어느 페이지에서도 찾지 못한 경로예요. REWRITES 를 고쳐 주세요: " + unused.join(", "));
 
-  // 정적 호스팅 설정: 큰 PSD는 오래 캐시
-  fs.writeFileSync(
-    path.join(OUT, "vercel.json"),
-    JSON.stringify({ headers: [{ source: "/samples/(.*)", headers: [{ key: "Cache-Control", value: "public, max-age=86400" }] }] }, null, 2)
-  );
+  // 호스팅 설정(큰 PSD 캐시 등)은 저장소 맨 위 vercel.json 에 있어요.
+  //   배포 폴더에는 넣지 않아요 (넣으면 사이트에서 /vercel.json 으로 그대로 보여요)
 
   let total = 0;
   (function size(dir) {
