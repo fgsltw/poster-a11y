@@ -9,15 +9,42 @@
 
   // 팀 회의록의 규칙 + 한국어 시간 표현 보강
   var MONTHS_EN = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
+  var DAYS_EN_RE = "Mon|Tue|Wed|Thu|Fri|Sat|Sun";
+  var CJK = "\\u3040-\\u30FF\\u4E00-\\u9FFF"; // 가나·한자
+  // 한국어 규칙 (팀 회의록 + 한국어 시간 표현) 에 영어·중국어·일본어 표현을 더했어요. 영어는 대소문자를 가리지 않아요.
   var RULES = {
-    // 11.8 · 11/8 · 11월 8일 · 2026.11.8 · 2026-11-08 · Nov 8 · 19:30 · (토) · 저녁 7시 (1.5km, 13.40 같은 숫자는 빼요)
-    date: new RegExp("((?:^|[^\\d.])(0?[1-9]|1[0-2])\\s*[./월]\\s*(0?[1-9]|[12]\\d|3[01])(?![\\d.]|\\s*[A-Za-z%])\\s*일?)|(\\d{4}\\s*[./-]\\s*\\d{1,2}\\s*[./-]\\s*\\d{1,2})|(\\b(" + MONTHS_EN + ")[a-z]*\\.?\\s+\\d{1,2}\\b)|(\\d{1,2}:\\d{2})|([월화수목금토일]요일|\\([월화수목금토일]\\))|((새벽|오전|오후|낮|저녁|밤)\\s*\\d{1,2}\\s*시)", "i"),
+    // 11.8 · 11/8 · 11월 8일 · 2026.11.8 · 2026-11-08 · 19:30 · (토) · 저녁 7시 (1.5km, 13.40 같은 숫자는 빼요)
+    // 영어: Nov 8 · 8 November · Saturday · 7pm / 중국어·일본어: 11月8日 · 2026年 · (土) · 星期六 · 周六 · 土曜日 · 19時 · 7点
+    date: new RegExp(
+      "((?:^|[^\\d.])(0?[1-9]|1[0-2])\\s*[./월]\\s*(0?[1-9]|[12]\\d|3[01])(?![\\d.]|\\s*[A-Za-z%])\\s*일?)|(\\d{4}\\s*[./-]\\s*\\d{1,2}\\s*[./-]\\s*\\d{1,2})|" +
+      "(\\b(" + MONTHS_EN + ")[a-z]*\\.?\\s+\\d{1,2}(st|nd|rd|th)?\\b)|(\\b\\d{1,2}(st|nd|rd|th)?\\s+(" + MONTHS_EN + ")[a-z]*\\b)|(\\b(" + DAYS_EN_RE + ")(day|urday|nesday|sday|rsday)?\\b)|(\\b\\d{1,2}(:\\d{2})?\\s*[ap]\\.?m\\.?(?![a-z]))|" +
+      "(\\d{1,2}:\\d{2})|([월화수목금토일]요일|\\([월화수목금토일]\\))|((새벽|오전|오후|낮|저녁|밤)\\s*\\d{1,2}\\s*시)|" +
+      "(\\d{1,2}\\s*月\\s*\\d{1,2}\\s*日)|(\\d{4}\\s*年)|([（(][日月火水木金土一二三四五六天][)）])|(星期[一二三四五六日天]|周[一二三四五六日天]|[日月火水木金土]曜日?)|(\\d{1,2}\\s*[時时点])",
+      "i"),
     // 홀·센터·무대는 이름 끝에 붙을 때만 장소로 봐요 (콘서트홀, 아트센터, 야외무대).
-    // "홀로 서는 밤", "홀수 날", "무대 위의 삶" 같은 제목은 장소가 아니에요.
-    place: /(극장|미술관|갤러리|공원|광장|도서관|회관|[가-힣A-Za-z0-9](홀|센터|무대)|\d+층|\d+호)/,
-    price: /(\d{1,3}(,\d{3})*\s*원|무료|[RSAV]석|예매)/,
-    access: /(음성해설|화면해설|수어|자막|휠체어|배리어프리|점자|쉬운\s?글|보청)/
+    // "홀로 서는 밤", "홀수 날", "무대 위의 삶" 같은 제목은 장소가 아니에요. 영어 Hall·Center·Stage도 같은 이유로
+    // 이름 뒤(Concert Hall, Arts Center)에 올 때만, "Hall of Fame"·"Center of the World"처럼 of가 이어지면 빼요.
+    place: new RegExp(
+      "(극장|미술관|갤러리|공원|광장|도서관|회관|[가-힣A-Za-z0-9](홀|센터|무대)|\\d+층|\\d+호)|" +
+      "(\\b(museums?|galler(y|ies)|auditorium|arena|library|plaza|venue|opera\\s+house)\\b)|(\\btheat(er|re)s?\\b(?!\\s+of\\b))|" +
+      "(\\b[A-Za-z][A-Za-z.&'-]*\\s+(hall|cent(er|re)|square|park|stage)\\b(?!\\s+of\\b))|(\\b\\d+(st|nd|rd|th)?\\s*(f|fl|floor)\\b)|(\\bB\\d\\b)|" +
+      "(劇場|剧场|剧院|会館|会馆|美術館|美术馆|博物館|博物馆|図書館|图书馆|画廊|ギャラリー|広場|广场|公園|公园|音楽堂|音乐厅|ホール|[" + CJK + "](センター|中心|ステージ)|\\d+\\s*[階楼])",
+      "i"),
+    // 영어: $25 · €20 · £10 · KRW 70,000 · tickets · admission · free entry / 중국어·일본어: 円·元 · ¥ · 無料·免费 · 前売·票价·门票·チケット
+    price: new RegExp(
+      "(\\d{1,3}(,\\d{3})*\\s*원|무료|[RSAV]석|예매)|" +
+      "([$€£₩]\\s?\\d)|(\\b(krw|usd|eur|jpy|won)\\s?\\d)|(\\d\\s?(krw|usd|eur|won)\\b)|(\\btickets?\\b)|(\\badmission\\b)|(\\bbooking\\b)|(\\bfree\\s+(entry|admission)\\b)|(\\b(entry|admission)\\s+free\\b)|" +
+      "(\\d[\\d,]*\\s*[円元圓])|([¥￥]\\s?\\d)|(入場無料|無料|免费|免費|前売|前売券|当日券|票价|票價|门票|門票|チケット|入場料|入场费|予約|预约|預約)",
+      "i"),
+    // 영어: audio description · sign language · wheelchair · captions · subtitles · braille · barrier-free · accessible · hearing loop · relaxed performance
+    // 중국어·일본어: 音声ガイド·音声解説 · 手話·手语 · 車いす·轮椅 · 字幕 · 点字 · バリアフリー·无障碍 · 口述影像
+    access: new RegExp(
+      "(음성해설|화면해설|수어|자막|휠체어|배리어프리|점자|쉬운\\s?글|보청)|" +
+      "(\\baudio[\\s-]?descri(bed|ption)\\b|\\bsign\\s+language\\b|\\bwheelchair|\\bcaption(s|ed|ing)?\\b|\\bsubtitle(s|d)?\\b|\\bbraille\\b|\\bbarrier[\\s-]?free\\b|\\baccessib(le|ility)\\b|\\bhearing\\s+loop\\b|\\brelaxed\\s+performance\\b|\\bBSL\\b|\\bASL\\b)|" +
+      "(音声ガイド|音声解説|音声描写|手話|手语|手語|車いす|車椅子|轮椅|輪椅|字幕|点字|點字|バリアフリー|无障碍|無障礙|無障碍|口述影像|助听|補聴)",
+      "i")
   };
+
   var LABELS = { title: "제목", date: "일시", place: "장소", price: "가격·예매", access: "접근성 정보", other: "그 외" };
   var ORDER = ["access", "price", "date", "place"]; // 한 글자에 여러 개가 맞으면 앞쪽을 골라요
 
@@ -58,6 +85,9 @@
   var MD = "\\d{1,2}\\s*[./]\\s*\\d{1,2}" + DAY_SUFFIX; // 11.8(토)
   var RANGE = "(?:\\s*[~∼〜–]\\s*|\\s+-\\s+)"; // 11.8~11.10 · 11.8 – 11.10 · 11.8 - 11.10
   var DAYS_EN = { sun: "일요일", mon: "월요일", tue: "화요일", wed: "수요일", thu: "목요일", fri: "금요일", sat: "토요일" };
+  // 일본어(日月火水木金土)·중국어(一~六, 日·天) 요일
+  var DAYS_CJK = { 日: "일요일", 月: "월요일", 火: "화요일", 水: "수요일", 木: "목요일", 金: "금요일", 土: "토요일",
+    一: "월요일", 二: "화요일", 三: "수요일", 四: "목요일", 五: "금요일", 六: "토요일", 天: "일요일" };
 
   // 시각 → 하루 중 때: 0시 밤 12시, 1~5시 새벽, 6~11시 오전, 12~17시 오후, 18~20시 저녁, 21~23시 밤
   function speakTime(h, mm) {
@@ -83,6 +113,23 @@
     });
     s = s.replace(/(\d{1,2}:\d{2})\s*[~∼〜–-]\s*(\d{1,2}:\d{2})/g, "$1부터 $2까지");
     s = s.replace(/\b(Sun|Mon|Tue|Wed|Thu|Fri|Sat)[a-z]*\.?,?(?=\s)/gi, function (_, d) { return DAYS_EN[d.toLowerCase()]; });
+    // 중국어·일본어: 2026年11月8日 · 11月8日 · (土) · 星期六 · 周六 · 土曜日 · 晚上7点半 · 19時30分
+    s = s.replace(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/g, function (_, y, m, d) { return y + "년 " + Number(m) + "월 " + Number(d) + "일"; });
+    s = s.replace(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/g, function (_, m, d) { return Number(m) + "월 " + Number(d) + "일"; });
+    s = s.replace(/(\d{4})\s*年/g, "$1년");
+    s = s.replace(/\s*[（(]([日月火水木金土一二三四五六天])[)）]/g, function (_, d) { return " " + DAYS_CJK[d] + " "; });
+    s = s.replace(/(?:星期|周)([一二三四五六日天])/g, function (_, d) { return DAYS_CJK[d]; });
+    s = s.replace(/([日月火水木金土])曜日?/g, function (_, d) { return DAYS_CJK[d]; });
+    s = s.replace(/(上午|早上|午前|中午|下午|晚上|午後)?\s*(\d{1,2})\s*[時时点]\s*(半|(\d{1,2})\s*分)?/g, function (_, ap, h, half, mm) {
+      h = Number(h);
+      if (ap && /下午|晚上|午後/.test(ap) && h < 12) h += 12;
+      if (ap && /上午|早上|午前/.test(ap) && h === 12) h = 0;
+      return h + ":" + (half === "半" ? "30" : mm ? ("0" + Number(mm)).slice(-2) : "00");
+    });
+    // 영어 일·월 순서: 8 November 2026 → 2026년 11월 8일
+    s = s.replace(new RegExp("\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(" + MONTHS_EN + ")[a-z]*\\b(?:,?\\s*(\\d{4}))?", "gi"), function (_, d, mon, y) {
+      return (y ? y + "년 " : "") + MONTH_NO[mon.toLowerCase()] + "월 " + Number(d) + "일";
+    });
     // 연도가 붙은 날짜 (월·일 규칙보다 먼저)
     s = s.replace(/(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})(?!\d)/g, function (_, y, m, d) { return y + "년 " + Number(m) + "월 " + Number(d) + "일"; });
     s = s.replace(new RegExp("\\b(" + MONTHS_EN + ")[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?:,?\\s*(\\d{4}))?", "gi"), function (_, mon, d, y) {
