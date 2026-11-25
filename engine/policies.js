@@ -92,6 +92,31 @@
       allCapsMinLetters: 6 // 영문 대문자만 이 글자 수 이상이면 '전부 대문자'
     },
 
+    // ---------------------------------------------------------------- 읽기 쉬운 글꼴로 바꾸기 (11/25 확정)
+    // 정보 전달 글자에 글꼴 문제(장식·좁은 폭·기울임)가 있으면 이 글꼴로 바꾸기를 제안해요. 예술 글자는 바꾸지 않아요.
+    //   KoddiUD 온고딕: 한국장애인개발원이 고령자·저시력자도 알아보기 쉽게 만든 무료 글꼴 (Regular·Bold·ExtraBold)
+    //   ※ PostScript 이름은 포토샵에서 확인 필요 (docs/feasibility-checklist.md)
+    fontReplace: {
+      family: "KoddiUD 온고딕",
+      // 브라우저가 설치돼 있는지 확인하고 미리보기를 그릴 때 쓰는 이름
+      cssFamilies: ["KoddiUD OnGothic", "KoddiUD 온고딕", "KoddiUDOnGothic"],
+      postScriptNames: { regular: "KoddiUDOnGothic-Regular", bold: "KoddiUDOnGothic-Bold", extraBold: "KoddiUDOnGothic-ExtraBold" },
+      weightLabels: { regular: "Regular", bold: "Bold", extraBold: "ExtraBold" },
+      // 원래 굵기 → 온고딕 굵기: 400 이하 Regular · 500~700 Bold · 800 이상 ExtraBold (글꼴 이름·스타일 속 단어로 판단, 앞의 것부터)
+      weightKeywords: {
+        extraBold: ["extrabold", "ultrabold", "black", "heavy", "800", "900"],
+        bold: ["semibold", "demibold", "bold", "medium", "500", "600", "700"]
+      },
+      fauxBoldAs: "bold", // 가짜 굵게(Faux Bold)를 켠 글자
+      // 이 문제가 있을 때만 글꼴을 바꿔요 ('영문 전부 대문자'는 글꼴을 바꿔도 그대로라서 빼요)
+      fixIssues: ["decorative", "condensed", "italic"],
+      // 이미 이 글꼴이면 바꾸지 않아요 (글꼴 이름을 소문자·공백 없이 비교)
+      matchNames: ["koddiudongothic", "온고딕"],
+      // 한글·영문만 있는 글자만 바꿔요. 다른 글자(중국어·일본어 등)가 섞이면 그대로 둬요
+      onlyHangulLatin: true,
+      downloadUrl: "https://www.koddi.or.kr/ud/sub1_2"
+    },
+
     // ---------------------------------------------------------------- 공통 기준
     // 글자 크기: 관람 거리에서 '글자 높이가 눈에 보이는 각도'(분각, ′)로 판정해요.
     //   정상 시력이 겨우 읽는 글자 ≈ 5′, 편하게 읽는 글자 ≈ 15′ 이상
@@ -231,6 +256,10 @@
       blendModeNote: "혼합 모드({blendMode}) 때문에 실제 보이는 색이 다를 수 있어요",
       conflict: "정보 글자가 예술 이미지 위에 있어서, 그림을 가리지 않고는 기준을 넘기 어려워요. 같은 정보를 다른 곳(대체텍스트, 별도 안내문)에서도 제공해 주세요.",
       altTextNotice: "포스터 아래나 SNS 본문에 같은 정보를 글로 함께 적어 주세요.",
+      // 글꼴 바꾸기 ({family} 글꼴 이름 · {weight} 굵기 · {url} 받는 곳)
+      fontReplace: "저시력자도 알아보기 쉽게 만든 {family} {weight}로 바꾸기를 제안해요.",
+      fontNotInstalled: "{family}을 설치하면 적용할 수 있어요. 한국장애인개발원 누리집에서 무료로 받을 수 있어요: {url}",
+      fontScriptKept: "중국어·일본어 같은 글자가 섞여 있어 글꼴은 그대로 둬요({family}은 한글·영문 글꼴이에요). 크기와 대비를 먼저 고쳐 주세요.",
       // 색각이상
       colorOnly: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1).",
       colorOnlyFix: "자동 수정은 강조한 부분을 굵게 하고 밑줄을 그어요.",
@@ -289,7 +318,8 @@
           allowWeight: true,
           allowSpacing: true,
           allowBackplate: true,
-          backplateMaxOpacity: 0.9
+          backplateMaxOpacity: 0.9,
+          allowFont: true // 읽기 쉬운 글꼴(fontReplace)로 바꾸기
         },
         applyAll: true,
         support: "accessibleVersion", // 별도 접근성 버전 만들기
