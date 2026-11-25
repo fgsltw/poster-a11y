@@ -102,18 +102,30 @@
 
   // ---------------------------------------------------------------- 글자 크기
   // 이 각도(′)가 되려면 몇 pt 가 필요한지 (인쇄 pt 기준. SNS는 문서 pt 로 바꿔서)
-  function ptForArcmin(arcmin, env, P, doc) {
+  // 글자 높이 ÷ 글꼴 크기: 한글·한자·가나·대문자·숫자는 glyphHeightRatio(0.8),
+  //   영어 소문자가 많은 글자는 x-높이(latinLowercaseHeightRatio)로 재요 — 소문자는 같은 pt라도 작게 보여요
+  function glyphRatioOf(l, P) {
+    var S = P.size, t = String(l.text || "");
+    var letters = t.match(/[A-Za-z\u3131-\uD79D\u3040-\u30FF\u4E00-\u9FFF]/g) || [];
+    var lower = t.match(/[a-z]/g) || [];
+    if (!S.latinLowercaseHeightRatio || !letters.length) return S.glyphHeightRatio;
+    return lower.length / letters.length >= S.latinLowercaseShare ? S.latinLowercaseHeightRatio : S.glyphHeightRatio;
+  }
+
+  function ptForArcmin(arcmin, env, P, doc, ratio) {
     var S = P.size;
+    ratio = ratio || S.glyphHeightRatio;
     var needGlyphMm = Math.tan(arcmin * ARCMIN) * env.distanceM * 1000;
     var needEmPx = env.displayScaleMmPerPx
-      ? needGlyphMm / S.glyphHeightRatio / env.displayScaleMmPerPx
-      : ((needGlyphMm / S.glyphHeightRatio) / 25.4) * doc.document.ppi;
+      ? needGlyphMm / ratio / env.displayScaleMmPerPx
+      : ((needGlyphMm / ratio) / 25.4) * doc.document.ppi;
     return ceilHalf((needEmPx * 72) / doc.document.ppi);
   }
 
   function checkSize(l, env, pol, P, doc, role) {
     var S = P.size;
-    var glyphPx = (l.sizePx || 0) * S.glyphHeightRatio;
+    var ratio = glyphRatioOf(l, P);
+    var glyphPx = (l.sizePx || 0) * ratio;
     var glyphMm = env.displayScaleMmPerPx ? glyphPx * env.displayScaleMmPerPx : (glyphPx / doc.document.ppi) * 25.4;
     var angle = Math.atan(glyphMm / (env.distanceM * 1000)) / ARCMIN;
 
@@ -135,22 +147,22 @@
     var status = angle >= passArcmin ? "pass" : secondary ? "advisory" : angle >= warnArcmin ? "warn" : "fail";
     if (status !== "pass" && pol.judge === "advisory") status = "advisory";
 
-    var recommendedPt = ptForArcmin(passArcmin, env, P, doc);
+    var recommendedPt = ptForArcmin(passArcmin, env, P, doc, ratio);
     var lowVisionOk = angle >= lowVisionArcmin;
-    var lowVisionPt = ptForArcmin(lowVisionArcmin, env, P, doc);
+    var lowVisionPt = ptForArcmin(lowVisionArcmin, env, P, doc, ratio);
     // 필요한 글자가 포스터에 비해 너무 크면 → 키우는 대신 큰 글씨 안내문
-    var needGlyphPx = ((recommendedPt * doc.document.ppi) / 72) * S.glyphHeightRatio;
+    var needGlyphPx = ((recommendedPt * doc.document.ppi) / 72) * ratio;
     var tooBig = !!(LVR && needGlyphPx > doc.document.heightPx * LVR.maxGlyphOfPosterHeight);
 
     var res = {
       check: "size",
       status: status,
-      metric: "글자 높이 " + round(glyphMm, 1) + "mm · " + env.distanceM + "m에서 " + round(angle, 1) + "′ (기준 " + round(passArcmin, 1) + "′" +
+      metric: "글자 높이 " + round(glyphMm, 1) + "mm" + (ratio !== S.glyphHeightRatio ? "(영어 소문자 키)" : "") + " · " + env.distanceM + "m에서 " + round(angle, 1) + "′ (기준 " + round(passArcmin, 1) + "′" +
         (secondary ? ", 부가 정보" : "") + (V ? ", " + env.viewerLabel : "") + ")" +
         // 저시력 참고는 일반 시력으로 검사할 때, 통과한 글자에만 붙여요
         (!V && status === "pass" && !lowVisionOk && !S.lowVisionRequired ? " · 참고: 저시력(" + S.lowVisionAcuity + ")까지 고려하면 " + lowVisionPt + "pt 이상" : ""),
       detail: {
-        glyphMm: round(glyphMm, 2), arcmin: round(angle, 2), passArcmin: round(passArcmin, 2), recommendedPt: recommendedPt,
+        glyphMm: round(glyphMm, 2), glyphRatio: ratio, arcmin: round(angle, 2), passArcmin: round(passArcmin, 2), recommendedPt: recommendedPt,
         secondary: secondary, viewer: env.viewer, acuity: V || null,
         lowVisionReadable: lowVisionOk, lowVisionPt: lowVisionPt, tooBig: tooBig
       },
