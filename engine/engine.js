@@ -624,7 +624,7 @@
     if (s.letterSpacingEm < S.letterSpacingMin) {
       issues.push("자간 " + s.letterSpacingEm + "em (기준 " + S.letterSpacingMin + "em 이상)");
       fix = fix || {};
-      fix.letterSpacingEm = S.letterSpacingMin;
+      fix.letterSpacingEm = S.letterSpacingFixTo != null ? S.letterSpacingFixTo : S.letterSpacingMin;
     }
     // 한 줄이고 자간도 괜찮으면 결과를 만들지 않아요
     if (!issues.length && !multi) return null;
