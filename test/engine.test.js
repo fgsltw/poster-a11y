@@ -410,3 +410,24 @@ test("엔진 코드에는 안내 문구를 직접 쓰지 않는다", () => {
   const hits = src.split("\n").filter((line) => /(message|notice|note)\s*[:=][^;]*"[^"]*[가-힣]/.test(line));
   assert.deepEqual(hits, [], "문구는 engine/policies.js의 messages에 두세요");
 });
+
+test("영어 소문자는 x-높이로 재요: 같은 크기라도 작게 보여서 더 키우라고 해요", () => {
+  const P0 = P.size;
+  const measure = (text) => {
+    const d = fresh();
+    const l = d.layers.find((x) => x.id === 9); // 가격 글자(36px)를 바꿔 써요
+    l.text = text;
+    return find(E.checkDocument(d, { medium: "sns" }), 9, "size");
+  };
+  const lower = measure("Tickets on sale now · free entry");
+  const upper = measure("TICKETS ON SALE NOW · FREE ENTRY");
+  const korean = measure("R석 70,000원 · S석 50,000원 · 예매 필수");
+  const mixed = measure("예매는 홈페이지에서 · online");
+  assert.equal(lower.detail.glyphRatio, P0.latinLowercaseHeightRatio);
+  assert.equal(upper.detail.glyphRatio, P0.glyphHeightRatio);
+  assert.equal(korean.detail.glyphRatio, P0.glyphHeightRatio);
+  assert.equal(mixed.detail.glyphRatio, P0.glyphHeightRatio, "한글이 더 많으면 한글 기준");
+  assert.ok(Math.abs(lower.detail.glyphMm / upper.detail.glyphMm - P0.latinLowercaseHeightRatio / P0.glyphHeightRatio) < 0.01);
+  assert.ok(lower.detail.recommendedPt > upper.detail.recommendedPt, `${lower.detail.recommendedPt} > ${upper.detail.recommendedPt}`);
+  assert.match(lower.metric, /영어 소문자 키/);
+});

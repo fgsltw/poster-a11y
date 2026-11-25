@@ -98,6 +98,10 @@
     //   한글·대문자 높이는 글꼴 크기의 약 0.8배로 계산해요 (glyphHeightRatio)
     size: {
       glyphHeightRatio: 0.8,
+      // 영어 소문자는 x-높이(x, a, e 같은 글자 키)로 읽혀서 한글보다 작게 보여요. 보통 산세리프 글꼴의 x-높이는
+      // 글꼴 크기의 0.5~0.55배예요 (임시값). 글자 중 영어 소문자가 latinLowercaseShare 이상이면 이 비율로 재요
+      latinLowercaseHeightRatio: 0.52,
+      latinLowercaseShare: 0.5,
       passArcmin: 15, // 이 이상이면 통과
       warnArcmin: 10, // 이 이상이면 주의, 미만이면 실패
       lowVisionAcuity: 0.3, // 저시력(시력 0.3)에서도 읽히는지 함께 알려줘요
