@@ -431,3 +431,40 @@ test("영어 소문자는 x-높이로 재요: 같은 크기라도 작게 보여�
   assert.ok(lower.detail.recommendedPt > upper.detail.recommendedPt, `${lower.detail.recommendedPt} > ${upper.detail.recommendedPt}`);
   assert.match(lower.metric, /영어 소문자 키/);
 });
+
+test("영어·중국어·일본어 포스터도 일시·장소·가격·접근성 정보를 알아본다", () => {
+  const cases = {
+    date: ["Sat, Nov 8 · 7:30 PM", "SATURDAY 8 NOVEMBER", "Doors 7pm", "11月8日(土) 19:30", "2026年11月8日", "11月8日 星期六", "周六 晚上7点半"],
+    place: ["Seoul Arts Center, Opera Theater", "Lotte Concert Hall 3F", "Venue: Blue Square", "Museum of Modern Art", "東京文化会館 大ホール", "上海大剧院", "3階 ギャラリー"],
+    price: ["Tickets $25 / Students $15", "Free entry", "KRW 70,000", "€20", "一般 3,000円", "票价 ¥180", "入場無料"],
+    access: ["Audio description · Sign language", "Wheelchair accessible", "Captions available", "手話通訳あり", "車いす席", "口述影像 · 手语翻译", "无障碍座位"]
+  };
+  for (const [role, list] of Object.entries(cases)) for (const t of list) assert.ok(R.matchRoles(t).includes(role), `${role}: ${t}`);
+  // 제목에 흔한 말은 장소·가격·접근성으로 보지 않아요
+  for (const t of ["The Rite of Spring", "Free Spirit", "Stage Fright", "Hall of Fame", "Center of the World", "春の祭典", "中心思想"])
+    assert.deepEqual(R.matchRoles(t).filter((r) => r !== "date"), [], t);
+});
+
+test("중국어·일본어 날짜도 소리 내어 읽기 좋게 바꾼다", () => {
+  const cases = {
+    "11月8日(土) 19:30": "11월 8일 토요일 저녁 7시 30분",
+    "2026年11月8日": "2026년 11월 8일",
+    "11月8日 星期六": "11월 8일 토요일",
+    "周六 晚上7点半": "토요일 저녁 7시 30분",
+    "土曜日 午後2時": "토요일 오후 2시",
+    "Saturday 8 November 2026": "토요일 2026년 11월 8일"
+  };
+  for (const [from, want] of Object.entries(cases)) assert.equal(R.speakDate(from), want, from);
+});
+
+test("영어 포스터: 역할을 알아봐서 일시·장소는 정보 전달로 추천하고, 대체텍스트에 넣는다", () => {
+  const d = fresh();
+  const texts = { 6: "Sat, Nov 8 · 7:30 PM", 8: "Seoul Arts Center, Opera Theater", 9: "Tickets $50 · Students $30", 10: "Audio description · Sign language · Wheelchair seats" };
+  d.layers.forEach((l) => { if (texts[l.id]) l.text = texts[l.id]; });
+  const r = E.checkDocument(d, { medium: "sns" });
+  assert.deepEqual([6, 8, 9, 10].map((id) => r.roles[id]), ["date", "place", "price", "access"]);
+  for (const id of [6, 8, 9, 10]) assert.equal(find(r, id, "size").purpose, "info");
+  assert.ok(!r.results.some((x) => x.detail && x.detail.missingRole), "핵심 정보 누락이 없어야 해요");
+  assert.match(r.altTextDraft, /11월 8일/);
+  assert.match(r.altTextDraft, /Seoul Arts Center/);
+});
