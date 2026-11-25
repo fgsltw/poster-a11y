@@ -33,12 +33,14 @@
 | 14 | 강조 수정(굵게·밑줄) | 색·시야 샘플에서 자동 수정한 PSD를 열고, '일시' 레이어의 '매진'만 가짜 굵게·밑줄이 켜졌는지 (다른 구간은 그대로) | |
 | 15 | 핵심 정보 띠 여러 줄 | 같은 PSD의 '핵심 정보 띠 (접근성)' 레이어가 세 줄로 보이는지, 줄 간격·글꼴이 맞는지 (줄마다 문단을 나눠 넣었어요) | |
 
-## 글꼴 바꾸기 (KoddiUD 온고딕) — 확인 필요
+## 글꼴 바꾸기 (KoddiUD 온고딕)
 
 | 확인할 것 | 결과 |
 | --- | --- |
-| 온고딕을 설치(폰코 활성화 등)한 포토샵에서 `글꼴 바꾸기`를 적용한 PSD를 열면, 글꼴 목록에 KoddiUD 온고딕 Regular·Bold·ExtraBold로 보이는지 (`engine/policies.js`의 `fontReplace.postScriptNames`: `KoddiUDOnGothic-Regular`/`-Bold`/`-ExtraBold`가 맞는지) | 확인 필요 |
-| 브라우저가 설치된 온고딕을 `fontReplace.cssFamilies` 이름(`KoddiUD OnGothic` 등)으로 찾는지 (웹: 글꼴 수정이 나오는지) | 확인 필요 |
+| 온고딕을 설치(폰코 활성화 등)한 포토샵에서 `글꼴 바꾸기`를 적용한 PSD를 열면, 글꼴 목록에 KoddiUD 온고딕 Regular·Bold·ExtraBold로 보이는지 (`engine/policies.js`의 `fontReplace.postScriptNames`: `KoddiUDOnGothic-Regular`/`-Bold`/`-ExtraBold`가 맞는지) | 글꼴 파일 name 표로 **이름은 확인됨** (11/25: PostScript 이름 3개 일치, 굵기 400·700·800). 포토샵에서 열어 보는 확인은 남음 |
+| 브라우저가 설치된 온고딕을 `fontReplace.cssFamilies` 이름으로 찾는지 (웹: 글꼴 수정이 나오는지). 글꼴 파일의 옛 가족 이름이 굵기마다 달라서(`KoddiUD OnGothic Bold` 등) 묶음 이름과 굵기별 이름을 모두 넣었어요 | 확인 필요 (Windows·Mac 크롬에서 각각) |
+| **Adobe Fonts판**(제작사 KCISA)의 PostScript 이름도 `KoddiUDOnGothic-Regular` 등과 같은지 — 다르면 포토샵이 Adobe Fonts로 자동으로 켜 주지 못해요. Adobe Fonts로 켠 뒤 포토샵 글꼴 목록·적용한 PSD로 확인 | 확인 필요 |
+| 온고딕이 없는 컴퓨터(Creative Cloud 로그인)에서 적용한 PSD를 열면 '누락된 글꼴' 창이나 자동 켜기로 온고딕이 켜지는지 | 확인 필요 |
 | 글꼴을 바꾼 뒤 글자 폭이 달라져 상자를 넘치는지 (미리보기 경고와 포토샵 결과 비교) | 확인 필요 |
 
 ## 주의: 샘플 PSD로 확인할 때

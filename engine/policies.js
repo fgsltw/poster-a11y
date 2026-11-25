@@ -95,11 +95,14 @@
     // ---------------------------------------------------------------- 읽기 쉬운 글꼴로 바꾸기 (11/25 확정)
     // 정보 전달 글자에 글꼴 문제(장식·좁은 폭·기울임)가 있으면 이 글꼴로 바꾸기를 제안해요. 예술 글자는 바꾸지 않아요.
     //   KoddiUD 온고딕: 한국장애인개발원이 고령자·저시력자도 알아보기 쉽게 만든 무료 글꼴 (Regular·Bold·ExtraBold)
-    //   ※ PostScript 이름은 포토샵에서 확인 필요 (docs/feasibility-checklist.md)
+    //   PostScript 이름: 글꼴 파일의 name 표에서 확인 (11/25, Version 1.000 Build 20201217). 포토샵 실제 확인은 docs/feasibility-checklist.md
+    //   글꼴 파일은 굵기마다 옛 가족 이름이 따로예요 ("KoddiUD OnGothic Regular"·"… Bold"·"… ExtraBold", 한국어 "KoddiUD 온고딕 Bold" 등)
+    //   묶음 가족 이름은 "KoddiUD OnGothic"(한국어 "KoddiUD 온고딕"). 브라우저·운영체제에 따라 찾히는 이름이 달라서 모두 넣어요
     fontReplace: {
       family: "KoddiUD 온고딕",
       // 브라우저가 설치돼 있는지 확인하고 미리보기를 그릴 때 쓰는 이름
-      cssFamilies: ["KoddiUD OnGothic", "KoddiUD 온고딕", "KoddiUDOnGothic"],
+      //   앞에서부터 미리보기에 써요 → 묶음 이름을 먼저, 굵기별 이름은 설치 확인용으로 뒤에
+      cssFamilies: ["KoddiUD OnGothic", "KoddiUD 온고딕", "KoddiUD OnGothic Regular", "KoddiUD 온고딕 Regular", "KoddiUD OnGothic Bold", "KoddiUD 온고딕 Bold", "KoddiUDOnGothic-Regular"],
       postScriptNames: { regular: "KoddiUDOnGothic-Regular", bold: "KoddiUDOnGothic-Bold", extraBold: "KoddiUDOnGothic-ExtraBold" },
       weightLabels: { regular: "Regular", bold: "Bold", extraBold: "ExtraBold" },
       // 원래 굵기 → 온고딕 굵기: 400 이하 Regular · 500~700 Bold · 800 이상 ExtraBold (글꼴 이름·스타일 속 단어로 판단, 앞의 것부터)
@@ -114,7 +117,8 @@
       matchNames: ["koddiudongothic", "온고딕"],
       // 한글·영문만 있는 글자만 바꿔요. 다른 글자(중국어·일본어 등)가 섞이면 그대로 둬요
       onlyHangulLatin: true,
-      downloadUrl: "https://www.koddi.or.kr/ud/sub1_2"
+      downloadUrl: "https://www.koddi.or.kr/ud/sub1_2",
+      adobeFontsUrl: "https://fonts.adobe.com/fonts/koddiud-ongothic"
     },
 
     // ---------------------------------------------------------------- 공통 기준
@@ -263,9 +267,10 @@
       blendModeNote: "혼합 모드({blendMode}) 때문에 실제 보이는 색이 다를 수 있어요",
       conflict: "정보 글자가 예술 이미지 위에 있어서, 그림을 가리지 않고는 기준을 넘기 어려워요. 같은 정보를 다른 곳(대체텍스트, 별도 안내문)에서도 제공해 주세요.",
       altTextNotice: "포스터 아래나 SNS 본문에 같은 정보를 글로 함께 적어 주세요.",
-      // 글꼴 바꾸기 ({family} 글꼴 이름 · {weight} 굵기 · {url} 받는 곳)
+      // 글꼴 바꾸기 ({family} 글꼴 이름 · {weight} 굵기 · {url} 한국장애인개발원 받는 곳 · {adobeUrl} Adobe Fonts)
       fontReplace: "저시력자도 알아보기 쉽게 만든 {family} {weight}로 바꾸기를 제안해요.",
-      fontNotInstalled: "{family}을 설치하면 적용할 수 있어요. 한국장애인개발원 누리집에서 무료로 받을 수 있어요: {url}",
+      // 브라우저가 글꼴을 못 찾았을 때 (Adobe Fonts로 켠 글꼴은 브라우저에 안 보일 수 있어요). 적용은 그대로 할 수 있어요
+      fontNotInstalled: "이 컴퓨터에서 {family}을 찾지 못해 미리보기는 비슷한 고딕으로 그렸어요. 고친 PSD를 포토샵에서 열 때 글꼴이 없으면 Adobe Fonts로 켤 수 있어요(Creative Cloud 로그인 필요, {adobeUrl}). 한국장애인개발원 누리집에서 무료로 받아도 돼요: {url}",
       fontScriptKept: "중국어·일본어 같은 글자가 섞여 있어 글꼴은 그대로 둬요({family}은 한글·영문 글꼴이에요). 크기와 대비를 먼저 고쳐 주세요.",
       // 색각이상
       colorOnly: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1).",

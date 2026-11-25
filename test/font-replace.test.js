@@ -72,15 +72,24 @@ test("기울임 글꼴이면 바로 선 글꼴로 바꾸고 가짜 기울임도 
   assert.equal(r.fix.upright, true);
 });
 
-test("온고딕이 설치돼 있지 않거나 모르면 수정 대신 설치 안내", () => {
+test("브라우저가 온고딕을 못 찾거나 모르면: 수정은 그대로 내고, 미리보기는 예시 + Adobe Fonts·받는 곳 안내", () => {
   const { d } = withFont(6, "NanumBrush");
   for (const fontInstalled of [false, undefined]) {
-    const r = find(E.checkDocument(d, { medium: "flyer", fontInstalled }), 6, "font");
-    assert.equal(r.fix, null);
-    assert.equal(r.detail.fontReplace.status, fontInstalled === false ? "notInstalled" : "unknown");
-    assert.match(r.message, /KoddiUD 온고딕을 설치하면 적용할 수 있어요/);
-    assert.ok(r.message.includes(R.downloadUrl));
+    const res = E.checkDocument(d, { medium: "flyer", fontInstalled });
+    const r = find(res, 6, "font");
+    assert.equal(r.fix.type, "font", "Adobe Fonts로 켠 글꼴은 브라우저에 안 보일 수 있어서 막지 않아요");
+    assert.equal(r.fix.installed, fontInstalled === false ? false : null);
+    assert.equal(r.detail.fontReplace.status, "ready");
+    assert.match(r.message, /찾지 못해 미리보기는 비슷한 고딕으로/);
+    assert.ok(r.message.includes(R.downloadUrl) && r.message.includes(R.adobeFontsUrl));
+    const f = E.toApplyFixes(res).find((x) => x.layerId === 6 && x.type === "font");
+    assert.equal(f.postScriptName, "KoddiUDOnGothic-Regular");
+    assert.equal(f.installed, fontInstalled === false ? false : null);
   }
+  // 찾았으면 안내 없이
+  const r = find(E.checkDocument(d, ON), 6, "font");
+  assert.equal(r.fix.installed, true);
+  assert.doesNotMatch(r.message, /찾지 못해/);
 });
 
 test("중국어·일본어가 섞이면 글꼴은 그대로 두고 안내만", () => {
