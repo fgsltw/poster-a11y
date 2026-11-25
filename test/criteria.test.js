@@ -205,7 +205,9 @@ test("A 수정: 굵게·간격을 PSD에 넣고, 다시 읽어도 남아 있다"
   assert.equal(out.skipped.length, 0, JSON.stringify(out.skipped));
   const before = findLayer(psd.children, 6).layer, after = findLayer(out.psd.children, 6).layer;
   assert.ok(after.imageData.width > before.imageData.width, "미리보기 글자가 두꺼워져요");
-  assert.ok(out.warnings.some((w) => /줄 간격·자간/.test(w)));
+  // 간격 수정도 이제 미리보기를 그려요 (근사치) → '미리보기에 보이지 않아요' 경고 없음
+  assert.match(out.applied.find((a) => a.fix.type === "spacing").message, /미리보기는 근사치/);
+  assert.equal(out.warnings.some((w) => /미리보기에 보이지 않아요/.test(w)), false);
 
   const back = agPsd.readPsd(agPsd.writePsdBuffer(out.psd, WRITE_OPTIONS), { useImageData: true });
   assert.equal(findLayer(back.children, 6).layer.text.style.fauxBold, true);
