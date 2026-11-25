@@ -73,7 +73,7 @@ cd dist-web
 npx vercel deploy --prod --yes
 ```
 
-처음 한 번은 `dist-web`에서 `npx vercel link --yes --project poster-a11y`로 연결해야 해요. 연결할 때 생기는 `.env.local`(로그인 토큰)은 배포 전에 지워 주세요.
+처음 한 번은 `dist-web`에서 `npx vercel link --yes --project poster-a11y`로 연결해야 해요. 연결할 때 생기는 `.env.local`(로그인 토큰)은 배포 전에 지워 주세요. 손으로 배포하면 맨 위 `vercel.json` 설정(샘플 캐시)은 적용되지 않아요.
 
 ## 팀원에게
 
