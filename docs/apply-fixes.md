@@ -21,7 +21,7 @@
 | `emphasis` | `runs: [{ from: "#C62828", bold: true, underline: true, value?: "#7F1616" }, { from: "#2E7D32", bold: true }]` | 색만 다른 강조(WCAG 1.4.1): **각 색 구간만** 그 항목대로 가짜 굵게·밑줄 (+ `value`가 있으면 그 색으로). 강조가 여럿이면 항목마다 모양이 달라요. 다른 구간은 그대로 | 근사치 (색마다 그 색 픽셀만 조금 두껍게, 그 구간 아래에 밑줄) |
 | `infoStrip` | `text`(줄은 `
 `), `sizePt`, `left`·`top`(px), `color`, `plate`, `plateOpacity`, `paddingMm`, `fontName`, `sourceIds` | 좁은 시야: 흩어진 핵심 정보를 모은 **새 글자 레이어 `핵심 정보 띠 (접근성)`** + 흰 판 레이어를 맨 위에 넣어요. `layerId` 없음. 원래 글자는 그대로 | 미리보기 글자는 `opts.renderText`로 그려요 (없으면 빈 그림). 포토샵에서 여러 줄 표시는 확인 필요 |
-| `font` | `postScriptName`(예 `"KoddiUDOnGothic-Bold"`), 선택 `family`·`weight`(`regular`/`bold`/`extraBold`)·`cssFamilies`·`upright`·`installed` | 모든 글자 구간의 글꼴을 바꿔요. `upright: true`면 가짜 기울임도 꺼요. 포토샵에 그 글꼴이 있어야 제대로 보여요. 없으면 포토샵이 열 때 Adobe Fonts로 켤 수 있어요(확인 필요). `installed`: 브라우저가 글꼴을 찾았는지(미리보기용) | 근사치 (`opts.renderText`가 있고 글자색이 하나면 새 글꼴로 다시 그려요. 정렬·줄 간격은 대략. 폭이 달라져 넘치거나 겹치면 경고) · 없으면 반영 안 됨 |
+| `font` | `postScriptName`(예 `"KoddiUDOnGothic-Bold"`), 선택 `family`·`weight`(`regular`/`bold`/`extraBold`)·`cssFamilies`·`upright`·`installed`·`weightLabel` | 모든 글자 구간의 글꼴을 바꿔요. `upright: true`면 가짜 기울임도 꺼요. 포토샵에 그 글꼴이 있어야 제대로 보여요. 없으면 포토샵이 열 때 Adobe Fonts로 켤 수 있어요(확인 필요). `installed`: 브라우저가 글꼴을 찾았는지(미리보기용) | 근사치 (`opts.renderText`가 있고 글자색이 하나면 새 글꼴로 다시 그려요. 정렬·줄 간격은 대략. 폭이 달라져 넘치거나 겹치면 경고) · 없으면 반영 안 됨 |
 | `spacing` | `lineHeight`(글자 크기의 배수, 예 1.5), `letterSpacingEm`(예 0) — 둘 중 하나만 넣어도 돼요 | 줄 간격(자동 줄 간격 끔)과 자간을 바꿔요 | **반영 안 됨** — 포토샵에서 열면 반영돼요 |
 
 ```json

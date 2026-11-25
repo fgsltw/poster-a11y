@@ -41,6 +41,7 @@
 | 브라우저가 설치된 온고딕을 `fontReplace.cssFamilies` 이름으로 찾는지 (웹: 글꼴 수정이 나오는지). 글꼴 파일의 옛 가족 이름이 굵기마다 달라서(`KoddiUD OnGothic Bold` 등) 묶음 이름과 굵기별 이름을 모두 넣었어요 | 확인 필요 (Windows·Mac 크롬에서 각각) |
 | **Adobe Fonts판**(제작사 KCISA)의 PostScript 이름도 `KoddiUDOnGothic-Regular` 등과 같은지 — 다르면 포토샵이 Adobe Fonts로 자동으로 켜 주지 못해요. Adobe Fonts로 켠 뒤 포토샵 글꼴 목록·적용한 PSD로 확인 | 확인 필요 |
 | 온고딕이 없는 컴퓨터(Creative Cloud 로그인)에서 적용한 PSD를 열면 '누락된 글꼴' 창이나 자동 켜기로 온고딕이 켜지는지 | 확인 필요 |
+| '내 컴퓨터 기본 고딕'의 PostScript 이름이 맞는지: Windows `MalgunGothic`·`MalgunGothicBold`, Mac `AppleSDGothicNeo-Regular`·`-Bold`·`-ExtraBold` (`fontReplace.systemFallbacks`) | 확인 필요 |
 | 글꼴을 바꾼 뒤 글자 폭이 달라져 상자를 넘치는지 (미리보기 경고와 포토샵 결과 비교) | 확인 필요 |
 
 ## 주의: 샘플 PSD로 확인할 때

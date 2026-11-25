@@ -118,7 +118,24 @@
       // 한글·영문만 있는 글자만 바꿔요. 다른 글자(중국어·일본어 등)가 섞이면 그대로 둬요
       onlyHangulLatin: true,
       downloadUrl: "https://www.koddi.or.kr/ud/sub1_2",
-      adobeFontsUrl: "https://fonts.adobe.com/fonts/koddiud-ongothic"
+      adobeFontsUrl: "https://fonts.adobe.com/fonts/koddiud-ongothic",
+      // 온고딕을 받기 싫은 디자이너용: '바꿀 글꼴 → 내 컴퓨터 기본 고딕'(env.fontChoice "system")
+      //   운영체제에 기본으로 들어 있는 고딕이라 받을 필요가 없어요. env.platform 으로 고르고, 모르면 defaultPlatform
+      systemFallbacks: {
+        windows: {
+          family: "맑은 고딕",
+          cssFamilies: ["Malgun Gothic", "맑은 고딕"],
+          postScriptNames: { regular: "MalgunGothic", bold: "MalgunGothicBold", extraBold: "MalgunGothicBold" }, // ExtraBold 가 없어서 Bold
+          weightLabels: { regular: "Regular", bold: "Bold", extraBold: "Bold" }
+        },
+        mac: {
+          family: "Apple SD 산돌고딕 Neo",
+          cssFamilies: ["Apple SD Gothic Neo", "AppleSDGothicNeo-Regular"],
+          postScriptNames: { regular: "AppleSDGothicNeo-Regular", bold: "AppleSDGothicNeo-Bold", extraBold: "AppleSDGothicNeo-ExtraBold" },
+          weightLabels: { regular: "Regular", bold: "Bold", extraBold: "ExtraBold" }
+        }
+      },
+      defaultPlatform: "windows"
     },
 
     // ---------------------------------------------------------------- 공통 기준
@@ -271,6 +288,8 @@
       fontReplace: "저시력자도 알아보기 쉽게 만든 {family} {weight}로 바꾸기를 제안해요.",
       // 브라우저가 글꼴을 못 찾았을 때 (Adobe Fonts로 켠 글꼴은 브라우저에 안 보일 수 있어요). 적용은 그대로 할 수 있어요
       fontNotInstalled: "이 컴퓨터에서 {family}을 찾지 못해 미리보기는 비슷한 고딕으로 그렸어요. 고친 PSD를 포토샵에서 열 때 글꼴이 없으면 Adobe Fonts로 켤 수 있어요(Creative Cloud 로그인 필요, {adobeUrl}). 한국장애인개발원 누리집에서 무료로 받아도 돼요: {url}",
+      fontReplaceSystem: "받을 필요 없는 {family} {weight}로 바꾸기를 제안해요. 저시력자용으로 만든 {recommended}이 더 알아보기 쉬우니, 받을 수 있으면 '부가 기능 → 바꿀 글꼴'에서 바꿔 주세요.",
+      fontSystemHint: "글꼴을 받기 싫다면 '부가 기능 → 바꿀 글꼴'에서 내 컴퓨터 기본 고딕을 고를 수 있어요.",
       fontScriptKept: "중국어·일본어 같은 글자가 섞여 있어 글꼴은 그대로 둬요({family}은 한글·영문 글꼴이에요). 크기와 대비를 먼저 고쳐 주세요.",
       // 색각이상
       colorOnly: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1).",
