@@ -89,7 +89,11 @@
       sizeBasis: base.sizeBasis || (base.screenWidthMm ? "screen" : "print"),
       screenCssPxPerPx: base.screenWidthCssPx ? base.screenWidthCssPx / doc.document.widthPx : null,
       // 바꿀 글꼴(policies.fontReplace)을 이 브라우저가 찾았나요: true / false / null(모름). 미리보기·안내에만 써요 (수정은 늘 만들어요)
-      fontInstalled: env.fontInstalled === true ? true : env.fontInstalled === false ? false : null
+      fontInstalled: env.fontInstalled === true ? true : env.fontInstalled === false ? false : null,
+      // 바꿀 글꼴: "recommended"(온고딕) / "system"(내 컴퓨터 기본 고딕, 받을 필요 없음)
+      fontChoice: env.fontChoice === "system" ? "system" : "recommended",
+      // 운영체제 (기본 고딕을 고를 때): "windows" / "mac" / null(모름)
+      platform: env.platform === "windows" || env.platform === "mac" ? env.platform : null
     };
   }
 
@@ -553,23 +557,32 @@
     var cur = flat(f.postScriptName) + " " + flat(f.name);
     if (R.matchNames.some(function (n) { return cur.indexOf(flat(n)) >= 0; })) return null; // 이미 그 글꼴
     var weight = fontWeightClass(f, R);
-    var vars = { family: R.family, weight: R.weightLabels[weight], url: R.downloadUrl, adobeUrl: R.adobeFontsUrl };
-    var detail = { family: R.family, weight: weight, postScriptName: R.postScriptNames[weight], downloadUrl: R.downloadUrl, adobeFontsUrl: R.adobeFontsUrl };
+    // 바꿀 글꼴: 추천(온고딕) 또는 내 컴퓨터 기본 고딕(env.fontChoice "system")
+    var useSystem = env.fontChoice === "system" && R.systemFallbacks;
+    var T = useSystem ? R.systemFallbacks[env.platform] || R.systemFallbacks[R.defaultPlatform] : R;
+    var installed = useSystem ? (R.systemFallbacks[env.platform] ? true : null) : env.fontInstalled;
+    var vars = { family: T.family, weight: T.weightLabels[weight], url: R.downloadUrl, adobeUrl: R.adobeFontsUrl, recommended: R.family };
+    var detail = { family: T.family, weight: weight, postScriptName: T.postScriptNames[weight], choice: useSystem ? "system" : "recommended",
+      downloadUrl: R.downloadUrl, adobeFontsUrl: R.adobeFontsUrl };
     if (R.onlyHangulLatin && hasOtherScript(l.text)) {
       detail.status = "otherScript";
-      return { detail: detail, note: fmt(P.messages.fontScriptKept, vars) };
+      return { detail: detail, note: fmt(P.messages.fontScriptKept, { family: R.family }) };
     }
     detail.status = "ready";
-    detail.installed = env.fontInstalled;
-    var note = fmt(P.messages.fontReplace, vars);
-    if (env.fontInstalled !== true) note += " " + fmt(P.messages.fontNotInstalled, vars);
+    detail.installed = installed;
+    var note;
+    if (useSystem) note = fmt(P.messages.fontReplaceSystem, vars);
+    else {
+      note = fmt(P.messages.fontReplace, vars);
+      if (installed !== true) note += " " + fmt(P.messages.fontNotInstalled, vars) + " " + fmt(P.messages.fontSystemHint, vars);
+    }
     return {
       detail: detail,
       note: note,
       fix: {
-        type: "font", family: R.family, postScriptName: R.postScriptNames[weight], weight: weight,
-        cssFamilies: R.cssFamilies.slice(), upright: issueKeys.indexOf("italic") >= 0,
-        installed: env.fontInstalled, strategy: pol.fix.strategy, passes: true
+        type: "font", family: T.family, postScriptName: T.postScriptNames[weight], weight: weight, weightLabel: T.weightLabels[weight],
+        cssFamilies: T.cssFamilies.slice(), upright: issueKeys.indexOf("italic") >= 0,
+        installed: installed, strategy: pol.fix.strategy, passes: true
       }
     };
   }
@@ -1219,7 +1232,7 @@
       if (r.fix.type === "size") f.valuePt = r.fix.valuePt;
       if (r.fix.type === "backplate") { f.color = r.fix.color; f.opacity = r.fix.opacity; f.paddingMm = r.fix.paddingMm; }
       if (r.fix.type === "weight") f.fauxBold = true;
-      if (r.fix.type === "font") ["family", "postScriptName", "weight", "cssFamilies", "upright", "installed"].forEach(function (k) { f[k] = r.fix[k]; });
+      if (r.fix.type === "font") ["family", "postScriptName", "weight", "weightLabel", "cssFamilies", "upright", "installed"].forEach(function (k) { f[k] = r.fix[k]; });
       if (r.fix.type === "emphasis") f.runs = r.fix.runs;
       if (r.fix.type === "infoStrip") ["text", "sizePt", "left", "top", "color", "plate", "plateOpacity", "paddingMm", "fontName", "sourceIds"].forEach(function (k) { f[k] = r.fix[k]; });
       if (r.fix.type === "spacing") {

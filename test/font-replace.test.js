@@ -182,3 +182,53 @@ test("postScriptName 이 없으면 적용하지 않아요", () => {
   assert.equal(out.applied.length, 0);
   assert.match(out.skipped[0].reason, /postScriptName/);
 });
+
+// ---------------------------------------------------------------- 온고딕을 받기 싫으면: 내 컴퓨터 기본 고딕
+test("온고딕을 못 찾으면 '내 컴퓨터 기본 고딕'을 고를 수 있다고 알려요", () => {
+  const { d } = withFont(6, "NanumBrush");
+  const r = find(E.checkDocument(d, { medium: "flyer", fontInstalled: false }), 6, "font");
+  assert.match(r.message, /부가 기능 → 바꿀 글꼴/);
+  assert.equal(r.detail.fontReplace.choice, "recommended");
+});
+
+test("바꿀 글꼴 = 내 컴퓨터 기본 고딕: Windows는 맑은 고딕, Mac은 Apple SD 산돌고딕 Neo", () => {
+  const fixOf = (name, platform, extra) => {
+    const { d } = withFont(6, name, extra);
+    return find(E.checkDocument(d, { medium: "flyer", fontChoice: "system", platform }), 6, "font");
+  };
+  const w = fixOf("NanumBrush", "windows");
+  assert.deepEqual([w.fix.family, w.fix.postScriptName, w.fix.installed], ["맑은 고딕", "MalgunGothic", true]);
+  assert.equal(w.detail.fontReplace.choice, "system");
+  assert.match(w.message, /받을 필요 없는 맑은 고딕 Regular로 바꾸기를 제안/);
+  assert.match(w.message, /KoddiUD 온고딕이 더 알아보기 쉬우니/);
+  assert.doesNotMatch(w.message, /찾지 못해/);
+  // 맑은 고딕은 ExtraBold 가 없어서 Bold
+  assert.equal(fixOf("Roboto-CondensedBlack", "windows").fix.postScriptName, "MalgunGothicBold");
+  assert.equal(fixOf("Roboto-CondensedBold", "windows").fix.weightLabel, "Bold");
+  const m = fixOf("Roboto-CondensedBold", "mac");
+  assert.deepEqual([m.fix.family, m.fix.postScriptName], ["Apple SD 산돌고딕 Neo", "AppleSDGothicNeo-Bold"]);
+  assert.equal(fixOf("Roboto-CondensedBlack", "mac").fix.postScriptName, "AppleSDGothicNeo-ExtraBold");
+  // 운영체제를 모르면 기본(Windows) 글꼴, 설치 여부는 모름
+  const u = fixOf("NanumBrush", undefined);
+  assert.deepEqual([u.fix.postScriptName, u.fix.installed], ["MalgunGothic", null]);
+});
+
+test("기본 고딕으로 바꾼 PSD를 다시 검사하면 글꼴 문제가 없어요", () => {
+  const src = agPsd.readPsd(fs.readFileSync(file), { useImageData: true });
+  findLayer(src.children, 6).layer.text.style.font = { name: "NanumBrush" };
+  const env = { medium: "flyer", fontChoice: "system", platform: "mac" };
+  const fixes = E.toApplyFixes(E.checkDocument(extractFromPsd(src, { fileName: "a.psd" }), env)).filter((f) => f.type === "font");
+  assert.equal(fixes[0].postScriptName, "AppleSDGothicNeo-Regular");
+  const back = agPsd.readPsd(agPsd.writePsdBuffer(applyFixes(src, fixes).psd, WRITE_OPTIONS), { useImageData: true });
+  const after = extractFromPsd(back, { fileName: "b.psd" });
+  assert.equal(after.layers.find((x) => x.id === 6).font.postScriptName, "AppleSDGothicNeo-Regular");
+  assert.equal(find(E.checkDocument(after, env), 6, "font"), undefined);
+});
+
+test("모르는 바꿀 글꼴·운영체제 값은 기본값으로", () => {
+  const { d } = withFont(6, "NanumBrush");
+  const r = E.checkDocument(d, { medium: "flyer", fontChoice: "nope", platform: "linux" });
+  assert.equal(r.environment.fontChoice, "recommended");
+  assert.equal(r.environment.platform, null);
+  assert.equal(find(r, 6, "font").fix.postScriptName, "KoddiUDOnGothic-Regular");
+});
