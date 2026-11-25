@@ -521,24 +521,39 @@
     if (has(F.decorative)) issues.push({ key: "decorative", text: "장식·손글씨 글꼴" });
     if (has(F.condensed)) issues.push({ key: "condensed", text: "폭이 좁은 글꼴" });
     if (has(F.italic) || (l.font && l.font.fauxItalic)) issues.push({ key: "italic", text: "기울임 글꼴" });
-    var letters = String(l.text || "").replace(/[^A-Za-z]/g, "");
-    if ((l.font && l.font.caps === "all") || (letters.length >= F.allCapsMinLetters && letters === letters.toUpperCase())) {
-      issues.push({ key: "allCaps", text: "영문 전부 대문자" });
+    // 영문 전부 대문자: 긴 문장(영문 단어 allCapsMinWords 개 이상)만. 짧은 문구·약어(SOLD OUT, 10AM_08PM)는 넘겨요
+    var capsSetting = !!(l.font && l.font.caps === "all");
+    var shown = capsSetting ? String(l.text || "").toUpperCase() : String(l.text || "");
+    var enWords = shown.match(/[A-Za-z]+/g) || [];
+    var letters = enWords.join("");
+    var caps = null;
+    if (enWords.length >= F.allCapsMinWords && letters === letters.toUpperCase()) {
+      // 설정이면 끄고 나서 보일 글(입력한 그대로), 직접 입력이면 대소문자 예시
+      caps = { setting: capsSetting, suggested: capsSetting ? String(l.text || "") : suggestCase(shown, F) };
+      issues.push({ key: "allCaps", text: "긴 영문 문장 전부 대문자 (" + enWords.length + "단어)" });
     }
     if (!issues.length) return null; // 문제가 있을 때만 결과를 만들어요
+    var capsOnly = issues.length === 1 && caps;
     var res = {
       check: "font",
-      status: pol.judge === "advisory" ? "advisory" : "warn",
+      // 대문자만 문제면 '참고' (짧은 글엔 대문자가 낫다는 연구도 있어서 강하게 말하지 않아요)
+      status: pol.judge === "advisory" || capsOnly ? "advisory" : "warn",
       metric: issues.map(function (i) { return i.text; }).join(" · ") + (l.font && l.font.name ? " (" + l.font.name + ")" : ""),
-      message: pol.messages.font,
+      message: capsOnly ? fmt(P.messages.allCapsLong, { text: caps.suggested }) : pol.messages.font,
       detail: { issues: issues.map(function (i) { return i.key; }), fontName: l.font && l.font.name },
       fix: null
     };
+    if (caps) {
+      res.detail.caps = { source: caps.setting ? "setting" : "typed", suggestedText: caps.suggested };
+      if (capsOnly && caps.setting) res.message += " " + P.messages.allCapsSetting;
+      // 포토샵 '모두 대문자' 설정이면 끄기만 하면 돼요 (글자 내용은 그대로). 직접 대문자로 입력한 글은 예시만 보여 줘요
+      if (caps.setting && pol.fix && pol.fix.allowFont) res.fix = { type: "caps", caps: "normal", strategy: pol.fix.strategy, passes: true };
+    }
     var plan = planFontReplace(l, res.detail.issues, pol, P, env);
     if (plan) {
       res.detail.fontReplace = plan.detail;
       if (plan.note) res.message += " " + plan.note;
-      if (plan.fix) res.fix = plan.fix;
+      if (plan.fix) res.fix = plan.fix; // 글꼴 수정이 대문자 끄기보다 먼저
     }
     return res;
   }
@@ -585,6 +600,23 @@
         installed: installed, strategy: pol.fix.strategy, passes: true
       }
     };
+  }
+
+  // 전부 대문자 → 대소문자 예시: 낱말 첫 글자만 대문자. 3글자 이하는 약어로 보고 그대로
+  //   (caseShortWords 에 든 흔한 낱말은 첫 글자만 대문자, caseMinorWords 는 문장 가운데에서 소문자)
+  function suggestCase(text, F) {
+    var minor = {}, common = {};
+    (F.caseMinorWords || []).forEach(function (w) { minor[w] = true; });
+    (F.caseShortWords || []).forEach(function (w) { common[w] = true; });
+    var first = true;
+    return String(text).replace(/[A-Za-z]+/g, function (w) {
+      var lower = w.toLowerCase(), out;
+      if (minor[lower] && !first) out = lower; // of, the, in …
+      else if (w.length <= 3 && !minor[lower] && !common[lower]) out = w; // AM·PM·VIP 같은 약어
+      else out = lower.charAt(0).toUpperCase() + lower.slice(1);
+      first = false;
+      return out;
+    });
   }
 
   // 원래 굵기 → regular / bold / extraBold
@@ -1232,6 +1264,7 @@
       if (r.fix.type === "size") f.valuePt = r.fix.valuePt;
       if (r.fix.type === "backplate") { f.color = r.fix.color; f.opacity = r.fix.opacity; f.paddingMm = r.fix.paddingMm; }
       if (r.fix.type === "weight") f.fauxBold = true;
+      if (r.fix.type === "caps") f.caps = r.fix.caps;
       if (r.fix.type === "font") ["family", "postScriptName", "weight", "weightLabel", "cssFamilies", "upright", "installed"].forEach(function (k) { f[k] = r.fix[k]; });
       if (r.fix.type === "emphasis") f.runs = r.fix.runs;
       if (r.fix.type === "infoStrip") ["text", "sizePt", "left", "top", "color", "plate", "plateOpacity", "paddingMm", "fontName", "sourceIds"].forEach(function (k) { f[k] = r.fix[k]; });

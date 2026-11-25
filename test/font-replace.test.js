@@ -117,7 +117,7 @@ test("예술 글자는 바꾸지 않아요", () => {
 
 test("'영문 전부 대문자'만 있으면 글꼴을 바꾸지 않아요 (글꼴로 안 고쳐져요)", () => {
   const { d, l } = withFont(6, "MalgunGothic");
-  l.text = "SOLD OUT TONIGHT";
+  l.text = "SOLD OUT FOR TONIGHT ONLY";
   const r = find(E.checkDocument(d, ON), 6, "font");
   assert.deepEqual(r.detail.issues, ["allCaps"]);
   assert.equal(r.fix, null);

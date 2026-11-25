@@ -89,7 +89,26 @@
       decorative: ["script", "brush", "hand", "callig", "marker", "comic", "graffiti", "붓", "손글씨", "캘리", "필기", "궁서"],
       condensed: ["condensed", "narrow", "compressed", "cond", "compact"],
       italic: ["italic", "oblique"],
-      allCapsMinLetters: 6 // 영문 대문자만 이 글자 수 이상이면 '전부 대문자'
+      // '영문 전부 대문자'는 긴 문장만 '참고'로 알려요 (11/26).
+      //   근거: 대문자는 긴 글을 읽는 속도를 늦추지만(Tinker), 짧은 글을 힐끗 볼 때는 오히려 낫고,
+      //   같은 글자 크기에서 대문자가 커서 저시력자에게 더 읽기 쉽다는 연구도 있어요 (Arditi & Cho 2007, 저시력 4명).
+      //   그래서 "SOLD OUT", "10AM_08PM" 같은 짧은 문구는 넘겨요. ('단어 모양' 설명은 옛 이론이라 쓰지 않아요)
+      allCapsMinWords: 4, // 영문 단어가 이 수 이상이고 전부 대문자면 '긴 대문자 문장'
+      // 대소문자로 바꾼 예시 만들기: 낱말 첫 글자만 대문자. 3글자 이하는 약어로 보고 대문자 그대로 (AM·PM·VIP·KTX…)
+      //   caseMinorWords: 문장 가운데에선 소문자 (관사·전치사·접속사) · caseShortWords: 약어가 아닌 흔한 짧은 낱말 (첫 글자만 대문자)
+      caseMinorWords: [
+        "a", "an", "the", "and", "or", "but", "nor", "of", "to", "in", "on", "at", "by", "for", "from", "with", "as", "via",
+        "per"
+      ],
+      caseShortWords: [
+        "is", "it", "its", "be", "if", "no", "so", "up", "we", "my", "do", "go", "out", "all", "you", "are", "not", "one", "our",
+        "new", "now", "get", "how", "who", "why", "can", "has", "had", "was", "day", "art", "fun", "big", "see", "let", "off",
+        "own", "air", "sun", "sea", "old", "end", "top", "pop", "jam", "run", "joy", "red", "box", "bar", "car", "eat", "far",
+        "few", "fly", "hot", "key", "kid", "man", "map", "mix", "pay", "pet", "put", "raw", "sit", "six", "sky", "son", "tea",
+        "ten", "two", "use", "way", "web", "win", "yes", "zoo", "act", "age", "ask", "bed", "boy", "buy", "cup", "cut", "dry",
+        "eye", "fan", "fit", "her", "him", "his", "ice", "lab", "low", "may", "men", "mom", "odd", "she", "toy", "try", "wow",
+        "any", "too", "set", "say", "hat"
+      ]
     },
 
     // ---------------------------------------------------------------- 읽기 쉬운 글꼴로 바꾸기 (11/25 확정)
@@ -290,6 +309,9 @@
       fontNotInstalled: "이 컴퓨터에서 {family}을 찾지 못해 미리보기는 비슷한 고딕으로 그렸어요. 고친 PSD를 포토샵에서 열 때 글꼴이 없으면 Adobe Fonts로 켤 수 있어요(Creative Cloud 로그인 필요, {adobeUrl}). 한국장애인개발원 누리집에서 무료로 받아도 돼요: {url}",
       fontReplaceSystem: "받을 필요 없는 {family} {weight}로 바꾸기를 제안해요. 저시력자용으로 만든 {recommended}이 더 알아보기 쉬우니, 받을 수 있으면 '부가 기능 → 바꿀 글꼴'에서 바꿔 주세요.",
       fontSystemHint: "글꼴을 받기 싫다면 '부가 기능 → 바꿀 글꼴'에서 내 컴퓨터 기본 고딕을 고를 수 있어요.",
+      // 영문 전부 대문자 ({text} 대소문자로 바꾼 예시)
+      allCapsLong: "긴 영문 문장을 전부 대문자로 쓰면 읽는 속도가 느려질 수 있어요(짧은 문구는 괜찮아요). 대소문자를 섞어 써 보세요. 예: “{text}”",
+      allCapsSetting: "포토샵 '모두 대문자' 설정으로 대문자가 된 글자라, 설정을 끄면 위처럼 입력한 대로 보여요. 첫 글자만 대문자로 하고 싶으면 포토샵에서 글을 고쳐 주세요.",
       fontScriptKept: "중국어·일본어 같은 글자가 섞여 있어 글꼴은 그대로 둬요({family}은 한글·영문 글꼴이에요). 크기와 대비를 먼저 고쳐 주세요.",
       // 색각이상
       colorOnly: "색을 구분하기 어려운 사람도 알 수 있게 굵게·밑줄·기호(●, ★)·괄호 같은 모양으로도 구분해 주세요 (WCAG 1.4.1).",
@@ -361,7 +383,7 @@
           size: "관람 거리에 비해 글자가 작아요. 추천 크기 이상으로 키워 주세요.",
           weight: "얇은 글씨는 작거나 멀리서 볼 때 획이 끊겨 보여요. 더 굵은 글꼴(Regular 이상)로 바꿔 주세요.",
           spacing: "줄이나 글자 사이가 좁아 읽기 어려울 수 있어요. 아래 간격으로 넓혀 주세요.",
-          font: "저시력자는 글자 모양 전체로 단어를 알아봐요. 민무늬 고딕(산세리프) 계열의 보통 폭, 바로 선 글꼴로 바꾸고, 영문은 대소문자를 섞어 써 주세요."
+          font: "장식·손글씨체, 폭이 좁거나 기울어진 글꼴은 저시력자가 글자를 알아보기 어려워요. 민무늬 고딕(산세리프) 계열의 보통 폭, 바로 선 글꼴로 바꿔 주세요."
         }
       },
       mixed: {
