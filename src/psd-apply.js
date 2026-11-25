@@ -493,6 +493,35 @@
     return "가짜 굵게(Faux Bold) 켜기 — 더 굵은 글꼴(Regular·Medium)로 바꾸면 더 좋아요";
   }
 
+  // 글꼴 바꾸기: 모든 글자 구간의 글꼴을 fix.postScriptName 으로 (fix.upright 면 가짜 기울임도 꺼요).
+  //   포토샵에 그 글꼴이 설치돼 있어야 제대로 보여요 (엔진은 설치돼 있을 때만 이 수정을 만들어요).
+  //   미리보기: opts.renderText 가 있고 글자색이 하나면 새 글꼴로 글자 그림을 다시 그려요 → 근사치 (정렬·줄 간격은 대략)
+  function applyFont(layer, fix, opts) {
+    if (!fix.postScriptName) throw new Error("바꿀 글꼴 이름(postScriptName)이 필요해요.");
+    var colors = [];
+    setTextStyle(layer.text, function (s) {
+      s.font = { name: fix.postScriptName };
+      if (fix.upright) s.fauxItalic = false;
+      var h = fillHex(s.fillColor);
+      if (h && colors.indexOf(h) < 0) colors.push(h);
+    });
+    var label = (fix.family || fix.postScriptName) + (fix.weight ? " " + fix.weight : "");
+    var px = effectiveFontPx(layer.text);
+    var img = null;
+    if (opts && opts.renderText && layer.imageData && px && colors.length <= 1) {
+      img = opts.renderText(String(layer.text.text || ""), px, colors[0] || "#000000", fix.postScriptName, { cssFamilies: fix.cssFamilies || [], weight: fix.weight || "regular" });
+    }
+    if (!img) return { message: "글꼴 → " + label + " (미리보기에는 반영 안 됨, 포토샵에서 열면 반영돼요)", redrawn: false };
+    // 글자 기준점(첫 줄 베이스라인 왼쪽)에 맞춰 놓아요. renderText 는 첫 줄 베이스라인을 px × 1.05 에 그려요
+    var t = layer.text.transform || [1, 0, 0, 1, layer.left, layer.bottom];
+    layer.imageData = img;
+    layer.left = Math.round(t[4]);
+    layer.top = Math.round(t[5] - px * 1.05);
+    layer.right = layer.left + img.width;
+    layer.bottom = layer.top + img.height;
+    return { message: "글꼴 → " + label + " (미리보기는 근사치)", redrawn: true };
+  }
+
   // 줄 간격(글자 크기의 배수)·자간(em). 미리보기에는 반영하지 못해요 → 포토샵에서 열면 반영돼요.
   function applySpacing(layer, fix) {
     var parts = [];
@@ -508,8 +537,12 @@
     return parts.join(", ");
   }
 
-  // 글자 크기를 키운 뒤: 포스터 밖으로 나가거나 다른 글자와 겹치는지
-  function layoutWarnings(psd, sizedIds) {
+  // 글자 크기를 키운 뒤(또는 글꼴을 바꿔 폭이 달라진 뒤): 포스터 밖으로 나가거나 다른 글자와 겹치는지
+  //   changed: [레이어 id] (모두 '키웠더니') 또는 { 레이어 id: "글꼴을 바꿨더니" ... }
+  function layoutWarnings(psd, changed) {
+    var verbOf = {};
+    if (Array.isArray(changed)) changed.forEach(function (id) { verbOf[id] = "키웠더니"; });
+    else Object.keys(changed || {}).forEach(function (id) { verbOf[id] = changed[id]; });
     var texts = [];
     (function walk(list) {
       list.forEach(function (l) {
@@ -519,13 +552,14 @@
     })(psd.children || []);
     var out = [];
     texts.forEach(function (l) {
-      if (sizedIds.indexOf(l.id) < 0) return;
+      var verb = verbOf[l.id];
+      if (!verb) return;
       var name = "'" + (l.name || l.id) + "'";
-      if (l.left < 0 || l.top < 0 || l.right > psd.width || l.bottom > psd.height) out.push(name + " 글자를 키웠더니 포스터 밖으로 나가요. 위치를 옮기거나 여러 줄로 나눠 주세요.");
+      if (l.left < 0 || l.top < 0 || l.right > psd.width || l.bottom > psd.height) out.push(name + " 글자를 " + verb + " 포스터 밖으로 나가요. 위치를 옮기거나 여러 줄로 나눠 주세요.");
       texts.forEach(function (o) {
         if (o === l) return;
         var w = Math.min(l.right, o.right) - Math.max(l.left, o.left), h = Math.min(l.bottom, o.bottom) - Math.max(l.top, o.top);
-        if (w > 2 && h > 2) out.push(name + " 글자를 키웠더니 '" + (o.name || o.id) + "'와(과) 겹쳐요. 위치나 간격을 조정해 주세요.");
+        if (w > 2 && h > 2) out.push(name + " 글자를 " + verb + " '" + (o.name || o.id) + "'와(과) 겹쳐요. 위치나 간격을 조정해 주세요.");
       });
     });
     return out;
@@ -585,7 +619,7 @@
     warnings = warnings.concat(recomposed.warnings);
 
     var nextId = maxId(psd.children || []) + 1;
-    var sizedIds = [], spacingNote = false;
+    var sizedIds = [], changedIds = {}, spacingNote = false;
     // 배경 띠는 레이어 순서를 바꾸니까 맨 마지막에, 핵심 정보 띠는 맨 위에 새로 넣으니까 그다음에 처리해요
     var late = { backplate: 1, infoStrip: 2 };
     // 강조(굵게·밑줄)는 원래 글자색으로 구간을 찾으니까, 글자색을 바꾸기 전에 먼저 처리해요
@@ -611,6 +645,11 @@
         if (f.type === "color") applied.push({ fix: f, message: applyColor(found.layer, f, psd.colorMode === 4) });
         else if (f.type === "size") { applied.push({ fix: f, message: applySize(found.layer, f.valuePt, ppi) }); sizedIds.push(f.layerId); }
         else if (f.type === "weight") applied.push({ fix: f, message: applyWeight(found.layer) });
+        else if (f.type === "font") {
+          var fr = applyFont(found.layer, f, opts);
+          applied.push({ fix: f, message: fr.message });
+          if (fr.redrawn) changedIds[f.layerId] = "글꼴을 바꿨더니";
+        }
         else if (f.type === "emphasis") applied.push({ fix: f, message: applyEmphasis(found.layer, f, psd.colorMode === 4) });
         else if (f.type === "spacing") {
           applied.push({ fix: f, message: applySpacing(found.layer, f) });
@@ -626,7 +665,8 @@
     }
 
     if (spacingNote) warnings.push("줄 간격·자간 변경은 미리보기에 보이지 않아요. 포토샵에서 파일을 열면 반영돼요.");
-    warnings = warnings.concat(layoutWarnings(psd, sizedIds));
+    sizedIds.forEach(function (id) { changedIds[id] = "키웠더니"; });
+    warnings = warnings.concat(layoutWarnings(psd, changedIds));
     if (!opts.quick) psd.imageData = compositePsd(psd).imageData;
     return { psd: psd, applied: applied, skipped: skipped, warnings: warnings, previewMatchesOriginal: previewMatchesOriginal };
   }

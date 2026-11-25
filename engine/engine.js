@@ -87,7 +87,9 @@
       displayScaleMmPerPx: base.screenWidthMm ? base.screenWidthMm / doc.document.widthPx : null,
       // 글자 크기(pt)를 무엇으로 잴지: "print"(인쇄 크기) / "screen"(휴대폰 화면에 보이는 크기)
       sizeBasis: base.sizeBasis || (base.screenWidthMm ? "screen" : "print"),
-      screenCssPxPerPx: base.screenWidthCssPx ? base.screenWidthCssPx / doc.document.widthPx : null
+      screenCssPxPerPx: base.screenWidthCssPx ? base.screenWidthCssPx / doc.document.widthPx : null,
+      // 바꿀 글꼴(policies.fontReplace)이 이 컴퓨터에 있나요: true / false / null(모름). 있을 때만 글꼴 수정을 만들어요
+      fontInstalled: env.fontInstalled === true ? true : env.fontInstalled === false ? false : null
     };
   }
 
@@ -498,7 +500,7 @@
   }
 
   // ---------------------------------------------------------------- ① 글꼴 가독성 (장식·좁은 글꼴, 기울임, 전부 대문자)
-  function checkFont(l, pol, P) {
+  function checkFont(l, pol, P, env) {
     var F = P.fontLegibility;
     if (!F) return null;
     var raw = (l.font && (l.font.postScriptName || l.font.name)) || "";
@@ -520,7 +522,7 @@
       issues.push({ key: "allCaps", text: "영문 전부 대문자" });
     }
     if (!issues.length) return null; // 문제가 있을 때만 결과를 만들어요
-    return {
+    var res = {
       check: "font",
       status: pol.judge === "advisory" ? "advisory" : "warn",
       metric: issues.map(function (i) { return i.text; }).join(" · ") + (l.font && l.font.name ? " (" + l.font.name + ")" : ""),
@@ -528,6 +530,63 @@
       detail: { issues: issues.map(function (i) { return i.key; }), fontName: l.font && l.font.name },
       fix: null
     };
+    var plan = planFontReplace(l, res.detail.issues, pol, P, env);
+    if (plan) {
+      res.detail.fontReplace = plan.detail;
+      if (plan.note) res.message += " " + plan.note;
+      if (plan.fix) res.fix = plan.fix;
+    }
+    return res;
+  }
+
+  // 읽기 쉬운 글꼴(policies.fontReplace)로 바꾸기
+  //   정보 글자(pol.fix.allowFont) + 글꼴 모양 문제(fixIssues) + 한글·영문만 + 설치돼 있음 → 수정
+  //   설치 안 됨·모름 → 수정 없이 설치 안내, 다른 글자가 섞임 → 수정 없이 그대로 둔다는 안내
+  function planFontReplace(l, issueKeys, pol, P, env) {
+    var R = P.fontReplace;
+    if (!R || !pol.fix || !pol.fix.allowFont) return null;
+    if (!issueKeys.some(function (k) { return R.fixIssues.indexOf(k) >= 0; })) return null;
+    var f = l.font || {};
+    var flat = function (s) { return String(s || "").toLowerCase().replace(/[\s_-]+/g, ""); };
+    var cur = flat(f.postScriptName) + " " + flat(f.name);
+    if (R.matchNames.some(function (n) { return cur.indexOf(flat(n)) >= 0; })) return null; // 이미 그 글꼴
+    var weight = fontWeightClass(f, R);
+    var vars = { family: R.family, weight: R.weightLabels[weight], url: R.downloadUrl };
+    var detail = { family: R.family, weight: weight, postScriptName: R.postScriptNames[weight], downloadUrl: R.downloadUrl };
+    if (R.onlyHangulLatin && hasOtherScript(l.text)) {
+      detail.status = "otherScript";
+      return { detail: detail, note: fmt(P.messages.fontScriptKept, vars) };
+    }
+    if (env.fontInstalled !== true) {
+      detail.status = env.fontInstalled === false ? "notInstalled" : "unknown";
+      return { detail: detail, note: fmt(P.messages.fontNotInstalled, vars) };
+    }
+    detail.status = "ready";
+    return {
+      detail: detail,
+      note: fmt(P.messages.fontReplace, vars),
+      fix: {
+        type: "font", family: R.family, postScriptName: R.postScriptNames[weight], weight: weight,
+        cssFamilies: R.cssFamilies.slice(), upright: issueKeys.indexOf("italic") >= 0,
+        strategy: pol.fix.strategy, passes: true
+      }
+    };
+  }
+
+  // 원래 굵기 → regular / bold / extraBold
+  function fontWeightClass(f, R) {
+    var s = [f.postScriptName, f.name, f.style].join(" ").toLowerCase();
+    var hit = function (list) { return list.some(function (k) { return s.indexOf(k) >= 0; }); };
+    if (hit(R.weightKeywords.extraBold)) return "extraBold";
+    if (hit(R.weightKeywords.bold)) return "bold";
+    if (f.fauxBold) return R.fauxBoldAs || "bold";
+    return "regular";
+  }
+
+  // 한글·영문(라틴) 말고 다른 글자(중국어·일본어·키릴 등)가 섞였는지. 숫자·기호·공백은 괜찮아요
+  function hasOtherScript(text) {
+    var rest = String(text || "").replace(/[A-Za-zÀ-ɏᄀ-ᇿ㄰-㆏ꥠ-꥿가-힣ힰ-퟿]/g, "");
+    return /\p{L}/u.test(rest);
   }
 
   // ---------------------------------------------------------------- ① 글자 굵기
@@ -1089,7 +1148,7 @@
         var colorOnly = checkColorOnly(l, contrast, pol, P);
         if (colorOnly) results.push(Object.assign({}, common, colorOnly));
       }
-      var font = checkFont(l, pol, P);
+      var font = checkFont(l, pol, P, env);
       if (font) results.push(Object.assign({}, common, font));
       var weight = checkWeight(l, pol, P, env, doc);
       if (weight) results.push(Object.assign({}, common, weight));
@@ -1159,6 +1218,7 @@
       if (r.fix.type === "size") f.valuePt = r.fix.valuePt;
       if (r.fix.type === "backplate") { f.color = r.fix.color; f.opacity = r.fix.opacity; f.paddingMm = r.fix.paddingMm; }
       if (r.fix.type === "weight") f.fauxBold = true;
+      if (r.fix.type === "font") ["family", "postScriptName", "weight", "cssFamilies", "upright"].forEach(function (k) { f[k] = r.fix[k]; });
       if (r.fix.type === "emphasis") f.runs = r.fix.runs;
       if (r.fix.type === "infoStrip") ["text", "sizePt", "left", "top", "color", "plate", "plateOpacity", "paddingMm", "fontName", "sourceIds"].forEach(function (k) { f[k] = r.fix[k]; });
       if (r.fix.type === "spacing") {

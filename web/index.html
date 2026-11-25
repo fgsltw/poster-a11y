@@ -1450,6 +1450,7 @@
       case "color": return f.runs && f.runs.length ? `글자색 ${f.runs.map((r) => r.value).join(", ")}로 (해당 색만)` : `글자색 ${f.value}로 (밝기만 조절)`;
       case "backplate": return `글자 뒤에 ${f.color === "#FFFFFF" ? "흰" : "짙은"} 배경 띠 (${Math.round(f.opacity * 100)}%)`;
       case "weight": return "조금 굵게";
+      case "font": return `${f.family} ${(EnginePolicies.fontReplace.weightLabels || {})[f.weight] || ""}로 바꾸기`.replace("  ", " ");
       case "emphasis": {
         const how = (r) => [r.bold ? "굵게" : "", r.underline ? "밑줄" : "", r.value ? `색 ${r.value}` : ""].filter(Boolean).join(" · ");
         const runs = f.runs || [];
@@ -1859,8 +1860,20 @@
   // 지금 고른 보는 환경
   const envNow = () => ({
     medium: medium(), distanceM: parseFloat($("dist").value) || undefined, lighting: $("dim").checked ? "dim" : "normal",
-    viewer: $("viewer").value, field: $("field").value, colorVision: S.cvd !== false
+    viewer: $("viewer").value, field: $("field").value, colorVision: S.cvd !== false,
+    fontInstalled: replaceFontInstalled()
   });
+  // 바꿀 글꼴(KoddiUD 온고딕)이 이 컴퓨터에 설치돼 있는지: 기본 글꼴과 글자 폭이 달라지면 있다고 봐요
+  let fontInstalledCache = null;
+  function replaceFontInstalled() {
+    if (fontInstalledCache !== null) return fontInstalledCache;
+    const R = EnginePolicies.fontReplace;
+    if (!R) return (fontInstalledCache = false);
+    const g = document.createElement("canvas").getContext("2d"), probe = "가나다라 온고딕 Il1O0 2026.11.25";
+    const width = (font) => { g.font = font; return g.measureText(probe).width; };
+    fontInstalledCache = R.cssFamilies.some((f) => ["monospace", "serif"].some((base) => Math.abs(width(`40px "${f}", ${base}`) - width(`40px ${base}`)) > 0.5));
+    return fontInstalledCache;
+  }
   $("purpose").onchange = () => { S.purposeInfo.document = $("purpose").value || null; purposesChanged(); };
 
   function purposesChanged() {
@@ -2328,15 +2341,18 @@
   //   field   : 포스터 위에 '한 번에 보이는 범위' 원
   //   none    : 배치를 바꿔야 하는 항목 — 지금 모습 + 고치는 방법
   // 핵심 정보 띠 미리보기 글자 (여러 줄). psd-apply 가 새 글자 레이어 그림으로 써요
-  function renderStripText(text, px, color, fontName) {
-    const lines = String(text).split(/\r?\n|\r/), bold = /bold|black|heavy/i.test(fontName || "") ? 700 : 600;
+  // o: { cssFamilies, weight } — 글꼴 바꾸기 미리보기 (그 글꼴을 먼저 쓰고, 없으면 기본 고딕)
+  function renderStripText(text, px, color, fontName, o) {
+    const lines = String(text).split(/\r?\n|\r/);
+    const bold = o ? ({ regular: 400, bold: 700, extraBold: 800 }[o.weight] || 400) : /bold|black|heavy/i.test(fontName || "") ? 700 : 600;
+    const family = o && o.cssFamilies && o.cssFamilies.length ? o.cssFamilies.map((f) => `"${f.replace(/"/g, "")}"`).join(", ") + ", " + PLAIN_FONT : PLAIN_FONT;
     const m = document.createElement("canvas").getContext("2d");
-    m.font = `${bold} ${px}px ${PLAIN_FONT}`;
+    m.font = `${bold} ${px}px ${family}`;
     const w = Math.ceil(Math.max(...lines.map((t) => m.measureText(t).width))) + 2, lh = Math.round(px * 1.35);
     const c = document.createElement("canvas");
     c.width = w; c.height = lh * lines.length;
     const g = c.getContext("2d");
-    g.font = `${bold} ${px}px ${PLAIN_FONT}`; g.fillStyle = color; g.textBaseline = "alphabetic";
+    g.font = `${bold} ${px}px ${family}`; g.fillStyle = color; g.textBaseline = "alphabetic";
     lines.forEach((t, i) => g.fillText(t, 0, Math.round(px * 1.05) + lh * i));
     const d = g.getImageData(0, 0, c.width, c.height);
     return { width: d.width, height: d.height, data: new Uint8ClampedArray(d.data) };
@@ -2363,6 +2379,7 @@
       if (x.fix) return asFix(x, { cvdType: type, label: `${name}으로 본 모습`, caption: x.fix.passes === false ? "기준에는 못 미쳐요" : "" });
       return { kind: "cvd", layerId: x.layerId, type, label: `${name}으로 보면` };
     }
+    if (x.check === "font" && x.fix) return asFix(x, { label: `${x.fix.family}으로 바꾼 모습 (근사치)` });
     if (x.check === "font") return { kind: "font", layerId: x.layerId, allCaps: (d.issues || []).includes("allCaps"), label: "읽기 쉬운 글꼴로 바꾼 모습 (예시)" };
     if (x.check === "layout") return asFix(sizeOf(x.layerId), { label: "추천 크기로 키운 모습" }) ||
       { kind: "none", layerIds: [x.layerId], note: "위치를 옮기거나 여러 줄로 나눠야 해서 자동으로 고친 모습을 만들 수 없어요." };
