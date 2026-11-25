@@ -305,8 +305,9 @@
 
     var img = layer.imageData;
     if (img) {
+      // 미리보기 그림: 강조 색마다 따로 (색이 여럿이면 굵게·밑줄도 색마다 다를 수 있어요)
       var pal = palette.map(function (h) { return { hex: h, rgb: LD.hexToRgb(h) }; });
-      var W = img.width, H = img.height, mask = new Uint8Array(W * H), minX = W, maxX = -1, maxY = -1;
+      var W = img.width, H = img.height, masks = {};
       for (var p = 0; p < W * H; p++) {
         var j = p * 4;
         if (img.data[j + 3] === 0) continue;
@@ -315,47 +316,57 @@
           var dr = img.data[j] - pal[k].rgb.r, dg = img.data[j + 1] - pal[k].rgb.g, db = img.data[j + 2] - pal[k].rgb.b, d = dr * dr + dg * dg + db * db;
           if (d < bd) { bd = d; best = pal[k].hex; }
         }
-        if (best && map[best]) { mask[p] = 1; var x = p % W, y = (p / W) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y > maxY) maxY = y; }
+        if (best && map[best]) {
+          var M = masks[best] || (masks[best] = { mask: new Uint8Array(W * H), minX: W, maxX: -1, maxY: -1 });
+          M.mask[p] = 1;
+          var x = p % W, y = (p / W) | 0;
+          if (x < M.minX) M.minX = x; if (x > M.maxX) M.maxX = x; if (y > M.maxY) M.maxY = y;
+        }
       }
-      if (maxX >= 0) {
-        var first = map[Object.keys(map)[0]], col = first.to ? first.to.rgb : LD.hexToRgb(first.run.from);
-        var px = effectiveFontPx(layer.text) || 20;
-        // 굵게: 강조 색 픽셀 주변을 같은 색으로 채워요
-        if (first.run.bold) {
-          var rr = Math.max(1, Math.round(px * 0.025)), src = new Uint8ClampedArray(img.data);
+      var px = effectiveFontPx(layer.text) || 20;
+      var colorOf = function (h) { return map[h].to ? map[h].to.rgb : LD.hexToRgb(map[h].run.from); };
+      // 굵게(또는 색만 바꾸기): 원래 그림을 기준으로 강조 색 픽셀 주변을 같은 색으로 채워요
+      var src = new Uint8ClampedArray(img.data);
+      Object.keys(masks).forEach(function (h) {
+        var M = masks[h], m = map[h], col = colorOf(h);
+        if (m.run.bold) {
+          var rr = Math.max(1, Math.round(px * 0.025));
           for (var y2 = 0; y2 < H; y2++) for (var x2 = 0; x2 < W; x2++) {
             var a = 0;
             for (var dy = -rr; dy <= rr; dy++) for (var dx = -rr; dx <= rr; dx++) {
               var sx = x2 + dx, sy = y2 + dy;
-              if (sx < 0 || sy < 0 || sx >= W || sy >= H || dx * dx + dy * dy > rr * rr || !mask[sy * W + sx]) continue;
+              if (sx < 0 || sy < 0 || sx >= W || sy >= H || dx * dx + dy * dy > rr * rr || !M.mask[sy * W + sx]) continue;
               a = Math.max(a, src[(sy * W + sx) * 4 + 3]);
             }
             var o = (y2 * W + x2) * 4;
-            if (a > img.data[o + 3] || (a && mask[y2 * W + x2])) { img.data[o] = col.r; img.data[o + 1] = col.g; img.data[o + 2] = col.b; img.data[o + 3] = Math.max(a, img.data[o + 3]); }
+            if (a > img.data[o + 3] || (a && M.mask[y2 * W + x2])) { img.data[o] = col.r; img.data[o + 1] = col.g; img.data[o + 2] = col.b; img.data[o + 3] = Math.max(a, img.data[o + 3]); }
           }
-        } else if (first.to) {
-          for (var q = 0; q < W * H; q++) if (mask[q]) { img.data[q * 4] = col.r; img.data[q * 4 + 1] = col.g; img.data[q * 4 + 2] = col.b; }
+        } else if (m.to) {
+          for (var q = 0; q < W * H; q++) if (M.mask[q]) { img.data[q * 4] = col.r; img.data[q * 4 + 1] = col.g; img.data[q * 4 + 2] = col.b; }
         }
-        // 밑줄: 강조 구간 아래 (글자 크기의 8% 띄우고 6% 굵기). 그림 밖이면 그림을 아래로 늘려요
-        if (first.run.underline) {
-          var gap = Math.max(2, Math.round(px * 0.08)), th = Math.max(2, Math.round(px * 0.06));
-          var y0 = maxY + gap, need = y0 + th - H;
-          if (need > 0) {
-            var grown = new Uint8ClampedArray(W * (H + need) * 4);
-            grown.set(img.data);
-            layer.imageData = img = { width: W, height: H + need, data: grown };
-            layer.bottom = layer.top + H + need;
-          }
-          for (var yy = y0; yy < y0 + th; yy++) for (var xx = minX; xx <= maxX; xx++) {
-            var u = (yy * W + xx) * 4;
-            img.data[u] = col.r; img.data[u + 1] = col.g; img.data[u + 2] = col.b; img.data[u + 3] = 255;
-          }
+      });
+      // 밑줄: 강조 색마다 그 구간 아래 (글자 크기의 8% 띄우고 6% 굵기). 그림 밖이면 그림을 아래로 늘려요
+      Object.keys(masks).forEach(function (h) {
+        var M = masks[h], col = colorOf(h);
+        if (!map[h].run.underline) return;
+        var gap = Math.max(2, Math.round(px * 0.08)), th = Math.max(2, Math.round(px * 0.06));
+        var y0 = M.maxY + gap, need = y0 + th - img.height;
+        if (need > 0) {
+          var grown = new Uint8ClampedArray(W * (img.height + need) * 4);
+          grown.set(img.data);
+          layer.imageData = img = { width: W, height: img.height + need, data: grown };
+          layer.bottom = layer.top + img.height;
         }
-      }
+        for (var yy = y0; yy < y0 + th; yy++) for (var xx = M.minX; xx <= M.maxX; xx++) {
+          var u = (yy * W + xx) * 4;
+          img.data[u] = col.r; img.data[u + 1] = col.g; img.data[u + 2] = col.b; img.data[u + 3] = 255;
+        }
+      });
     }
-    return "강조 구간 " + Object.keys(map).join(", ") + " → " + [first0(fix).bold ? "굵게" : "", first0(fix).underline ? "밑줄" : "", first0(fix).value ? "색 " + first0(fix).value.toUpperCase() : ""].filter(Boolean).join(" · ");
+    return "강조 구간 " + (fix.runs || []).map(function (r) {
+      return String(r.from).toUpperCase() + " " + [r.bold ? "굵게" : "", r.underline ? "밑줄" : "", r.value ? "색 " + r.value.toUpperCase() : ""].filter(Boolean).join("·");
+    }).join(" / ");
   }
-  function first0(fix) { return (fix.runs && fix.runs[0]) || {}; }
 
   // ------------------------------------------------------------ 핵심 정보 띠 (좁은 시야)
   //   흩어진 핵심 정보를 모은 새 글자 레이어 + 흰 판을 맨 위에 넣어요. 원래 글자는 그대로 둬요.

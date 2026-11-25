@@ -343,20 +343,23 @@
     pairs.forEach(function (p) { p.lostFor.forEach(function (t) { if (lostAll.indexOf(t) < 0) lostAll.push(t); }); });
     var p0 = pairs.filter(function (p) { return p.lostFor.length; })[0] || pairs[0];
     var names = lostAll.map(function (t) { return CV.labels[t]; }).join("·");
-    var fix = lostAll.length ? colorOnlyFix(l, p0, contrastRes, pol, P) : null;
+    var fix = lostAll.length ? colorOnlyFix(l, runs, pairs, p0, contrastRes, pol, P) : null;
     return {
       check: "colorOnly",
       status: pol.judge === "advisory" || !lostAll.length ? "advisory" : "warn",
       metric: "“" + short(p0.a) + "”, “" + short(p0.b) + "” 두 부분이 모양은 같고 색만 달라요 (" + p0.colors.join(" · ") + ")" +
         (lostAll.length ? " · " + names + "이면 두 색이 거의 같아 보여요" : ""),
-      message: P.messages.colorOnly + (fix ? " " + (fix.runs[0].value ? P.messages.colorOnlyFixWithColor : P.messages.colorOnlyFix) : ""),
+      message: P.messages.colorOnly + (fix ? " " + (fix.runs.length > 1 ? P.messages.colorOnlyFixMulti : fix.runs[0].value ? P.messages.colorOnlyFixWithColor : P.messages.colorOnlyFix) : ""),
       detail: { pairs: pairs, lostFor: lostAll },
       fix: fix
     };
   }
-  // 색만 다른 두 구간 중 짧은 쪽(보통 강조)의 밝기만 바꿔요 (색상은 그대로)
-  //   목표: 색각이상 눈(구분이 안 되던 유형 모두)으로 봐도 두 색 거리 ≥ fixDeltaE, 배경 대비는 기준 유지. 가장 작은 변화
-  function colorOnlyFix(l, pair, contrastRes, pol, P) {
+  // 색만 다른 강조를 모양으로도 구분하게 고쳐요
+  //   ① 글자가 가장 많은 색 = 본문, 나머지 색 = 강조. 강조 색마다 서로 다른 모양(policies.colorVision.emphasisStyles)을 줘요
+  //      → 본문↔강조, 강조↔강조(예: 매진·예매 가능) 모두 색 없이 구분돼요
+  //   ② 가장 문제인 쌍(p0)의 강조 쪽은 밝기도 바꿀 수 있으면 함께 바꿔요 (색상은 그대로)
+  //      목표: 색각이상 눈으로 봐도 두 색 거리 ≥ fixDeltaE, 배경 대비는 기준 유지. 가장 작은 변화
+  function colorOnlyFix(l, runs, pairs, pair, contrastRes, pol, P) {
     var CV = P.colorVision, bgs = backgroundRgbs(l);
     if (!bgs || !contrastRes || !contrastRes.detail || !contrastRes.detail.target) return null;
     var target = contrastRes.detail.target, alpha = l.opacity == null ? 1 : l.opacity, types = pair.lostFor.length ? pair.lostFor : CV.types;
@@ -378,13 +381,44 @@
         }
       });
     });
-    // 강조 쪽(짧은 구간)에 굵게 + 밑줄 → 색을 전혀 못 느껴도 모양으로 구분돼요 (WCAG 1.4.1이 권하는 방법)
-    //   밝기 차이까지 낼 수 있으면(passes) 그 색도 같이 넣어요
-    var emph = pair.a.length <= pair.b.length ? pair.colors[0] : pair.colors[1];
-    var run = { from: emph, bold: true, underline: true };
-    if (best && best.passes && best.from.toUpperCase() === emph.toUpperCase()) run.value = best.value;
-    return { type: "emphasis", runs: [run], strategy: "shape", passes: true,
-      contrastAfter: run.value ? round(best.bgContrast, 2) : undefined, deltaEAfter: run.value ? round(best.deltaE, 3) : undefined };
+    // 색마다 글자 수를 세서 가장 많은 색을 본문으로 봐요. 강조는 짧은 것부터
+    var chars = {}, shape = {};
+    runs.forEach(function (r) {
+      var h = r.color.toUpperCase();
+      chars[h] = (chars[h] || 0) + String(r.text || "").trim().length;
+      if (!shape[h]) shape[h] = { bold: !!r.bold, underline: !!r.underline };
+    });
+    var involved = [];
+    pairs.forEach(function (p) { p.colors.forEach(function (c) { c = c.toUpperCase(); if (involved.indexOf(c) < 0) involved.push(c); }); });
+    var baseColor = Object.keys(chars).sort(function (a, b) { return chars[b] - chars[a]; })[0];
+    var accents = involved.filter(function (c) { return c !== baseColor; }).sort(function (a, b) { return chars[a] - chars[b]; });
+    if (!accents.length) return null;
+
+    // 강조마다 다른 모양. 굵게·밑줄은 '더하기'만 할 수 있어서, 본문 모양에 더했을 때 서로 다른 모양이 되는 것만 써요
+    var key = function (s) { return (s.bold ? "B" : "") + (s.underline ? "U" : ""); };
+    var used = {};
+    used[key(shape[baseColor])] = true;
+    var styles = (CV.emphasisStyles || [{ bold: true, underline: true }]).slice();
+    var out = [], allDistinct = true;
+    accents.forEach(function (c) {
+      var cur = shape[c] || { bold: false, underline: false }, pick = null;
+      for (var i = 0; i < styles.length && !pick; i++) {
+        var res = { bold: cur.bold || !!styles[i].bold, underline: cur.underline || !!styles[i].underline };
+        if (!used[key(res)]) { pick = styles[i]; used[key(res)] = true; styles.splice(i, 1); }
+      }
+      if (!pick) { allDistinct = false; return; }
+      var run = { from: c };
+      if (pick.bold) run.bold = true;
+      if (pick.underline) run.underline = true;
+      out.push(run);
+    });
+    if (!out.length) return null;
+
+    // 가장 문제인 쌍의 강조 쪽: 밝기 차이까지 낼 수 있으면(passes) 그 색도 같이 넣어요
+    var first = out.filter(function (r) { return best && best.passes && best.from.toUpperCase() === r.from; })[0];
+    if (first) first.value = best.value;
+    return { type: "emphasis", runs: out, strategy: "shape", passes: allDistinct,
+      contrastAfter: first ? round(best.bgContrast, 2) : undefined, deltaEAfter: first ? round(best.deltaE, 3) : undefined };
   }
 
   // 일반 눈으로는 대비가 충분해도, 색각이상으로 보면 대비가 기준 밑으로 떨어지는지

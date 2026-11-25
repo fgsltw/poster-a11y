@@ -1450,7 +1450,12 @@
       case "color": return f.runs && f.runs.length ? `글자색 ${f.runs.map((r) => r.value).join(", ")}로 (해당 색만)` : `글자색 ${f.value}로 (밝기만 조절)`;
       case "backplate": return `글자 뒤에 ${f.color === "#FFFFFF" ? "흰" : "짙은"} 배경 띠 (${Math.round(f.opacity * 100)}%)`;
       case "weight": return "조금 굵게";
-      case "emphasis": { const r = (f.runs || [])[0] || {}; return "강조한 부분을 " + [r.bold ? "굵게" : "", r.underline ? "밑줄" : "", r.value ? `색 ${r.value}` : ""].filter(Boolean).join(" · ") + " (모양으로도 구분)"; }
+      case "emphasis": {
+        const how = (r) => [r.bold ? "굵게" : "", r.underline ? "밑줄" : "", r.value ? `색 ${r.value}` : ""].filter(Boolean).join(" · ");
+        const runs = f.runs || [];
+        if (runs.length <= 1) return "강조한 부분을 " + how(runs[0] || {}) + " (모양으로도 구분)";
+        return `강조한 부분 ${runs.length}곳을 서로 다른 모양으로: ` + runs.map(how).join(" / ") + " (강조끼리도 구분)";
+      }
       case "infoStrip": return `흩어진 핵심 정보를 모은 '핵심 정보 띠' 넣기 (${String(f.text).split(/\n/).length}줄, ${f.sizePt}pt)`;
       case "spacing": return [f.lineHeight != null ? `줄 간격 ${f.lineHeight}배` : "", f.letterSpacingEm != null ? `자간 ${f.letterSpacingEm}em` : ""].filter(Boolean).join(", ");
     }
