@@ -60,7 +60,12 @@ npm install
 
 **https://poster-a11y-chi.vercel.app** — 클리어 뷰. 설치 없이 링크만 열면 돼요. 개발자 도구는 `/dev.html`. PSD는 방문자의 브라우저 안에서만 처리되고 서버로 올라가지 않아요.
 
-다시 배포하려면 (Vercel에 로그인한 사람만):
+**배포는 자동이에요.** Vercel 프로젝트에 이 GitHub 저장소를 연결해 두면, `main`에 합칠 때마다 Vercel이 저장소 맨 위의 `vercel.json`대로 `npm ci` → `npm run build:web` 을 하고 `dist-web/`를 올려요. PR을 올리면 미리보기 주소도 생겨요.
+
+- 연결: Vercel → poster-a11y → Settings → Git → Connect Git Repository → `fgsltw/poster-a11y` (빌드 설정은 `vercel.json`에 있어서 따로 입력하지 않아요)
+- 확인: Vercel의 Deployments 탭
+
+저장소를 연결하기 전이나 급할 때 손으로 배포하려면 (Vercel에 로그인한 사람만):
 
 ```bash
 npm run build:web
