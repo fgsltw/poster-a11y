@@ -14,7 +14,7 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 
 > 엔진 코드에는 기준값과 안내 문구를 직접 넣지 않아요 (테스트로 확인해요). 목적별 문구는 `purposes.*.messages`, 목적과 상관없는 공통 문구(충돌, 큰 글씨 안내문, 배치, 계층, 좁은 시야 등)는 `messages`, 배경 띠 후보 색·여백은 `contrast.backplate`, 목적 추천 비율은 `purposeSuggestion.artSizeRatio`에 있어요. 문구의 `{pt}`·`{role}` 같은 자리는 엔진이 채워요.
 | `engine/engine.js` | 검사 본체: 크기·대비·굵기·간격·확대 후 배치·위계, 목적 추천, 수정 전략, 충돌 감지 |
-| `engine/color.js` | 대비 계산, OKLCH로 '같은 색상·밝기만 조절' 추천색 찾기. 대비는 실제로 넣을 **반올림한 #RRGGBB 색**으로 계산해서, '통과'라고 한 추천색은 다시 검사해도 통과해요 |
+| `engine/color.js` | 대비 계산, OKLCH로 '같은 색상·밝기만 조절' 추천색 찾기. 대비는 실제로 넣을 **반올림한 #RRGGBB 색**으로 계산해서, '통과'라고 한 추천색은 다시 검사해도 통과해요. 배경 띠도 PSD에 실제로 들어가는 대로(불투명도 0~255 단계, 섞인 색 정수) 계산해요 (`blendStored`) |
 | `engine/roles.js` | 역할 분류(제목·일시·장소·가격·접근성), 대체텍스트 초안. 날짜 읽기(`speakDate`): 연도(2026.11.8)·영어(Nov 8)·기간(11.8~11.10 → '부터 … 까지')·때(새벽·오전·오후·저녁·밤). 장소의 '홀·센터·무대'는 이름 끝에 붙을 때만(콘서트홀, 야외무대) | **영어·중국어·일본어**도 알아봐요: 일시(Nov 8, 7pm, 11月8日, 星期六, 土曜日, 19時), 장소(Concert Hall, Museum, 劇場, ホール, 剧院, 3階), 가격($25, Free entry, 円, 元, 無料, 免费, チケット), 접근성(Audio description, Sign language, 手話, 車いす, 无障碍). 영어는 대소문자를 가리지 않고, 'Hall of Fame'·'Center of the World'처럼 제목에 흔한 말은 빼요. 중국어·일본어 날짜도 한국어로 읽어요(11月8日(土) 19:30 → 11월 8일 토요일 저녁 7시 30분)
 | `test/engine.test.js`, `test/criteria.test.js` | 샘플 포스터로 확인하는 테스트 |
 

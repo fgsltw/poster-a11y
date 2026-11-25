@@ -345,6 +345,37 @@ test("추천색은 반올림한 #RRGGBB 그대로 다시 검사해도 기준을 
   assert.ok(checked > 500, String(checked));
 });
 
+test("배경 띠도 PSD에 실제로 들어가는 색(불투명도 0~255 단계, 정수 색)으로 다시 검사해도 기준을 넘는다", () => {
+  // 고치기 전에는 기준선 근처에서 '통과'라고 한 띠가 다시 검사하면 0.01쯤 모자란 경우가 있었어요 (고정 난수)
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  const randRgb = () => [rnd() * 255, rnd() * 255, rnd() * 255].map(Math.round);
+  const stored = (plate, bg, op) => {
+    const a = Math.round(op * 255) / 255;
+    return plate.map((p, i) => Math.round(p * a + bg[i] * (1 - a)));
+  };
+  const base = fresh();
+  let checked = 0;
+  for (let t = 0; t < 1500; t++) {
+    const d = JSON.parse(JSON.stringify(base));
+    d.document.purpose = t % 2 ? "info" : "art";
+    const l = d.layers.find((x) => x.id === 5);
+    const bgs = [randRgb(), randRgb()];
+    l.color = C.rgbToHex(randRgb());
+    l.colorRuns = null;
+    l.opacity = 1;
+    l.background = { samples: bgs.map(C.rgbToHex), stats: { luminanceStdDev: 0 } };
+    const res = find(E.checkDocument(d, { medium: "wall", viewer: t % 3 ? "general" : "low" }), 5, "contrast");
+    if (!res.fix || res.fix.type !== "backplate") continue;
+    checked++;
+    const fg = C.hexToRgb(l.color), plate = C.hexToRgb(res.fix.color);
+    const actual = Math.min(...bgs.map((bg) => C.contrast(fg, stored(plate, bg, res.fix.opacity))));
+    assert.ok(actual >= res.detail.target, `${l.color} 띠 ${res.fix.color} ${res.fix.opacity}: 실제 ${actual.toFixed(3)} < ${res.detail.target}`);
+    assert.ok(Math.abs(actual - res.fix.contrastAfter) < 0.006, "알려준 대비가 실제 띠 대비와 같아야 해요");
+  }
+  assert.ok(checked > 200, String(checked));
+});
+
 test("날짜를 소리 내어 읽기: 연도·기간·밤 시간·영어 날짜", () => {
   const cases = {
     "2026.11.8(일) 오후 3시": "2026년 11월 8일 일요일 오후 3시",
