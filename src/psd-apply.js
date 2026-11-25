@@ -522,11 +522,17 @@
     return { message: "글꼴 → " + label + " (미리보기는 근사치)", redrawn: true };
   }
 
-  // 줄 간격(글자 크기의 배수)·자간(em). 미리보기에는 반영하지 못해요 → 포토샵에서 열면 반영돼요.
+  // 줄 간격(글자 크기의 배수)·자간(em).
+  //   미리보기: 원래 글자 그림을 줄 덩어리 → 글자 덩어리로 나눠 늘어난 간격만큼 밀어요 (근사치).
+  //   원래 글꼴 모양을 그대로 쓰니까 장식 글꼴도 모양이 바뀌지 않아요. 붙어 있는 글자는 함께 움직여요.
   function applySpacing(layer, fix) {
     var parts = [];
-    var base = layer.text.style && layer.text.style.fontSize;
-    setTextStyle(layer.text, function (s) {
+    var t = layer.text, base = t.style && t.style.fontSize;
+    var st = t.style || {};
+    var oldTracking = st.tracking || 0;
+    var autoOld = st.autoLeading === true || (st.autoLeading == null && st.leading == null);
+    var oldLeading = autoOld ? (base || 0) * 1.2 : st.leading;
+    setTextStyle(t, function (s) {
       var size = s.fontSize != null ? s.fontSize : base;
       if (fix.lineHeight != null && size) { s.autoLeading = false; s.leading = size * fix.lineHeight; }
       if (fix.letterSpacingEm != null) s.tracking = Math.round(fix.letterSpacingEm * 1000);
@@ -534,14 +540,102 @@
     if (fix.lineHeight != null) parts.push("줄 간격 → 글자 크기의 " + fix.lineHeight + "배");
     if (fix.letterSpacingEm != null) parts.push("자간 → " + Math.round(fix.letterSpacingEm * 1000) + " (" + fix.letterSpacingEm + "em)");
     if (!parts.length) throw new Error("lineHeight 나 letterSpacingEm 이 필요해요.");
-    return parts.join(", ");
+    // 미리보기
+    var px = effectiveFontPx(t);
+    var scale = base ? (px || 0) / base : 1;
+    var dx = fix.letterSpacingEm != null && px ? (fix.letterSpacingEm - oldTracking / 1000) * px : 0;
+    var dy = fix.lineHeight != null && base && oldLeading ? (base * fix.lineHeight - oldLeading) * scale : 0;
+    var lines = String(t.text || "").split(/\r\n|\r|\n/);
+    var just = (t.paragraphStyle && t.paragraphStyle.justification) || "left";
+    var shifted = layer.imageData ? shiftGlyphs(layer.imageData, lines, dx, dy, just) : null;
+    if (!shifted) return { message: parts.join(", ") + " (미리보기에는 반영 안 됨, 포토샵에서 열면 반영돼요)", redrawn: false };
+    layer.imageData = shifted.img;
+    layer.left += shifted.offsetX;
+    layer.top += shifted.offsetY;
+    layer.right = layer.left + shifted.img.width;
+    layer.bottom = layer.top + shifted.img.height;
+    return { message: parts.join(", ") + " (미리보기는 근사치)", redrawn: true };
+  }
+
+  // 글자 그림을 줄 → 글자 덩어리로 나눠 밀기. 나누기 어려우면 null
+  //   dx: 글자 하나마다 늘어나는 간격(px) · dy: 줄 하나마다 늘어나는 간격(px) · lines: 줄마다 글자
+  function shiftGlyphs(img, lines, dx, dy, just) {
+    var W = img.width, H = img.height, D = img.data;
+    if (!W || !H || (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5)) return null;
+    var ink = function (x, y) { return D[(y * W + x) * 4 + 3] > 8; };
+    // 1) 줄 덩어리: 잉크가 있는 가로줄 묶음. 줄 수와 다르면 가장 좁은 틈부터 합쳐요
+    var bands = runs(H, function (y) { for (var x = 0; x < W; x++) if (ink(x, y)) return true; return false; });
+    var want = lines.filter(function (l) { return l.trim(); }).length || 1;
+    bands = mergeTo(bands, want);
+    if (bands.length !== want) { if (Math.abs(dy) >= 0.5) return null; bands = [{ a: 0, b: H - 1 }]; }
+    var pieces = [], maxRight = 0;
+    var textLines = lines.filter(function (l) { return l.trim(); });
+    bands.forEach(function (band, li) {
+      var text = textLines[li] || textLines[0] || "";
+      var chars = Array.from(text.replace(/\s+$/, ""));
+      var glyphCount = chars.filter(function (c) { return c.trim(); }).length || 1;
+      // 2) 글자 덩어리: 이 줄 안에서 잉크가 있는 세로줄 묶음. 한 글자가 여러 덩어리(이 = ㅇ + ㅣ)면 가장 좁은 틈부터 합쳐요
+      var cols = mergeTo(runs(W, function (x) { for (var y = band.a; y <= band.b; y++) if (ink(x, y)) return true; return false; }), glyphCount);
+      if (!cols.length) return;
+      var x0 = cols[0].a, x1 = cols[cols.length - 1].b, adv = (x1 - x0 + 1) / Math.max(1, chars.length);
+      cols.forEach(function (c) {
+        var idx = Math.min(chars.length - 1, Math.max(0, Math.floor((c.a - x0) / adv + 0.25)));
+        pieces.push({ x: c.a, w: c.b - c.a + 1, y: band.a, h: band.b - band.a + 1, sx: Math.round(idx * dx), sy: Math.round(li * dy), line: li });
+      });
+    });
+    if (!pieces.length) return null;
+    // 줄마다 늘어난 폭 → 가운데·오른쪽 정렬이면 줄을 그만큼 왼쪽으로
+    var grow = {};
+    pieces.forEach(function (p) { grow[p.line] = Math.max(grow[p.line] || 0, p.sx); });
+    pieces.forEach(function (p) {
+      var g = grow[p.line] || 0;
+      if (just === "center") p.sx -= Math.round(g / 2);
+      else if (just === "right") p.sx -= g;
+    });
+    var minX = 0, minY = 0, maxX = W, maxY = H;
+    pieces.forEach(function (p) {
+      minX = Math.min(minX, p.x + p.sx); minY = Math.min(minY, p.y + p.sy);
+      maxX = Math.max(maxX, p.x + p.sx + p.w); maxY = Math.max(maxY, p.y + p.sy + p.h);
+    });
+    var NW = maxX - minX, NH = maxY - minY, out = new Uint8ClampedArray(NW * NH * 4);
+    pieces.forEach(function (p) {
+      for (var y = 0; y < p.h; y++) {
+        for (var x = 0; x < p.w; x++) {
+          var si = ((p.y + y) * W + (p.x + x)) * 4, a = D[si + 3];
+          if (!a) continue;
+          var oi = ((p.y + y + p.sy - minY) * NW + (p.x + x + p.sx - minX)) * 4;
+          if (a >= out[oi + 3]) { out[oi] = D[si]; out[oi + 1] = D[si + 1]; out[oi + 2] = D[si + 2]; out[oi + 3] = a; }
+        }
+      }
+    });
+    return { img: { width: NW, height: NH, data: out }, offsetX: minX, offsetY: minY };
+  }
+  // 조건이 참인 칸이 이어진 구간들 [{a, b}]
+  function runs(n, has) {
+    var out = [], start = -1;
+    for (var i = 0; i < n; i++) {
+      if (has(i)) { if (start < 0) start = i; }
+      else if (start >= 0) { out.push({ a: start, b: i - 1 }); start = -1; }
+    }
+    if (start >= 0) out.push({ a: start, b: n - 1 });
+    return out;
+  }
+  // 구간이 want 개보다 많으면, 틈이 가장 좁은 이웃끼리 합쳐요
+  function mergeTo(list, want) {
+    list = list.slice();
+    while (list.length > want) {
+      var best = 0, gap = Infinity;
+      for (var i = 0; i < list.length - 1; i++) { var g = list[i + 1].a - list[i].b; if (g < gap) { gap = g; best = i; } }
+      list.splice(best, 2, { a: list[best].a, b: list[best + 1].b });
+    }
+    return list;
   }
 
   // 글자 크기를 키운 뒤(또는 글꼴을 바꿔 폭이 달라진 뒤): 포스터 밖으로 나가거나 다른 글자와 겹치는지
-  //   changed: [레이어 id] (모두 '키웠더니') 또는 { 레이어 id: "글꼴을 바꿨더니" ... }
+  //   changed: [레이어 id] (모두 '글자를 키웠더니') 또는 { 레이어 id: "글꼴을 바꿨더니" ... }
   function layoutWarnings(psd, changed) {
     var verbOf = {};
-    if (Array.isArray(changed)) changed.forEach(function (id) { verbOf[id] = "키웠더니"; });
+    if (Array.isArray(changed)) changed.forEach(function (id) { verbOf[id] = "글자를 키웠더니"; });
     else Object.keys(changed || {}).forEach(function (id) { verbOf[id] = changed[id]; });
     var texts = [];
     (function walk(list) {
@@ -555,11 +649,11 @@
       var verb = verbOf[l.id];
       if (!verb) return;
       var name = "'" + (l.name || l.id) + "'";
-      if (l.left < 0 || l.top < 0 || l.right > psd.width || l.bottom > psd.height) out.push(name + " 글자를 " + verb + " 포스터 밖으로 나가요. 위치를 옮기거나 여러 줄로 나눠 주세요.");
+      if (l.left < 0 || l.top < 0 || l.right > psd.width || l.bottom > psd.height) out.push(name + " " + verb + " 포스터 밖으로 나가요. 위치를 옮기거나 여러 줄로 나눠 주세요.");
       texts.forEach(function (o) {
         if (o === l) return;
         var w = Math.min(l.right, o.right) - Math.max(l.left, o.left), h = Math.min(l.bottom, o.bottom) - Math.max(l.top, o.top);
-        if (w > 2 && h > 2) out.push(name + " 글자를 " + verb + " '" + (o.name || o.id) + "'와(과) 겹쳐요. 위치나 간격을 조정해 주세요.");
+        if (w > 2 && h > 2) out.push(name + " " + verb + " '" + (o.name || o.id) + "'와(과) 겹쳐요. 위치나 간격을 조정해 주세요.");
       });
     });
     return out;
@@ -652,8 +746,10 @@
         }
         else if (f.type === "emphasis") applied.push({ fix: f, message: applyEmphasis(found.layer, f, psd.colorMode === 4) });
         else if (f.type === "spacing") {
-          applied.push({ fix: f, message: applySpacing(found.layer, f) });
-          spacingNote = true;
+          var sr = applySpacing(found.layer, f);
+          applied.push({ fix: f, message: sr.message });
+          if (sr.redrawn) changedIds[f.layerId] = "간격을 넓혔더니";
+          else spacingNote = true;
         }
         else if (f.type === "backplate") {
           var r = applyBackplate(found, f, ppi, nextId++, psd.colorMode === 4);
@@ -664,8 +760,8 @@
       }
     }
 
-    if (spacingNote) warnings.push("줄 간격·자간 변경은 미리보기에 보이지 않아요. 포토샵에서 파일을 열면 반영돼요.");
-    sizedIds.forEach(function (id) { changedIds[id] = "키웠더니"; });
+    if (spacingNote) warnings.push("일부 줄 간격·자간 변경은 미리보기에 보이지 않아요. 포토샵에서 파일을 열면 반영돼요.");
+    sizedIds.forEach(function (id) { changedIds[id] = "글자를 키웠더니"; });
     warnings = warnings.concat(layoutWarnings(psd, changedIds));
     if (!opts.quick) psd.imageData = compositePsd(psd).imageData;
     return { psd: psd, applied: applied, skipped: skipped, warnings: warnings, previewMatchesOriginal: previewMatchesOriginal };

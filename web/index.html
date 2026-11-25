@@ -2532,7 +2532,6 @@
   function previewFix(spec) {
     const fix = spec.fix;
     const l = layerOf(fix.layerId);
-    if (fix.type === "spacing") return { before: crop(S.psd, regionAround([l.bounds])), note: "줄 간격·자간 변경은 그림으로 보여드리지 못해요. 받은 PSD를 포토샵에서 열면 반영돼요." };
     if (fix.type === "infoStrip") return previewStrip(fix);
     const r = PsdApply.applyFixes(S.psd, [fix], Object.assign({ quick: true }, APPLY_OPTS));
     if (r.skipped.length) return { note: "적용하지 못했어요: " + r.skipped[0].reason };
@@ -2543,7 +2542,7 @@
     const rect = regionAround(boxes);
     const eye = spec.cvdType ? " (" + EnginePolicies.colorVision.labels[spec.cvdType] + ")" : "";
     return { before: crop(S.psd, rect, spec.cvdType), beforeCaption: spec.cvdType ? "지금" + eye : undefined,
-      after: crop(r.psd, rect, spec.cvdType), afterCaption: (spec.caption ? "고친 뒤 · " + spec.caption : "고친 뒤") + eye };
+      after: crop(r.psd, rect, spec.cvdType), afterCaption: ((spec.caption || (fix.type === "spacing" ? "근사치" : "")) ? "고친 뒤 · " + (spec.caption || "근사치") : "고친 뒤") + eye };
   }
 
   // 같은 글을 읽기 쉬운 글꼴(민무늬 고딕, 보통 폭, 바로 선 글꼴)로 다시 써서 보여줘요. 영문 전부 대문자는 첫 글자만 대문자로.
