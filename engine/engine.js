@@ -215,7 +215,8 @@
     var best = null;
     P.contrast.backplate.colors.forEach(function (hex) {
       var plate = C.hexToRgb(hex);
-      var under = bgs.map(function (bg) { return C.blend(plate, bg, maxOpacity); });
+      // 띠를 깐 뒤 글자 밑 색: PSD에 실제로 들어가는 정수 색으로 계산해요 (#46과 같은 반올림 문제)
+      var under = bgs.map(function (bg) { return C.blendStored(plate, bg, maxOpacity); });
       var worst = Math.min.apply(null, textRgbs.map(function (t) { return percentile(contrastsFor(t, under, alpha), P.contrast.worstPercentile); }));
       if (!best || worst > best.contrast) best = { color: hex, opacity: maxOpacity, contrast: worst };
     });

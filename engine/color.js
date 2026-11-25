@@ -42,6 +42,12 @@
     return [fg[0] * alpha + bg[0] * (1 - alpha), fg[1] * alpha + bg[1] * (1 - alpha), fg[2] * alpha + bg[2] * (1 - alpha)];
   }
 
+  // PSD에 실제로 들어가는 대로 섞기: 레이어 불투명도는 0~255 단계로 저장되고, 섞인 색도 0~255 정수예요.
+  //   (소수점 그대로 계산하면 '통과'라고 한 배경 띠가 다시 검사하면 4.49:1처럼 조금 모자랄 수 있어요)
+  function blendStored(fg, bg, alpha) {
+    return blend(fg, bg, Math.round(alpha * 255) / 255).map(Math.round);
+  }
+
   // ---------------------------------------------------------------- OKLab / OKLCH (Björn Ottosson, 2020)
   function rgbToOklab(rgb) {
     var r = toLinear(rgb[0]), g = toLinear(rgb[1]), b = toLinear(rgb[2]);
@@ -162,6 +168,7 @@
     contrast: contrast,
     contrastLum: contrastLum,
     blend: blend,
+    blendStored: blendStored,
     rgbToOklch: rgbToOklch,
     oklchToRgb: oklchToRgb,
     oklchToHexRgb: oklchToHexRgb,
