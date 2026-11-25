@@ -608,23 +608,50 @@
   function checkLayout(doc, layers, perLayer, P) {
     var W = doc.document.widthPx, H = doc.document.heightPx;
     var L = P.layout, out = [];
-    // 모든 수정을 함께 적용했을 때의 상자
-    var after = {};
+    var gapEm = P.hierarchy.crowdedGapEm; // 정보 계층의 '글자 묶음이 붙어 있음'과 같은 줄 사이 기준
+    // 모든 수정을 함께 적용했을 때의 상자와 글자 크기(px)
+    var after = {}, emAfter = {};
     layers.forEach(function (l) {
-      after[l.id] = scaledBox(l, sizeFixFactor(l, perLayer[l.id] && perLayer[l.id].size));
+      var f = sizeFixFactor(l, perLayer[l.id] && perLayer[l.id].size);
+      after[l.id] = scaledBox(l, f);
+      emAfter[l.id] = (l.sizePx || 0) * f;
     });
-    function problemsAt(l, factor, boxes) {
-      boxes = boxes || after;
+    // 위아래로 놓인 두 글자 사이가 너무 좁아지는지: 글자 크기 × crowdedGapEm 보다 좁으면 '붙음'.
+    //   원래부터 그보다 좁았다면 지금보다 더 좁아지지만 않으면 돼요 (원래 디자인을 문제 삼지 않아요)
+    function tooClose(a, emA, b, emB, orig) {
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) <= L.overlapTolerancePx) return false; // 위아래 이웃이 아니에요
+      var upper = a.top <= b.top ? a : b, lower = upper === a ? b : a;
+      var gap = lower.top - upper.bottom;
+      if (gap < -L.overlapTolerancePx) return false; // 겹침은 overlaps 가 알려요
+      var need = gapEm * Math.min(emA, emB);
+      // 원래부터 기준보다 좁았으면 '지금보다 더 좁아지는지'만 봐요
+      if (orig != null && orig < need) return gap < orig - 0.5;
+      // 키운 글자를 실제로 다시 그리면 상자가 몇 px 달라져서, 그만큼 여유(gapSafetyPx)를 둬요
+      return gap < need + L.gapSafetyPx;
+    }
+    function origGap(l, o) {
+      var a = boxOf(l), b = boxOf(o);
+      if (!a || !b) return null;
+      return a.top <= b.top ? b.top - a.bottom : a.top - b.bottom;
+    }
+    function problemsAt(l, factor, boxes, ems) {
+      boxes = boxes || after; ems = ems || emAfter;
       var box = scaledBox(l, factor);
       if (!box) return null;
-      var hits = layers.filter(function (o) { return o.id !== l.id && boxes[o.id] && overlaps(box, boxes[o.id], L.overlapTolerancePx); });
+      var em = (l.sizePx || 0) * factor, hits = [], close = [];
+      layers.forEach(function (o) {
+        if (o.id === l.id || !boxes[o.id]) return;
+        if (overlaps(box, boxes[o.id], L.overlapTolerancePx)) hits.push(o);
+        else if (tooClose(box, em, boxes[o.id], ems[o.id], origGap(l, o))) close.push(o);
+      });
       var over = overflowOf(box, W, H, L.canvasMarginPx);
-      return hits.length || over ? { hits: hits, overflow: over } : null;
+      return hits.length || close.length || over ? { hits: hits, close: close, overflow: over } : null;
     }
     function describeProblem(p) {
       var parts = [];
       if (p.overflow) parts.push("포스터 밖으로 나가요 (" + Object.keys(p.overflow).map(function (k) { return SIDE_LABELS[k] + " " + p.overflow[k] + "px"; }).join(", ") + ")");
       if (p.hits.length) parts.push(p.hits.map(function (o) { return "'" + short(o.text) + "'"; }).join(", ") + "와(과) 겹쳐요");
+      if (p.close && p.close.length) parts.push(p.close.map(function (o) { return "'" + short(o.text) + "'"; }).join(", ") + "와(과) 줄 사이가 너무 좁아져요");
       return parts.join(" · ");
     }
 
@@ -632,26 +659,29 @@
     // 실제로 키울 크기를 기준으로 재요. 모두 지금 크기에서 시작해 조금씩(L.fitStep배) 함께 키우고,
     // 더 키우면 겹치거나 잘리는 글자는 거기서 멈춰요. 한 글자가 자리를 다 차지하지 않고 고르게 나눠 가져요.
     //   (모두 추천 크기로 키운 상자와 비교하면, 줄이 촘촘한 글자들은 서로 막혀 조금도 못 키웠어요)
-    // 키울 때는 이웃 글자와 줄 사이(글자 높이 × fitGapOfHeight), 포스터 가장자리(폭 × fitMarginOfWidth) 여백을 남겨요
+    // 키울 때는 이웃 글자와 줄 사이(위 tooClose와 같은 기준), 포스터 가장자리(폭 × fitMarginOfWidth) 여백을 남겨요
     function fitsAt(l, factor) {
       var b = scaledBox(l, factor);
       if (!b) return false;
-      var g = (b.bottom - b.top) * L.fitGapOfHeight, m = W * L.fitMarginOfWidth;
-      var pb = { left: b.left, right: b.right, top: b.top - g, bottom: b.bottom + g };
+      var m = W * L.fitMarginOfWidth, em = (l.sizePx || 0) * factor;
       if (b.left < Math.min(m, l.bounds.left) || b.right > W - m || b.top < 0 || b.bottom > H) return false;
-      return !layers.some(function (o) { return o.id !== l.id && fitted[o.id] && overlaps(pb, fitted[o.id], L.overlapTolerancePx); });
+      return !layers.some(function (o) {
+        return o.id !== l.id && fitted[o.id] &&
+          (overlaps(b, fitted[o.id], L.overlapTolerancePx) || tooClose(b, em, fitted[o.id], emFitted[o.id], origGap(l, o)));
+      });
     }
-    var fitted = {}, fitF = {}, growing = [];
+    var fitted = {}, fitF = {}, emFitted = {}, growing = [];
     layers.forEach(function (l) {
       var f = sizeFixFactor(l, perLayer[l.id] && perLayer[l.id].size);
-      if (f > 1 && problemsAt(l, f)) { fitted[l.id] = scaledBox(l, 1); fitF[l.id] = 1; if (fitsAt(l, 1)) growing.push({ l: l, max: f }); }
-      else fitted[l.id] = after[l.id];
+      if (f > 1 && problemsAt(l, f)) { fitted[l.id] = scaledBox(l, 1); fitF[l.id] = 1; emFitted[l.id] = l.sizePx || 0; }
+      else { fitted[l.id] = after[l.id]; emFitted[l.id] = emAfter[l.id]; }
     });
+    layers.forEach(function (l) { if (fitF[l.id] === 1 && fitsAt(l, 1)) growing.push({ l: l, max: sizeFixFactor(l, perLayer[l.id] && perLayer[l.id].size) }); });
     for (var round_ = 0; growing.length && round_ < L.fitMaxRounds; round_++) {
       growing = growing.filter(function (g) {
         var next = Math.min(g.max, fitF[g.l.id] * L.fitStep);
         if (!fitsAt(g.l, next)) return false;
-        fitF[g.l.id] = next; fitted[g.l.id] = scaledBox(g.l, next);
+        fitF[g.l.id] = next; fitted[g.l.id] = scaledBox(g.l, next); emFitted[g.l.id] = (g.l.sizePx || 0) * next;
         return next < g.max;
       });
     }
@@ -669,12 +699,12 @@
         }
         // 겹치지 않는 가장 큰 크기 찾기
         var lo = fitF[l.id] || 1;
-        var maxFitPt = problemsAt(l, lo, fitted) ? null : Math.floor(l.sizePt * lo * 2) / 2;
+        var maxFitPt = problemsAt(l, lo, fitted, emFitted) ? null : Math.floor(l.sizePt * lo * 2) / 2;
         var res = Object.assign({}, common, {
           status: "warn",
           metric: "추천 크기 " + sizeRes.fix.valuePt + "pt로 키우면 " + describeProblem(p),
           message: P.messages.layoutAfterResize + (maxFitPt && maxFitPt > l.sizePt ? " " + fmt(P.messages.layoutMaxFit, { pt: maxFitPt }) : ""),
-          detail: { factor: round(factor, 2), overflow: p.overflow, overlapsWith: p.hits.map(function (o) { return o.id; }), maxFitPt: maxFitPt },
+          detail: { factor: round(factor, 2), overflow: p.overflow, overlapsWith: p.hits.map(function (o) { return o.id; }), tooCloseTo: p.close.map(function (o) { return o.id; }), maxFitPt: maxFitPt },
           fix: null
         });
         sizeRes.fix.layoutWarning = res.metric;
