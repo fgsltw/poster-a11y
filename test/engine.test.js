@@ -499,3 +499,44 @@ test("영어 포스터: 역할을 알아봐서 일시·장소는 정보 전달�
   assert.match(r.altTextDraft, /11월 8일/);
   assert.match(r.altTextDraft, /Seoul Arts Center/);
 });
+
+// ---------------------------------------------------------------- 11/26 Pride 포스터: 같은 크기 글자가 여럿일 때 제목 고르기
+test("가장 큰 글자가 여럿이면 날짜·숫자가 아닌 글자를 제목으로 (FOREVER PROUD · 01 · 06 · 10AM_08PM)", () => {
+  const L = (id, text, top) => ({ id, text, sizePt: 156, visible: true, bounds: { left: 0, top, right: 100, bottom: top + 50 } });
+  const layers = [L(1, "06", 3630), L(2, "forever\nproud", 149), L(3, "10am_08pm", 4342), L(4, "01", 3630),
+    { id: 5, text: "Pride4ever.com", sizePt: 32, visible: true, bounds: { left: 0, top: 1326, right: 100, bottom: 1450 } }];
+  const r = R.classify(layers);
+  assert.equal(r[2].role, "title");
+  assert.equal(r[1].role, "other");
+  assert.equal(r[3].role, "date");
+  // 글자가 있는 후보가 둘이면 글자가 많은 쪽, 같으면 위에 있는 쪽
+  const two = R.classify([L(1, "ART", 500), L(2, "SPRING", 900)]);
+  assert.equal(two[2].role, "title");
+  const top = R.classify([L(1, "ABC", 900), L(2, "DEF", 100)]);
+  assert.equal(top[2].role, "title");
+  // 하나만 가장 크면 예전처럼 (날짜여도 제목)
+  const one = R.classify([Object.assign(L(1, "11.8(토)", 0), { sizePt: 200 }), L(2, "봄 음악회", 100)]);
+  assert.equal(one[1].role, "title");
+});
+
+test("제목–본문 비교에서 제목만큼 큰 숫자·날짜는 빼요", () => {
+  const d = fresh();
+  const t = d.layers.reduce((a, b) => ((b.sizePt || 0) > (a.sizePt || 0) ? b : a));
+  // 제목과 같은 크기의 날짜 두 개를 더해요 (본문 중간값을 끌어올리던 경우)
+  const extra = [900, 901].map((id, i) => Object.assign(JSON.parse(JSON.stringify(t)), { id, key: "x" + id, text: i ? "06" : "01", bounds: Object.assign({}, t.bounds, { top: t.bounds.top + 2000 + i, bottom: t.bounds.bottom + 2000 + i }) }));
+  d.layers.push(...extra);
+  const r = E.checkDocument(d, { medium: "flyer" });
+  const h = r.results.find((x) => x.check === "hierarchy" && x.detail && x.detail.titleRatio != null);
+  assert.equal(h.layerId, t.id, "글자가 있는 원래 제목");
+  assert.ok(h.detail.titleRatio >= 1.5, String(h.detail.titleRatio));
+});
+
+test("maxScaleInside: 기준점을 중심으로 키울 때 포스터 밖으로 안 나가는 배율", () => {
+  const doc = { document: { widthPx: 3508, heightPx: 4961 } };
+  // Pride 포스터 '06': 가운데 정렬, 기준점 x 3067
+  const l06 = { bounds: { left: 2761, top: 3630, right: 3383, bottom: 4080 }, origin: { x: 3067, y: 4071 } };
+  const f = E.maxScaleInside(l06, doc, 0);
+  assert.ok(Math.abs(f - (3508 - 3067) / (3383 - 3067)) < 1e-9);
+  assert.ok(f < 1.5, "1.5배로 키우면 밖으로 나가요");
+  assert.ok(E.maxScaleInside(l06, doc, 70) < f, "여백을 두면 더 작게");
+});

@@ -60,13 +60,24 @@
    * layers: 공통 레이어 데이터의 layers
    * 돌려주는 값: { [layerId]: { role, matches } }
    *   제목 = 보이는 글자 중 가장 큰 글자 (일시·장소 패턴이 있어도 가장 크면 제목)
+   *   가장 큰 글자가 여럿이면 (11/26, Pride 포스터: FOREVER PROUD · 01 · 06 · 10AM_08PM 이 모두 같은 크기)
+   *     ① 일시·장소·가격·접근성 정보가 아니고 ② 글자(숫자 말고)가 있는 것 → ③ 글자가 많은 것 → ④ 위에 있는 것
    */
+  var TIE_RATIO = 0.98; // 가장 큰 글자의 98% 이상이면 '같은 크기'로 봐요
   function classify(layers) {
     var visible = layers.filter(function (l) { return l.visible !== false && l.text && l.text.trim(); });
-    var titleId = null, max = -1;
-    visible.forEach(function (l) {
-      if ((l.sizePt || 0) > max) { max = l.sizePt || 0; titleId = l.id; }
+    var max = visible.reduce(function (m, l) { return Math.max(m, l.sizePt || 0); }, 0);
+    var tied = visible.filter(function (l) { return (l.sizePt || 0) >= max * TIE_RATIO; });
+    var score = function (l) {
+      var info = matchRoles(l.text || "").length > 0;
+      var letters = (String(l.text).match(/[A-Za-z\u3131-\uD79D\u3040-\u30FF\u4E00-\u9FFF]/g) || []).length;
+      return { plain: !info && letters >= 2 ? 1 : 0, letters: letters, top: l.bounds ? l.bounds.top : 0 };
+    };
+    tied.sort(function (a, b) {
+      var A = score(a), B = score(b);
+      return B.plain - A.plain || B.letters - A.letters || A.top - B.top;
     });
+    var titleId = tied.length ? tied[0].id : null;
     var out = {};
     layers.forEach(function (l) {
       var m = matchRoles(l.text || "");

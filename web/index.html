@@ -2413,7 +2413,16 @@
     if (x.check === "hierarchy") {
       if (d.role && x.layerId != null) return asFix(sizeOf(x.layerId), { label: "키운 모습" }) ||
         { kind: "fix", fix: { layerId: x.layerId, type: "size", valuePt: halfUp(medianPt()) }, label: "중간 크기로 키운 모습" };
-      if (d.titleRatio != null) return { kind: "fix", fix: { layerId: x.layerId, type: "size", valuePt: halfUp(d.median * EnginePolicies.hierarchy.titleRatioMin) }, label: "제목을 키운 모습" };
+      if (d.titleRatio != null) {
+        // 포스터 밖으로 안 나가는 만큼만 키워요 (가장자리에서 포스터 너비의 2% 띄우기)
+        const tl = S.doc.layers.find((l) => l.id === x.layerId);
+        const want = halfUp(d.median * EnginePolicies.hierarchy.titleRatioMin);
+        const fit = tl ? Math.floor((tl.sizePt || 0) * Engine.maxScaleInside(tl, S.doc, S.doc.document.widthPx * 0.02) * 2) / 2 : want;
+        if (tl && fit <= (tl.sizePt || 0) + 0.5)
+          return { kind: "none", layerIds: [x.layerId], note: "포스터 안에서 제목을 더 키울 자리가 없어요. 다른 글자를 조금 줄이거나 제목 자리를 넓혀 주세요." };
+        const valuePt = Math.min(want, fit);
+        return { kind: "fix", fix: { layerId: x.layerId, type: "size", valuePt }, label: valuePt < want ? "제목을 포스터 안에 들어가는 만큼 키운 모습" : "제목을 키운 모습" };
+      }
       const ids = [x.layerId, d.crowdedWith].concat(d.layerIds || []).filter((v) => v != null);
       const note = d.pair ? "두 정보를 가까이 옮겨야 해서 자동으로 만들 수 없어요. 함께 읽는 정보는 한 묶음으로 모아 주세요."
         : d.crowdedWith != null ? "두 글자 묶음 사이 여백을 글자 크기의 0.3배 이상으로 늘려 주세요."
