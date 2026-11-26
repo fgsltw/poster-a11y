@@ -114,3 +114,20 @@ test("샘플 PSD: 자간을 넓히면 글자 폭이 늘고, 포스터 밖으로 
   const far = applyFixes(src, [{ layerId: 8, type: "spacing", letterSpacingEm: 3 }], { quick: true });
   assert.ok(far.warnings.some((w) => /^.접근성 안내. 간격을 넓혔더니 포스터 밖으로 나가요/.test(w)), far.warnings.join("\n"));
 });
+
+test("자간이 좁아 글자끼리 붙어 있어도(LGBTQIA+, 자간 -120) 글자 사이로 갈라서 고르게 넓혀요", () => {
+  // "ABC": A(0~9)와 B(10~19)는 붙어 있고(한 조각), C(24~33)는 떨어져 있어요. B의 윗부분은 A 위로 걸쳐 있어요(겹친 획)
+  const l = layerWith("ABC", [
+    { x: 0, y: 8, w: 10, h: 17 }, // A
+    { x: 10, y: 5, w: 10, h: 20 }, // B (A에 붙음)
+    { x: 6, y: 5, w: 4, h: 2 }, // B의 가로획이 A 위로 (겹침)
+    { x: 24, y: 5, w: 10, h: 20 } // C
+  ]);
+  const out = apply(l, { letterSpacingEm: 0.5 }); // 글자마다 10px
+  const img = findLayer(out.psd.children, 1).layer.imageData;
+  const runsAll = colRuns(img);
+  // A는 그대로, B는 10px, C는 20px → 세 덩어리로 떨어져요
+  assert.equal(runsAll.length, 3, JSON.stringify(runsAll));
+  assert.equal(runsAll[2][0], 44, "C는 글자 두 개만큼(20px)");
+  assert.equal(inkSum(img), inkSum(l.imageData), "잘린 픽셀 없이 그대로");
+});
