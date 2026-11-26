@@ -619,6 +619,20 @@
     });
   }
 
+  // 글자 기준점(origin)을 중심으로 키울 때 포스터 밖으로 안 나가는 최대 배율 (psd-apply 의 키우기와 같은 방식)
+  //   margin: 포스터 가장자리에서 띄울 px
+  function maxScaleInside(l, doc, margin) {
+    var b = l.bounds, W = doc.document.widthPx, H = doc.document.heightPx, m = margin || 0;
+    if (!b || !W || !H) return Infinity;
+    var ox = l.origin ? l.origin.x : b.left, oy = l.origin ? l.origin.y : b.bottom;
+    var f = Infinity;
+    if (b.left < ox) f = Math.min(f, (ox - m) / (ox - b.left));
+    if (b.right > ox) f = Math.min(f, (W - m - ox) / (b.right - ox));
+    if (b.top < oy) f = Math.min(f, (oy - m) / (oy - b.top));
+    if (b.bottom > oy) f = Math.min(f, (H - m - oy) / (b.bottom - oy));
+    return Math.max(0, f);
+  }
+
   // 원래 굵기 → regular / bold / extraBold
   function fontWeightClass(f, R) {
     var s = [f.postScriptName, f.name, f.style].join(" ").toLowerCase();
@@ -916,6 +930,10 @@
     // 제목과 본문이 구별되는가
     var title = visible.filter(function (l) { return roles[l.id].role === "title"; })[0];
     var others = visible.filter(function (l) { return l !== title; }).map(function (l) { return l.sizePt || 0; }).sort(function (a, b) { return a - b; });
+    // 제목만큼 큰 글자(디자인 요소로 크게 쓴 숫자·날짜)는 빼고, 확실히 작은 글자들과 비교해요. 다 비슷하게 크면 그대로
+    var tmax = title ? (title.sizePt || 0) * (Hc.bodyMaxRatioOfTitle || 1) : 0;
+    var smaller = others.filter(function (s) { return s < tmax; });
+    if (smaller.length) others = smaller;
     if (title && others.length) {
       var med = others[Math.floor(others.length / 2)] || 1;
       var ratio = (title.sizePt || 0) / med;
@@ -1283,6 +1301,7 @@
   }
 
   return {
+    maxScaleInside: maxScaleInside,
     checkDocument: checkDocument,
     toApplyFixes: toApplyFixes,
     suggestPurposes: suggestPurposes,
