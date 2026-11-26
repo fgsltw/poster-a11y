@@ -101,11 +101,34 @@ test("④ 자간 기준 -0.05em(포토샵 -50): 살짝 좁힌 자간은 넘기�
 test("④ 여러 줄이어도 줄 간격이 넉넉하면 통과, 예술 글자는 '참고'", () => {
   const d = fresh();
   Object.assign(layer(d, 9).spacing, { lineCount: 2, lineHeightRatio: 1.6 });
-  Object.assign(layer(d, 4).spacing, { lineCount: 2, lineHeightRatio: 1.0 });
+  Object.assign(layer(d, 4).spacing, { lineCount: 2, lineHeightRatio: 0.7 });
   const r = E.checkDocument(d, { medium: "flyer" });
   assert.equal(of(r, 9, "spacing")[0].status, "pass");
   assert.equal(of(r, 4, "spacing")[0].status, "advisory");
   assert.equal(of(r, 4, "spacing")[0].fix, null);
+});
+
+test("④ 줄 간격 1.5배는 본문 크기 글자에만: 큰 제목은 줄끼리 닿을 만큼 좁을 때(0.8배 미만)만, 고칠 때도 1배까지만", () => {
+  const big = (ratio) => {
+    const d = fresh();
+    d.document.purpose = "info";
+    Object.assign(layer(d, 4).spacing, { lineCount: 2, lineHeightRatio: ratio }); // 큰 글자 (영문 부제)
+    return of(E.checkDocument(d, { medium: "flyer" }), 4, "spacing")[0];
+  };
+  const ok = big(0.86); // Pride 포스터 FOREVER/PROUD
+  assert.equal(ok.status, "pass");
+  assert.equal(ok.detail.large, true);
+  assert.equal(ok.detail.lineHeightMin, 0.8);
+  const tight = big(0.7);
+  assert.equal(tight.status, "warn");
+  assert.match(tight.metric, /줄 간격 0.7배 \(기준 0.8배 이상, 큰 글자\)/);
+  assert.equal(tight.fix.lineHeight, 1, "큰 글자는 1.5배가 아니라 1배로");
+  // 본문 크기 글자는 그대로 1.5배
+  const d = fresh();
+  Object.assign(layer(d, 10).spacing, { lineCount: 2, lineHeightRatio: 1.0 });
+  const body = of(E.checkDocument(d, { medium: "flyer" }), 10, "spacing")[0];
+  assert.equal(body.detail.large, false);
+  assert.equal(body.fix.lineHeight, 1.5);
 });
 
 test("③ 추천 크기로 키웠을 때 다른 글자와 겹치면 '주의'와 겹치지 않는 최대 크기를 알려준다", () => {

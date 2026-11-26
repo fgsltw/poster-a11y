@@ -657,15 +657,20 @@
   }
 
   // ---------------------------------------------------------------- ④ 텍스트 간격
-  function checkSpacing(l, pol, P) {
+  function checkSpacing(l, pol, P, env, doc) {
     var s = l.spacing;
     if (!s) return null;
     var S = P.spacing, issues = [], fix = null;
     var multi = s.lineCount >= 2;
-    if (multi && s.lineHeightRatio != null && s.lineHeightRatio < S.lineHeightMin) {
-      issues.push("줄 간격 " + round(s.lineHeightRatio, 2) + "배 (기준 " + S.lineHeightMin + "배 이상)");
+    // 큰 글자(제목급)는 본문 기준(1.5배) 대신 lineHeightLargeMin — 줄끼리 닿을 만큼 좁을 때만
+    var bold = l.font && l.font.weightGuess === "bold";
+    var shownPt = env && doc ? effectivePt(l, env, doc) : l.sizePt || 0;
+    var large = shownPt >= P.contrast.largePt || (bold && shownPt >= P.contrast.largeBoldPt);
+    var lhMin = large && S.lineHeightLargeMin != null ? S.lineHeightLargeMin : S.lineHeightMin;
+    if (multi && s.lineHeightRatio != null && s.lineHeightRatio < lhMin) {
+      issues.push("줄 간격 " + round(s.lineHeightRatio, 2) + "배 (기준 " + lhMin + "배 이상" + (large ? ", 큰 글자" : "") + ")");
       fix = fix || {};
-      fix.lineHeight = S.lineHeightMin;
+      fix.lineHeight = large ? Math.max(lhMin, 1) : S.lineHeightMin; // 큰 글자는 1배(글꼴 기본)로만 넓혀요
     }
     if (s.letterSpacingEm < S.letterSpacingMin) {
       issues.push("자간 " + s.letterSpacingEm + "em (기준 " + S.letterSpacingMin + "em 이상)");
@@ -679,7 +684,7 @@
       check: "spacing",
       status: status,
       metric: issues.length ? issues.join(" · ") : "줄 간격 " + round(s.lineHeightRatio, 2) + "배 · " + s.lineCount + "줄",
-      detail: { lineCount: s.lineCount, lineHeightRatio: s.lineHeightRatio, letterSpacingEm: s.letterSpacingEm, wcag: { lineHeight: S.lineHeightMin, letterSpacing: S.letterSpacingWcag, wordSpacing: S.wordSpacingWcag } },
+      detail: { lineCount: s.lineCount, lineHeightRatio: s.lineHeightRatio, letterSpacingEm: s.letterSpacingEm, large: large, lineHeightMin: lhMin, wcag: { lineHeight: S.lineHeightMin, letterSpacing: S.letterSpacingWcag, wordSpacing: S.wordSpacingWcag } },
       fix: null
     };
     if (issues.length) {
@@ -1198,7 +1203,7 @@
       if (font) results.push(Object.assign({}, common, font));
       var weight = checkWeight(l, pol, P, env, doc);
       if (weight) results.push(Object.assign({}, common, weight));
-      var spacing = checkSpacing(l, pol, P);
+      var spacing = checkSpacing(l, pol, P, env, doc);
       if (spacing) results.push(Object.assign({}, common, spacing));
       var keyInfo = checkKeyInfoAsArt(l, roles[l.id], purpose, P, altText);
       if (keyInfo) keyInfoAsArt.push(Object.assign({}, common, keyInfo));
