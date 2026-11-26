@@ -597,48 +597,142 @@
     var want = lines.filter(function (l) { return l.trim(); }).length || 1;
     bands = mergeTo(bands, want);
     if (bands.length !== want) { if (Math.abs(dy) >= 0.5) return null; bands = [{ a: 0, b: H - 1 }]; }
-    var pieces = [], maxRight = 0;
     var textLines = lines.filter(function (l) { return l.trim(); });
+    // 2) 글자 덩어리: 줄 안에서 '이어진 잉크 조각'(연결 요소)을 찾아 글자로 묶어요 (11/26)
+    //    세로줄로 자르면 자간이 좁아 겹친 글자(LGBTQIA+, 자간 -120)를 가르지 못해서 조각 단위로 바꿨어요.
+    //    한 글자가 여러 조각(이 = ㅇ + ㅣ, Q의 꼬리)이면 겹치거나 가장 가까운 조각끼리 합쳐 글자 수에 맞춰요.
+    //    조각 수 = 글자 수면 글자 순서대로 정확히 밀고, 다르면(글자끼리 붙음) 위치로 어림해요.
+    var lab = new Int32Array(W * H), shiftOf = [null], stack = [];
+    var lineGroups = [];
     bands.forEach(function (band, li) {
+      var comps = [];
+      for (var y0 = band.a; y0 <= band.b; y0++) {
+        for (var x0 = 0; x0 < W; x0++) {
+          if (lab[y0 * W + x0] || !ink(x0, y0)) continue;
+          var id = shiftOf.length, c = { id: id, minx: x0, maxx: x0 };
+          shiftOf.push(null);
+          lab[y0 * W + x0] = id; stack.push(y0 * W + x0);
+          while (stack.length) {
+            var k = stack.pop(), px = k % W, py = (k - px) / W;
+            if (px < c.minx) c.minx = px;
+            if (px > c.maxx) c.maxx = px;
+            for (var ny = py - 1; ny <= py + 1; ny++) {
+              if (ny < band.a || ny > band.b) continue;
+              for (var nx = px - 1; nx <= px + 1; nx++) {
+                if (nx < 0 || nx >= W) continue;
+                var q = ny * W + nx;
+                if (!lab[q] && ink(nx, ny)) { lab[q] = id; stack.push(q); }
+              }
+            }
+          }
+          comps.push(c);
+        }
+      }
+      if (!comps.length) return;
+      comps.sort(function (a, b) { return a.minx - b.minx; });
+      // 가로로 절반 넘게 겹치는 조각은 한 글자 (가 위의 받침, Q의 꼬리, i의 점)
+      var groups = [];
+      comps.forEach(function (c) {
+        var g = groups[groups.length - 1];
+        var ov = g ? Math.min(g.maxx, c.maxx) - Math.max(g.minx, c.minx) : -1;
+        if (g && ov > 0.5 * Math.min(g.maxx - g.minx + 1, c.maxx - c.minx + 1)) {
+          g.comps.push(c); g.minx = Math.min(g.minx, c.minx); g.maxx = Math.max(g.maxx, c.maxx);
+        } else groups.push({ comps: [c], minx: c.minx, maxx: c.maxx });
+      });
       var text = textLines[li] || textLines[0] || "";
       var chars = Array.from(text.replace(/\s+$/, ""));
-      var glyphCount = chars.filter(function (c) { return c.trim(); }).length || 1;
-      // 2) 글자 덩어리: 이 줄 안에서 잉크가 있는 세로줄 묶음. 한 글자가 여러 덩어리(이 = ㅇ + ㅣ)면 가장 좁은 틈부터 합쳐요
-      var cols = mergeTo(runs(W, function (x) { for (var y = band.a; y <= band.b; y++) if (ink(x, y)) return true; return false; }), glyphCount);
-      if (!cols.length) return;
-      var x0 = cols[0].a, x1 = cols[cols.length - 1].b, adv = (x1 - x0 + 1) / Math.max(1, chars.length);
-      cols.forEach(function (c) {
-        var idx = Math.min(chars.length - 1, Math.max(0, Math.floor((c.a - x0) / adv + 0.25)));
-        pieces.push({ x: c.a, w: c.b - c.a + 1, y: band.a, h: band.b - band.a + 1, sx: Math.round(idx * dx), sy: Math.round(li * dy), line: li });
+      var slots = [];
+      chars.forEach(function (ch, i) { if (ch.trim()) slots.push(i); });
+      var glyphCount = slots.length || 1;
+      while (groups.length > glyphCount) { // 가장 가까운 이웃끼리 합쳐요
+        var bi = 0, bg = Infinity;
+        for (var i = 0; i < groups.length - 1; i++) { var gp = groups[i + 1].minx - groups[i].maxx; if (gp < bg) { bg = gp; bi = i; } }
+        var A = groups[bi], B = groups[bi + 1];
+        groups.splice(bi, 2, { comps: A.comps.concat(B.comps), minx: Math.min(A.minx, B.minx), maxx: Math.max(A.maxx, B.maxx) });
+      }
+      // 글자끼리 붙어서 조각 < 글자 수면: 넓은 조각에 글자 몇 개가 들었는지 폭으로 나눠 정하고,
+      //   글자 사이를 지나는 '구불구불한 자르는 선'(잉크가 가장 적은 길)으로 나눠요. 직선으로 자르면 T의 가로획·Q의 꼬리가 잘려요
+      var gx0 = groups[0].minx, gx1 = groups[groups.length - 1].maxx, gadv = (gx1 - gx0 + 1) / glyphCount;
+      var ks = groups.map(function (g) { return Math.max(1, Math.round((g.maxx - g.minx + 1) / gadv)); });
+      var sum = function () { return ks.reduce(function (a, b) { return a + b; }, 0); };
+      while (sum() > glyphCount) { var r = -1; ks.forEach(function (k, i) { if (k > 1 && (r < 0 || k > ks[r])) r = i; }); if (r < 0) break; ks[r]--; }
+      while (sum() < glyphCount) { var a2 = 0; ks.forEach(function (k, i) { if ((groups[i].maxx - groups[i].minx) / k > (groups[a2].maxx - groups[a2].minx) / ks[a2]) a2 = i; }); ks[a2]++; }
+      var slot = 0;
+      groups.forEach(function (g, gi) {
+        var k = ks[gi], w = g.maxx - g.minx + 1;
+        var mine = {};
+        g.comps.forEach(function (c) { mine[c.id] = true; shiftOf[c.id] = g; });
+        g.seams = [];
+        for (var j = 1; j < k; j++) g.seams.push(findSeam(lab, D, W, band, mine, Math.round(g.minx + (w * j) / k), Math.max(2, Math.round((w / k) * 0.45))));
+        g.shifts = [];
+        for (var p = 0; p < k; p++) g.shifts.push(Math.round((slots[Math.min(slot + p, slots.length - 1)] || 0) * dx));
+        slot += k;
+        g.sx = g.shifts[0]; g.sxMax = g.shifts[g.shifts.length - 1]; g.sy = Math.round(li * dy); g.line = li; g.top = band.a;
       });
+      lineGroups.push({ band: band, groups: groups });
     });
-    if (!pieces.length) return null;
+    if (!lineGroups.length) return null;
     // 줄마다 늘어난 폭 → 가운데·오른쪽 정렬이면 줄을 그만큼 왼쪽으로
-    var grow = {};
-    pieces.forEach(function (p) { grow[p.line] = Math.max(grow[p.line] || 0, p.sx); });
-    pieces.forEach(function (p) {
-      var g = grow[p.line] || 0;
-      if (just === "center") p.sx -= Math.round(g / 2);
-      else if (just === "right") p.sx -= g;
+    lineGroups.forEach(function (L) {
+      var g = Math.max.apply(null, L.groups.map(function (x) { return x.sxMax; }));
+      var back = just === "center" ? Math.round(g / 2) : just === "right" ? g : 0;
+      L.groups.forEach(function (x) { x.shifts = x.shifts.map(function (v) { return v - back; }); x.sx = x.shifts[0]; x.sxMax = x.shifts[x.shifts.length - 1]; });
     });
     var minX = 0, minY = 0, maxX = W, maxY = H;
-    pieces.forEach(function (p) {
-      minX = Math.min(minX, p.x + p.sx); minY = Math.min(minY, p.y + p.sy);
-      maxX = Math.max(maxX, p.x + p.sx + p.w); maxY = Math.max(maxY, p.y + p.sy + p.h);
-    });
+    lineGroups.forEach(function (L) { L.groups.forEach(function (g) {
+      minX = Math.min(minX, g.minx + g.sx); maxX = Math.max(maxX, g.maxx + 1 + g.sxMax);
+      minY = Math.min(minY, L.band.a + g.sy); maxY = Math.max(maxY, L.band.b + 1 + g.sy);
+    }); });
     var NW = maxX - minX, NH = maxY - minY, out = new Uint8ClampedArray(NW * NH * 4);
-    pieces.forEach(function (p) {
-      for (var y = 0; y < p.h; y++) {
-        for (var x = 0; x < p.w; x++) {
-          var si = ((p.y + y) * W + (p.x + x)) * 4, a = D[si + 3];
+    lineGroups.forEach(function (L) {
+      var gs = L.groups;
+      for (var y = L.band.a; y <= L.band.b; y++) {
+        for (var x = 0; x < W; x++) {
+          var k = y * W + x, si = k * 4, a = D[si + 3];
           if (!a) continue;
-          var oi = ((p.y + y + p.sy - minY) * NW + (p.x + x + p.sx - minX)) * 4;
+          var g = lab[k] ? shiftOf[lab[k]] : null;
+          if (!g) { // 아주 옅은 가장자리 픽셀: 가로로 가장 가까운 글자에 붙여요
+            var best = Infinity;
+            for (var i = 0; i < gs.length; i++) {
+              var dd = x < gs[i].minx ? gs[i].minx - x : x > gs[i].maxx ? x - gs[i].maxx : 0;
+              if (dd < best) { best = dd; g = gs[i]; }
+            }
+          }
+          if (!g) continue;
+          var piece = 0; // 이 픽셀이 자르는 선 몇 개의 오른쪽에 있나 = 조각 안 몇 번째 글자
+          for (var si2 = 0; si2 < g.seams.length; si2++) if (x > g.seams[si2][y - L.band.a]) piece++;
+          var oi = ((y + g.sy - minY) * NW + (x + g.shifts[piece] - minX)) * 4;
           if (a >= out[oi + 3]) { out[oi] = D[si]; out[oi + 1] = D[si + 1]; out[oi + 2] = D[si + 2]; out[oi + 3] = a; }
         }
       }
     });
     return { img: { width: NW, height: NH, data: out }, offsetX: minX, offsetY: minY };
   }
+  // 위에서 아래로 내려가며 이 글자 조각(mine)의 잉크를 가장 적게 지나는 세로 '자르는 선' (줄마다 한 칸씩만 옆으로)
+  //   돌려주는 값: 줄마다 자르는 x (그 x 까지는 왼쪽 글자)
+  function findSeam(lab, D, W, band, mine, target, win) {
+    var x0 = Math.max(0, target - win), x1 = Math.min(W - 1, target + win), n = x1 - x0 + 1, rows = band.b - band.a + 1;
+    var cost = new Float64Array(n), from = new Int32Array(rows * n);
+    var c = function (x, y) { var k = y * W + x; return lab[k] && mine[lab[k]] ? D[k * 4 + 3] : 0; };
+    for (var i = 0; i < n; i++) cost[i] = c(x0 + i, band.a) + Math.abs(x0 + i - target) * 0.01;
+    for (var r = 1; r < rows; r++) {
+      var next = new Float64Array(n);
+      for (var i2 = 0; i2 < n; i2++) {
+        var best = i2, bv = cost[i2];
+        if (i2 > 0 && cost[i2 - 1] + 1 < bv) { bv = cost[i2 - 1] + 1; best = i2 - 1; }
+        if (i2 < n - 1 && cost[i2 + 1] + 1 < bv) { bv = cost[i2 + 1] + 1; best = i2 + 1; }
+        next[i2] = bv + c(x0 + i2, band.a + r);
+        from[r * n + i2] = best;
+      }
+      cost = next;
+    }
+    var end = 0;
+    for (var i3 = 1; i3 < n; i3++) if (cost[i3] < cost[end]) end = i3;
+    var seam = new Int32Array(rows);
+    for (var r2 = rows - 1; r2 >= 0; r2--) { seam[r2] = x0 + end; if (r2) end = from[r2 * n + end]; }
+    return seam;
+  }
+
   // 조건이 참인 칸이 이어진 구간들 [{a, b}]
   function runs(n, has) {
     var out = [], start = -1;
