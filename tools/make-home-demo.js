@@ -7,7 +7,7 @@
  * 샘플 포스터를 검사하고, 엔진이 '모두 적용'에 넣는 수정을 적용한 뒤,
  * 시력 0.3인 사람이 2m에서 본 모습(흐림)으로 바꿔 저장해요.
  * 수정은 앱의 '자동으로 모두 고치기'와 같아요: 추천 크기로 키우면 겹치는 글자는 겹치지 않는 최대 크기(maxFitPt)까지만 키워요.
- * 저시력·색각이상·보통 눈: 고치면 확실히 좋아 보이게 만든 예시(sample-showcase.psd)를 써요.
+ * 저시력·색각이상·보통 눈: 대표 샘플 '한밤의 레코드'(sample-record.psd)를 써요.
  *   - 적색맹: Machado 외(2009) 모델로 바꿔요
  * 좁은 시야: 핵심 정보가 흩어진 색 샘플(sample-color.psd)을 써요. (예시 포스터는 정보가 한곳에 모여 있어 고칠 게 없어요)
  *   - 2m에서 한 번에 보이는 원(지름 = 2·거리·tan10°) 밖을 어둡게 해요.
@@ -38,7 +38,7 @@ const OUT = path.join(ROOT, "web", "home");
 //   (SNS 0.35m 기준은 흐림이 거의 안 보여서 비교 그림으로는 쓰지 않아요)
 const VIEWER = "low";
 const ENV = { medium: "wall", distanceM: 2, lighting: "normal", viewer: VIEWER, field: "narrow" };
-const SAMPLE = "sample-showcase.psd"; // 고치면 확실히 좋아 보이게 만든 예시 (tools/make-showcase-psd.js)
+const SAMPLE = "sample-record.psd"; // 대표 샘플 '한밤의 레코드' (tools/make-record-psd.js)
 const WIDTH = 720; // 홈 화면에 쓰기 충분한 크기
 
 function saveJpg(img, file) {

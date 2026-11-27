@@ -6,6 +6,7 @@
     "sample": "node tools/make-sample-psd.js",
     "sample:color": "node tools/make-color-sample-psd.js",
     "sample:showcase": "node tools/make-showcase-psd.js",
+    "sample:record": "node tools/make-record-psd.js",
     "extract": "node tools/psd-to-json.js",
     "test": "node --test",
     "web": "node tools/serve.js",
