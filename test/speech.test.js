@@ -80,3 +80,17 @@ test("샘플 포스터에는 이상하게 읽는 글자가 없어요", () => {
   const r = E.checkDocument(fresh(), { medium: "wall" });
   assert.equal(r.results.filter((x) => x.check === "speech").length, 0);
 });
+
+test("다시 보기(11/27): 검은 동그라미·네모 글자, 작은 위 글자도 영문으로 읽어요", () => {
+  assert.equal(sp("🅑🅞🅞🅚").text, "BOOK");
+  assert.equal(sp("🅱🅾🅾🅺").text, "BOOK");
+  assert.equal(sp("ᴴᴱᴸᴸᴼ").text, "HELLO");
+  assert.deepEqual(keys("🅑🅞🅞🅚"), ["styled"]);
+});
+
+test("다시 보기(11/27): 대문자 닮은 글자(Ѕ·Ω)도 바꾸고, 키릴이 더 많은 단어(Пpивет)는 그대로", () => {
+  assert.equal(sp("Ѕale").text, "Sale");
+  assert.equal(sp("Ωmega").text, "Omega");
+  assert.equal(sp("Пpивет").text, "Пpивет");
+  assert.deepEqual(sp("Пpивет").issues, []);
+});
