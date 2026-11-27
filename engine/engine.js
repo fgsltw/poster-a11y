@@ -560,6 +560,28 @@
     return res;
   }
 
+  // ---------------------------------------------------------------- 화면 낭독기가 이상하게 읽는 글자 (항상 '참고')
+  //   글자 모양은 디자이너 뜻이라 고치지 않고, 대체텍스트 초안에 읽기 좋은 글을 넣었다고 알려요
+  var ALT_TEXT_ROLES = ["title", "date", "place", "price", "access"]; // roles.altTextDraft 가 넣는 역할
+  function checkSpeech(l, P, role) {
+    var S = P.speech;
+    if (!S) return null;
+    var sp = R.speakable(l.text, S);
+    if (!sp.issues.length) return null;
+    var what = sp.issues.map(function (i) {
+      return S.labels[i.key] + " " + i.chars.slice(0, 3).map(function (c) { return "‘" + c + "’"; }).join(" ");
+    }).join(" · ");
+    return {
+      check: "speech",
+      status: "advisory",
+      metric: what,
+      message: !sp.text ? fmt(S.messageDropped, { what: what }) :
+        fmt(ALT_TEXT_ROLES.indexOf(role) >= 0 ? S.message : S.messageOther, { what: what, readAs: sp.text }),
+      detail: { issues: sp.issues.map(function (i) { return i.key; }), chars: sp.issues, readAs: sp.text },
+      fix: null
+    };
+  }
+
   // 읽기 쉬운 글꼴(policies.fontReplace)로 바꾸기
   //   정보 글자(pol.fix.allowFont) + 글꼴 모양 문제(fixIssues) + 한글·영문만 → 수정
   //   다른 글자가 섞임 → 수정 없이 그대로 둔다는 안내
@@ -1190,7 +1212,7 @@
     var roles = R.classify(doc.layers);
     var sug = suggestPurposes(layers, roles, P);
     var docPurpose = doc.document.purpose || sug.document;
-    var altText = R.altTextDraft(doc.layers, roles);
+    var altText = R.altTextDraft(doc.layers, roles, { speech: P.speech });
 
     var results = [];
     var perLayer = {};
@@ -1225,6 +1247,8 @@
       if (weight) results.push(Object.assign({}, common, weight));
       var spacing = checkSpacing(l, pol, P, env, doc);
       if (spacing) results.push(Object.assign({}, common, spacing));
+      var speech = checkSpeech(l, P, roles[l.id].role);
+      if (speech) results.push(Object.assign({}, common, speech));
       var keyInfo = checkKeyInfoAsArt(l, roles[l.id], purpose, P, altText);
       if (keyInfo) keyInfoAsArt.push(Object.assign({}, common, keyInfo));
     });

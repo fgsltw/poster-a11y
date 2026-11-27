@@ -1417,6 +1417,7 @@
       case "font": return "글꼴이 알아보기 어려워요";
       case "field": return "핵심 정보가 흩어져 있어요";
       case "colorOnly": return "색으로만 구분한 정보가 있어요";
+      case "speech": return "화면 낭독기가 이상하게 읽어요";
       case "keyInfoAsArt": return d.role ? `${josa(ROLE[d.role], "을", "를")} 예술로 정했어요` : "핵심 정보를 예술로 정했어요";
       case "cvd": return "색각이상이면 잘 안 보여요";
       case "layout": return /지금/.test(x.metric) ? "글자가 겹치거나 잘려 있어요" : "키우면 겹치거나 잘려요";
@@ -1446,6 +1447,7 @@
       case "keyInfoAsArt": return "일시·장소·가격·접근성 정보는 관람에 꼭 필요해요. 예술로 정하면 기준에 못 미쳐도 '참고'로만 알려 드리니까, 저시력자나 화면 낭독기 사용자도 알 수 있게 같은 정보를 글로도 함께 제공해 주세요.";
       case "colorOnly": return "색을 구분하기 어려운 사람은 색만 다르게 한 강조를 알아채지 못해요. 정보는 색과 함께 모양·글자로도 구분해야 해요 (WCAG 1.4.1). 적·녹·청색맹으로 보았을 때 두 색이 거의 같아지는지도 계산했어요.";
       case "cvd": return "일반 눈으로는 대비가 충분해도, 색각이상이 있으면 특정 색(예: 적색맹에게 빨강)이 어둡게 보여 배경과 구분이 안 될 수 있어요. 적·녹·청색맹으로 보았을 때의 대비를 다시 계산했어요.";
+      case "speech": return "화면 낭독기는 글자 모양이 아니라 글자 코드를 읽어요. 영어 단어 속 키릴 글자(ш)나 꾸민 영문(𝓗)은 글자 이름을 하나씩 읽고, 장식 기호는 이름을 읽거나 건너뛰고, 한 글자씩 띄어 쓴 단어(S A L E)는 철자를 하나씩 읽어요 (WCAG 실패 사례 F32). 포스터 모양은 그대로 두고, 대체텍스트와 본문에는 읽기 좋은 글을 써 주세요.";
       case "field": return "시야가 좁은 사람(녹내장 등)은 포스터를 한눈에 훑지 못하고 조금씩 옮겨 가며 봐요. 일시·장소·가격·접근성 정보가 한곳에 모여 있어야 찾기 쉬워요 (근접성의 원칙). 시야 10°·5°는 한국 시각장애 판정 기준이에요.";
     }
     return "";
@@ -2435,6 +2437,8 @@
         : d.missingRole ? "포스터에 이 정보가 없어요. 넣을 자리를 정해 주세요." : "디자인에서 직접 조정해 주세요.";
       return { kind: "none", layerIds: [...new Set(ids)], note };
     }
+    if (x.check === "speech")
+      return { kind: "none", layerIds: [x.layerId], note: d.readAs ? `포스터 모양은 그대로 둬요. 대체텍스트·본문에는 “${d.readAs}”처럼 써 주세요.` : "포스터 모양은 그대로 둬요. 꾸밈 기호뿐이라 대체텍스트·본문에는 넣지 않아도 돼요." };
     if (x.check === "keyInfoAsArt")
       return { kind: "none", layerIds: x.layerId != null ? [x.layerId] : d.layerIds || [], note: "고칠 곳은 없어요. '자세히' → '대체텍스트 보기'에서 같은 정보를 글로도 넣어 주세요." };
     if (x.fix && x.layerId != null) return asFix(x, x.fix.passes === false ? { label: "가장 나은 수정", caption: "기준에는 못 미쳐요" } : { label: "이 항목을 고친 모습" });

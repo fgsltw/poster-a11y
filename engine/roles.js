@@ -173,11 +173,72 @@
     return String(t || "").replace(/\s*·\s*/g, ", ").replace(/\s+/g, " ").trim();
   }
 
+  // ---------------------------------------------------------------- 화면 낭독기가 읽기 좋은 글로 (11/27)
+  //   S = policies.speech. 돌려주는 값: { text: 읽기 좋은 글, issues: [{ key, chars: [보인 글자] }] }
+  //   - styled: 꾸민 영문(𝓗 수학 글자 U+1D400~, Ⓐ U+24B6~, 🄰 U+1F130~) → 보통 영문 (NFKC)
+  //   - lookAlike: 영어 단어 속 키릴·그리스 닮은 글자 → S.lookAlike 의 영문자 (korean neш → new)
+  //   - symbols: 장식 기호(★, 글자 없이 쓴 결합 기호 ͞)는 빼요. 화살표·©·※처럼 뜻대로 읽는 기호(S.okSymbols)는 그대로
+  //   - spaced: 'S A L E'처럼 영문을 한 글자씩 띄어 쓴 단어(S.spacedLettersMin 글자 이상) → 'SALE'
+  var STYLED = /[\uD835][\uDC00-\uDFFF]|[\u24B6-\u24E9]|\uD83C[\uDD30-\uDD89]/g;
+  var DECOR = /\p{So}|[•◦‣∙⁃]/u;
+  function speakable(text, S) {
+    S = S || {};
+    var found = {};
+    var order = [];
+    function note(key, ch) {
+      if (!found[key]) { found[key] = []; order.push(key); }
+      if (found[key].indexOf(ch) < 0) found[key].push(ch);
+    }
+    var t = String(text || "");
+    // 꾸민 영문
+    t = t.replace(STYLED, function (c) {
+      var n = c.normalize ? c.normalize("NFKC") : c;
+      if (/^[A-Za-z0-9]$/.test(n)) { note("styled", c); return n; }
+      return c;
+    });
+    // 영어 단어 속 닮은 글자 (영문자가 함께 있는 단어만. 러시아어·그리스어 단어는 그대로)
+    var map = S.lookAlike || {};
+    t = t.replace(/[\p{L}\p{M}]+/gu, function (w) {
+      if (!/[A-Za-z]/.test(w) || !/[\u0370-\u03FF\u0400-\u052F]/.test(w)) return w;
+      return w.replace(/[\u0370-\u03FF\u0400-\u052F]/g, function (c) {
+        note("lookAlike", c);
+        return map[c] != null ? map[c] : c;
+      });
+    });
+    // 낱말 사이 가운뎃점(•)은 쉼표처럼 읽게 (음성해설 • 수어통역)
+    t = t.replace(/\s[•●◦∙]\s/g, " · ");
+    // 장식 기호와 글자 없이 쓴 결합 기호
+    var ok = S.okSymbols || "";
+    var removed = false;
+    var out = "";
+    var chars = Array.from ? Array.from(t) : t.split("");
+    for (var i = 0; i < chars.length; i++) {
+      var c = chars[i];
+      var prev = out.slice(-1);
+      if (/\p{M}/u.test(c) && !/\p{L}/u.test(prev)) { note("symbols", "◌" + c); removed = true; continue; }
+      if (DECOR.test(c) && ok.indexOf(c) < 0 && !/\p{Extended_Pictographic}/u.test(c)) { note("symbols", c); removed = true; out += " "; continue; }
+      out += c;
+    }
+    t = out;
+    // 기호를 뺀 자리에 남은 꾸밈 줄(/ _ | ~ *)도 정리
+    if (removed) t = t.replace(/(^|\s)[\/\\_|~*]+(?=\s|$)/g, "$1").replace(/^[\s\/\\_|~*]+|[\s\/\\_|~*]+$/g, "").replace(/[\/\\_|~*]{2,}/g, " ");
+    // 한 글자씩 띄어 쓴 영문
+    var min = S.spacedLettersMin || 3;
+    t = t.replace(new RegExp("(^|[^A-Za-z])((?:[A-Za-z] ){" + (min - 1) + ",}[A-Za-z])(?![A-Za-z])", "g"), function (_, pre, run) {
+      note("spaced", run);
+      return pre + run.replace(/ /g, "");
+    });
+    t = t.replace(/\s+/g, " ").trim();
+    return { text: t, issues: order.map(function (k) { return { key: k, chars: found[k] }; }) };
+  }
+
   // 대체텍스트 초안 (SNS·웹용). 디자이너·기획자가 다듬어서 쓰는 '초안'이에요.
   function altTextDraft(layers, roles, opts) {
     opts = opts || {};
     function pick(role) {
-      return layers.filter(function (l) { return roles[l.id] && roles[l.id].role === role && l.visible !== false; }).map(function (l) { return l.text; });
+      return layers.filter(function (l) { return roles[l.id] && roles[l.id].role === role && l.visible !== false; }).map(function (l) {
+        return opts.speech ? speakable(l.text, opts.speech).text : l.text; // 화면 낭독기가 읽기 좋은 글로
+      }).filter(Boolean);
     }
     var parts = [opts.kind || "공연 포스터"];
     var title = pick("title")[0];
@@ -191,5 +252,5 @@
     return parts.join(". ").replace(/\.\./g, ".") + ".";
   }
 
-  return { RULES: RULES, LABELS: LABELS, matchRoles: matchRoles, classify: classify, speakDate: speakDate, altTextDraft: altTextDraft };
+  return { RULES: RULES, LABELS: LABELS, matchRoles: matchRoles, classify: classify, speakDate: speakDate, speakable: speakable, altTextDraft: altTextDraft };
 });
