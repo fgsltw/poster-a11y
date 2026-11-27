@@ -87,6 +87,11 @@
     fontLegibility: {
       // 영문 키워드는 글꼴 이름 속 단어의 시작과 비교해요 (OpenSans 의 "pen" 같은 오탐 방지), 한글 키워드는 포함 여부로
       decorative: ["script", "brush", "hand", "callig", "marker", "comic", "graffiti", "붓", "손글씨", "캘리", "필기", "궁서"],
+      // 일본어·중국어 붓글씨·장식 글꼴: 이름 어디에 있어도 잡아요 (HGSGyoshotai·STXingkai·FZShuTi 처럼 앞에 회사 이름이 붙어서) (11/27)
+      //   일본어: 行書(gyosho)·草書(sosho)·筆(fude)·手書き(tegaki)·ポップ体(poptai) / 중국어: 行楷(xingkai)·行书(xingshu)·草书(caoshu)·舒体(shuti)·彩云(caiyun)·琥珀(hupo)
+      //   해서(楷体 KaiTi)·예서(隷書 Reisho, 隶书 LiSu)는 비교적 읽기 쉬워서 빼요. 'pop'처럼 짧은 말은 Poppins 같은 고딕도 잡아서 안 써요
+      decorativeAnywhere: ["gyosho", "gyousho", "sosho", "sousho", "fude", "tegaki", "poptai", "xingkai", "xingshu", "caoshu", "shuti", "caiyun", "hupo",
+        "行書", "行书", "草書", "草书", "毛筆", "毛笔", "筆", "手書", "手書き", "ポップ", "行楷", "舒体", "彩云", "彩雲", "琥珀"],
       condensed: ["condensed", "narrow", "compressed", "cond", "compact"],
       italic: ["italic", "oblique"],
       // '영문 전부 대문자'는 긴 문장만 '참고'로 알려요 (11/26).
