@@ -2441,7 +2441,12 @@
       return { kind: "none", layerIds: [x.layerId], note: d.readAs ? `포스터 모양은 그대로 둬요. 대체텍스트·본문에는 “${d.readAs}”처럼 써 주세요.` : "포스터 모양은 그대로 둬요. 꾸밈 기호뿐이라 대체텍스트·본문에는 넣지 않아도 돼요." };
     if (x.check === "keyInfoAsArt")
       return { kind: "none", layerIds: x.layerId != null ? [x.layerId] : d.layerIds || [], note: "고칠 곳은 없어요. '자세히' → '대체텍스트 보기'에서 같은 정보를 글로도 넣어 주세요." };
-    if (x.fix && x.layerId != null) return asFix(x, x.fix.passes === false ? { label: "가장 나은 수정", caption: "기준에는 못 미쳐요" } : { label: "이 항목을 고친 모습" });
+    // 대비는 바뀐 정도를 숫자로도 (대비 4.25:1 → 5.0:1)
+    //   소수 한 자리, 내림: 4.45를 4.5로 올리면 기준을 넘은 것처럼 보여서
+    const r1 = (v) => (Math.floor(v * 10 + 1e-9) / 10).toFixed(1);
+    const ratio = x.check === "contrast" && x.fix && x.fix.contrastBefore != null && x.fix.contrastAfter != null
+      ? `대비 ${r1(x.fix.contrastBefore)}:1 → ${r1(x.fix.contrastAfter)}:1` : "";
+    if (x.fix && x.layerId != null) return asFix(x, x.fix.passes === false ? { label: "가장 나은 수정", caption: [ratio, "기준에는 못 미쳐요"].filter(Boolean).join(" · ") } : { label: "이 항목을 고친 모습", caption: ratio });
     // 예술 글자처럼 자동 수정을 넣지 않는 항목도, 고치면 어떻게 되는지는 참고로 보여줘요
     if (x.check === "size" && x.layerId != null && d.recommendedPt && !d.tooBig)
       return { kind: "fix", fix: { layerId: x.layerId, type: "size", valuePt: d.recommendedPt }, label: "추천 크기로 키우면 (참고)" };

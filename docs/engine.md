@@ -71,6 +71,8 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 - 반투명 글자는 배경과 섞은 색으로 계산
 - **글자색이 여러 가지면**(강조색 등) 색마다 계산하고 가장 낮은 색으로 판정해요. 수정은 **기준에 못 미치는 색만** 바꿔요 (`fix.runs`)
 - 배경 복잡도: 밝기 편차로 단순 / 약간 복잡 / 복잡한 그림 배경
+- **고칠 때는 10% 여유** (`contrast.fixMargin` 1.1, 임시값, 11/27 결정): 합격선은 그대로 두고 **고칠 목표만** 기준 × 1.1 (4.5 → 약 5.0, 3 → 3.3, 7 → 7.7). 여유만큼 못 가면 기준까지만 고쳐요. 이유: 그림 배경은 대비 값이 어림이고, 화면 밝기·인쇄에서 대비가 떨어지며, 바뀐 게 눈에 보여야 수정을 믿어요 (Pride 포스터 '06'은 4.25 → 4.5만 맞추면 거의 같아 보였어요). 배경 띠도 같아요
+- 수정에 `contrastBefore`(지금 대비)와 `contrastAfter`(고친 뒤 대비)가 있어요. 화면은 고친 모습 아래에 "대비 4.25:1 → 5.0:1"로 보여 줘요
 
 ### 시야가 좁은 사람: 핵심 정보 모으기 (`field`) — 근접성의 원칙
 - `checkDocument(doc, { field: "normal" | "narrow" | "veryNarrow" })`
@@ -176,7 +178,7 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
     { "layerId": 6, "text": "11.8(토) 19:30", "role": "date", "purpose": "info", "purposeSource": "suggested",
       "check": "contrast", "status": "fail", "statusLabel": "실패",
       "metric": "대비 3.2:1 · 기준 4.5:1 · 단순한 배경",
-      "fix": { "type": "color", "value": "#6F6A5E", "strategy": "full", "passes": true, "contrastAfter": 4.67 } },
+      "fix": { "type": "color", "value": "#6A6459", "strategy": "full", "passes": true, "contrastBefore": 3.22, "contrastAfter": 5.08 } },
     { "layerId": 5, "check": "contrast", "status": "conflict", "statusLabel": "충돌",
       "fix": { "type": "color", "value": "#FFFEFD", "strategy": "minimal", "passes": false },
       "alternative": { "type": "altText", "draft": "공연 포스터. 봄의 제전. ..." } }

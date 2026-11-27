@@ -287,18 +287,23 @@
     // 아주 드문 얼룩 픽셀(아래·위 2%)은 빼고 찾아요
     var cut = Math.floor(bgLums.length * P.contrast.worstPercentile);
     var lums = bgLums.slice(cut, bgLums.length - cut || bgLums.length);
+    // 고칠 목표 = 기준 × 여유 (policies.contrast.fixMargin). 여유만큼 못 가면 기준까지만
+    var fixTarget = target * (P.contrast.fixMargin || 1);
     var changes = [], allPass = true, after = Infinity;
     runs.forEach(function (r) {
       if (r.worst >= target) { after = Math.min(after, r.worst); return; }
-      var c = C.findAccessibleColor(r.color, lums, target, { maxShift: pol.fix.maxLightnessShift, alpha: alpha, bgRgbs: alpha < 1 ? bgs : null });
+      var opts = { maxShift: pol.fix.maxLightnessShift, alpha: alpha, bgRgbs: alpha < 1 ? bgs : null };
+      var c = C.findAccessibleColor(r.color, lums, fixTarget, opts);
+      if (c && !c.passes && fixTarget > target) c = C.findAccessibleColor(r.color, lums, target, opts);
       if (!c) { allPass = false; return; }
+      c.passes = c.contrast >= target;
       if (!c.passes) allPass = false;
       after = Math.min(after, c.contrast);
       changes.push({ from: r.color, value: c.hex });
     });
     function colorFix(strategy, passes) {
       if (!changes.length) return null;
-      var f = { type: "color", value: changes[0].value, strategy: strategy, passes: passes, contrastAfter: round(after, 2) };
+      var f = { type: "color", value: changes[0].value, strategy: strategy, passes: passes, contrastBefore: round(worst, 2), contrastAfter: round(after, 2) };
       if (multi) f.runs = changes; // 이 색들만 바꿔요
       return f;
     }
@@ -312,9 +317,10 @@
     var plateBlockedByArt = docPurpose === "mixed" && overArt && !P.purposes.mixed.allowBackplateOverArt;
     var plateAllowed = pol.fix.allowBackplate && !plateBlockedByArt;
     if (plateAllowed) {
-      var plate = tryBackplate(hexes.map(C.hexToRgb), bgs, alpha, target, pol.fix.backplateMaxOpacity, P);
+      var plate = tryBackplate(hexes.map(C.hexToRgb), bgs, alpha, fixTarget, pol.fix.backplateMaxOpacity, P);
+      if (!plate.passes && fixTarget > target) plate = tryBackplate(hexes.map(C.hexToRgb), bgs, alpha, target, pol.fix.backplateMaxOpacity, P);
       if (plate.passes) {
-        res.fix = { type: "backplate", color: plate.color, opacity: plate.opacity, paddingMm: P.contrast.backplate.paddingMm, strategy: pol.fix.strategy, passes: true, contrastAfter: round(plate.contrast, 2) };
+        res.fix = { type: "backplate", color: plate.color, opacity: plate.opacity, paddingMm: P.contrast.backplate.paddingMm, strategy: pol.fix.strategy, passes: true, contrastBefore: round(worst, 2), contrastAfter: round(plate.contrast, 2) };
         return res;
       }
     }
