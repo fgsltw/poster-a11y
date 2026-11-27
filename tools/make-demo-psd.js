@@ -3,16 +3,16 @@
  *
  *   npm run sample:demo   →  samples/sample-demo.psd (+ .preview.png)
  *
- * 고친 전후 차이가 한눈에 드러나도록, 2030 공연 포스터에서 흔한 실수를 한 장에 모았어요.
+ * 고친 전후 차이가 한눈에 드러나도록, 실제 디자이너가 만들 법한 2030 공연 포스터에 흔한 실수를 모았어요.
+ * 디자인은 일부러 세련되게 두고, 문제는 '분위기를 위해 톤을 낮추고 작고 얇게 쓴' 수준이에요.
  * 고치는 방법은 모두 엔진 기준(engine/policies.js)이 정해요. 이 파일은 문제만 만들어요.
- *   - 어두운 바탕에 어두운 회색 글자 (대비 1.6~2.3:1) → 같은 색 계열에서 밝게
- *   - 작고 얇은 정보 글자 (Semilight) → 겹치지 않는 만큼 키우고 굵게. 아래에 여백을 넉넉히 둬요
- *   - 자간을 바짝 좁힌 장소 (-120) → 기본 간격
- *   - 줄 간격이 붙은 두 줄 가격 (1.0배) → 1.5배
+ *   - 회청색 정보 글자 (일반 눈 기준은 겨우, 저시력 기준 7:1엔 못 미침) → 같은 색 계열에서 밝게
+ *   - 작고 얇은 정보 글자 (Semilight) → 겹치지 않는 만큼 키우고 굵게. 오른쪽에 여백을 넉넉히 둬요
+ *   - 자간을 좁힌 장소 (-80) → 기본 간격
+ *   - 줄 간격이 붙은 두 줄 티켓 정보 (약 1배) → 1.5배
  *   - 색만 다른 '매진'·'예매 가능' → 굵게 + 밑줄 / 굵게
- *   - 네온 빛 위 보라색 일시 (대비 부족) → 같은 보라 계열에서 밝게
- *   - 영문 전부 대문자 긴 문장 → 대소문자 섞기
- *   제목은 문제가 없게 둬서, 디자인은 그대로이고 정보만 또렷해지는 모습을 보여줘요.
+ *   - 영문 전부 대문자 긴 문장 → 참고로 알려요
+ *   제목·레코드 그림은 문제가 없게 둬서, 디자인은 그대로이고 정보만 또렷해지는 모습을 보여줘요.
  *
  * 글꼴: Windows 맑은 고딕을 먼저 찾고, 없으면 Mac Apple SD 산돌고딕 Neo, Linux Noto Sans CJK로 그려요.
  *   PSD 안 글꼴 이름은 어느 쪽이든 맑은 고딕이에요 (다른 샘플과 같게).
@@ -40,52 +40,68 @@ for (const w of Object.keys(FONT_CANDIDATES)) {
 }
 
 // ---------- 배경 아트워크 ----------
-const NAVY = "#121A2E";
+// 레코드 판 한 장과 네온 빛 번짐. 글자 뒤는 단색으로 비워 둬요 (디자이너가 정보 영역을 따로 두는 흔한 구성)
+const BG = "#0E1220";
 function drawArtwork(ctx) {
-  ctx.fillStyle = NAVY;
+  ctx.fillStyle = BG;
   ctx.fillRect(0, 0, W, H);
-  // 위쪽: 네온 빛 번짐 (자홍·청록) + 가는 선. 일시 글자가 이 위에 놓여요
   const glow = (x, y, r, c) => {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, c); g.addColorStop(1, "rgba(18,26,46,0)");
+    g.addColorStop(0, c); g.addColorStop(1, "rgba(14,18,32,0)");
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   };
-  glow(940, 90, 380, "rgba(255,64,170,0.85)");
-  glow(250, 420, 300, "rgba(40,210,230,0.70)");
-  glow(960, 470, 200, "rgba(140,90,255,0.75)");
-  // 작은 별빛 점 (글자 뒤를 복잡하게 만들지 않을 만큼만)
-  let seed = 7;
-  const rand = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  for (let i = 0; i < 90; i++) {
-    const x = rand() * W, y = rand() * 760, r = 1 + rand() * 2.2;
-    if (y > 150 && y < 360 && x < 1010) continue; // 제목·부제 뒤는 비워요
-    if (y > 580 && y < 700) continue; // 일시 뒤도
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  glow(900, 260, 500, "rgba(232,64,150,0.55)");
+  glow(1040, 640, 340, "rgba(60,190,230,0.35)");
+  // 레코드 판: 검은 원 + 가는 홈 + 가운데 라벨 + 빛 반사
+  const cx = 840, cy = 390, R = 330;
+  ctx.fillStyle = "#06080F";
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 1;
+  for (let r = 130; r < R - 6; r += 5) {
+    ctx.strokeStyle = r % 35 < 5 ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)";
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
   }
+  const shine = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+  shine.addColorStop(0.3, "rgba(255,255,255,0)"); shine.addColorStop(0.5, "rgba(255,255,255,0.07)"); shine.addColorStop(0.7, "rgba(255,255,255,0)");
+  ctx.fillStyle = shine; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+  const label = ctx.createLinearGradient(cx - 120, cy - 120, cx + 120, cy + 120);
+  label.addColorStop(0, "#FF5FA2"); label.addColorStop(1, "#FF9A5A");
+  ctx.fillStyle = label; ctx.beginPath(); ctx.arc(cx, cy, 118, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = BG; ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fill();
+  // 정보 영역 위 가는 구분선
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  ctx.fillRect(70, 735, W - 140, 2);
 }
 
 // ---------- 텍스트 레이어 ----------
 // px: 글자 크기 · weight: regular | bold | light · tracking: 포토샵 자간(1/1000 em) · leading: 줄 간격(px, 여러 줄일 때)
-// runs: [{ text, color }] — 한 레이어 안에서 색만 다른 구간. lines: 여러 줄 (줄마다 runs)
-const MUTED = "#4A5068"; // 어두운 바탕 위 어두운 회색 (대비 약 2.1:1)
+// lines: 여러 줄 (줄마다 runs). runs: [{ text, color }] — 한 레이어 안에서 색만 다른 구간
+// 정보 글자는 '분위기를 위해 톤을 낮춘' 회청색이에요. 일반 눈 기준(4.5:1)은 겨우 넘거나 조금 모자라고, 저시력 기준(7:1)엔 못 미쳐요
+const LABEL = "#C2477F"; // 항목 이름: 레코드 라벨과 같은 분홍을 어둡게
+const VALUE = "#7D8399"; // 정보 글자
 const TEXTS = [
-  { name: "제목", lines: [[{ text: "한밤의 레코드", color: "#F4F1EA" }]], weight: "bold", px: 132, x: 70, y: 250 },
-  { name: "영문 부제", lines: [[{ text: "A NIGHT OF RECORDS AND QUIET SOUNDS", color: "#4C5372" }]], weight: "regular", px: 28, x: 74, y: 320 },
-  { name: "일시", lines: [[{ text: "12.20(토) – 12.21(일) 오후 6시", color: "#8E4FB8" }]], weight: "bold", px: 46, x: 70, y: 640 },
-  { name: "장소", lines: [[{ text: "성수 레코드홀 지하 1층", color: MUTED }]], weight: "light", px: 30, tracking: -120, x: 72, y: 830 },
+  { name: "시리즈", lines: [[{ text: "VOL.03  WINTER 2026", color: "#8C92A8" }]], weight: "regular", px: 22, tracking: 200, x: 72, y: 110 },
+  { name: "제목", lines: [[{ text: "한밤의", color: "#F5F1E8" }], [{ text: "레코드", color: "#F5F1E8" }]], weight: "bold", px: 150, leading: 160, x: 66, y: 360 },
+  { name: "영문 부제", lines: [[{ text: "A NIGHT OF RECORDS AND QUIET SOUNDS", color: "#6E7491" }]], weight: "regular", px: 22, tracking: 80, x: 72, y: 600 },
+  { name: "일시 항목", lines: [[{ text: "일시", color: LABEL }]], weight: "bold", px: 20, x: 72, y: 815 },
+  { name: "일시", lines: [[{ text: "12.20 토 — 12.21 일 · 오후 6시", color: VALUE }]], weight: "light", px: 30, x: 200, y: 818 },
+  { name: "장소 항목", lines: [[{ text: "장소", color: LABEL }]], weight: "bold", px: 20, x: 72, y: 915 },
+  { name: "장소", lines: [[{ text: "성수 레코드홀 지하 1층", color: VALUE }]], weight: "light", px: 30, tracking: -80, x: 200, y: 918 },
+  { name: "회차 항목", lines: [[{ text: "회차", color: LABEL }]], weight: "bold", px: 20, x: 72, y: 1015 },
   {
     name: "회차 안내",
-    lines: [[{ text: "20일 ", color: MUTED }, { text: "매진", color: "#C8424A" }, { text: " · 21일 ", color: MUTED }, { text: "예매 가능", color: "#2E8B5A" }]],
-    weight: "light", px: 28, x: 72, y: 935
+    lines: [[{ text: "20일 ", color: VALUE }, { text: "매진", color: "#C0504D" }, { text: " · 21일 ", color: VALUE }, { text: "예매 가능", color: "#3E9A6A" }]],
+    weight: "light", px: 28, x: 200, y: 1018
   },
+  { name: "티켓 항목", lines: [[{ text: "티켓", color: LABEL }]], weight: "bold", px: 20, x: 72, y: 1115 },
   {
     name: "가격",
-    lines: [[{ text: "1일권 35,000원 · 2일권 60,000원", color: MUTED }], [{ text: "예매 ○○티켓 (12.1 오후 2시 오픈)", color: MUTED }]],
-    weight: "light", px: 26, leading: 26, x: 72, y: 1040
+    lines: [[{ text: "1일권 35,000원 · 2일권 60,000원", color: VALUE }], [{ text: "예매 ○○티켓 (12.1 오후 2시 오픈)", color: VALUE }]],
+    weight: "light", px: 24, leading: 25, x: 200, y: 1116
   },
-  { name: "접근성 안내", lines: [[{ text: "휠체어석 · 문자통역 · 진동 스피커", color: "#3D4259" }]], weight: "light", px: 24, x: 72, y: 1185 },
-  { name: "주최", lines: [[{ text: "주최 ○○문화재단 · 후원 ○○구", color: "#363B52" }]], weight: "regular", px: 15, x: 72, y: 1300 }
+  { name: "접근성 항목", lines: [[{ text: "접근성", color: LABEL }]], weight: "bold", px: 20, x: 72, y: 1240 },
+  { name: "접근성 안내", lines: [[{ text: "휠체어석 · 문자통역 · 진동 스피커", color: "#5F6580" }]], weight: "light", px: 22, x: 200, y: 1241 },
+  { name: "주최", lines: [[{ text: "주최 ○○문화재단   후원 ○○구", color: "#4A4F66" }]], weight: "regular", px: 15, x: 72, y: 1318 }
 ];
 
 const hexToRgb = (hex) => { const n = parseInt(hex.slice(1), 16); return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }; };
