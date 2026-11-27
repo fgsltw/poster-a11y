@@ -104,3 +104,9 @@ test("읽기 쉬운 글꼴은 장식 글꼴로 보지 않아요: 해서·예서�
     assert.equal(fontIssues(n).includes("decorative"), false, n);
   }
 });
+
+test("다시 보기(11/27): 開場時間·開演時間을 한 낱말로 읽어요 ('입장時間'이 되지 않게)", () => {
+  assert.equal(R.speakDate("開場時間 18:00"), "입장 저녁 6시");
+  assert.equal(R.speakDate("開演時間 19:00"), "공연 시작 저녁 7시");
+  assert.equal(R.speakDate("开场时间 18:00"), "입장 저녁 6시");
+});

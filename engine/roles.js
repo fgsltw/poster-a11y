@@ -135,7 +135,7 @@
     // 일본 연호: 令和8年 → 2026년, 平成31年 → 2019년 (元年 = 1년)
     s = s.replace(/(令和|平成)\s*(\d{1,2}|元)\s*年/g, function (_, era, n) { return ((era === "令和" ? 2018 : 1988) + (n === "元" ? 1 : Number(n))) + "년 "; });
     // 공연 시간 낱말: 開演 → 공연 시작, 開場 → 입장 (일본어·중국어)
-    s = s.replace(/\s*(開演|开演)/g, " 공연 시작").replace(/\s*(開場|开场|開場時間)/g, " 입장").replace(/\s*(終演|终演)/g, " 공연 끝");
+    s = s.replace(/\s*(開演時間|開演|开演时间|开演)/g, " 공연 시작").replace(/\s*(開場時間|開場|开场时间|开场)/g, " 입장").replace(/\s*(終演|终演)/g, " 공연 끝");
     // 중국어·일본어: 2026年11月8日 · 11月8日 · (土) · 星期六 · 周六 · 土曜日 · 晚上7点半 · 19時30分
     s = s.replace(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/g, function (_, y, m, d) { return y + "년 " + Number(m) + "월 " + Number(d) + "일"; });
     s = s.replace(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/g, function (_, m, d) { return Number(m) + "월 " + Number(d) + "일"; });
@@ -179,7 +179,8 @@
   //   - lookAlike: 영어 단어 속 키릴·그리스 닮은 글자 → S.lookAlike 의 영문자 (korean neш → new)
   //   - symbols: 장식 기호(★, 글자 없이 쓴 결합 기호 ͞)는 빼요. 화살표·©·※처럼 뜻대로 읽는 기호(S.okSymbols)는 그대로
   //   - spaced: 'S A L E'처럼 영문을 한 글자씩 띄어 쓴 단어(S.spacedLettersMin 글자 이상) → 'SALE'
-  var STYLED = /[\uD835][\uDC00-\uDFFF]|[\u24B6-\u24E9]|\uD83C[\uDD30-\uDD89]/g;
+  //   ᴴᴱᴸᴸᴼ(작은 위 글자 U+1D2C~1D6A)도 꾸민 영문이에요. 🅑🅞(U+1F150~)·🅱(U+1F170~)은 NFKC로 안 바뀌어서 직접 바꿔요
+  var STYLED = /[\uD835][\uDC00-\uDFFF]|[\u24B6-\u24E9]|[\u1D2C-\u1D6A]|\uD83C[\uDD30-\uDD89]/g;
   var DECOR = /\p{So}|[•◦‣∙⁃]/u;
   function speakable(text, S) {
     S = S || {};
@@ -192,7 +193,10 @@
     var t = String(text || "");
     // 꾸민 영문
     t = t.replace(STYLED, function (c) {
-      var n = c.normalize ? c.normalize("NFKC") : c;
+      var cp = c.codePointAt ? c.codePointAt(0) : 0;
+      var n = cp >= 0x1f150 && cp <= 0x1f169 ? String.fromCharCode(65 + cp - 0x1f150)
+        : cp >= 0x1f170 && cp <= 0x1f189 ? String.fromCharCode(65 + cp - 0x1f170)
+        : c.normalize ? c.normalize("NFKC") : c;
       if (/^[A-Za-z0-9]$/.test(n)) { note("styled", c); return n; }
       return c;
     });
@@ -200,6 +204,9 @@
     var map = S.lookAlike || {};
     t = t.replace(/[\p{L}\p{M}]+/gu, function (w) {
       if (!/[A-Za-z]/.test(w) || !/[\u0370-\u03FF\u0400-\u052F]/.test(w)) return w;
+      // 키릴·그리스 글자가 더 많으면 그 나라 말에 영문자가 섞인 것 (Пpивет) → 영문으로 바꾸지 않아요
+      var latin = (w.match(/[A-Za-z]/g) || []).length, other = (w.match(/[\u0370-\u03FF\u0400-\u052F]/g) || []).length;
+      if (other > latin) return w;
       return w.replace(/[\u0370-\u03FF\u0400-\u052F]/g, function (c) {
         note("lookAlike", c);
         return map[c] != null ? map[c] : c;
