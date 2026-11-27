@@ -9,6 +9,10 @@
 
   // 팀 회의록의 규칙 + 한국어 시간 표현 보강
   var MONTHS_EN = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
+  // 달 이름 (줄임·전체). 뒤에 숫자가 바로 붙어도 돼요 (Jan23). "Junction"·"Marshall" 같은 말은 빼요
+  var MONTH_WORD = "(" + MONTHS_EN + ")(?:uary|ruary|ch|il|e|y|ust|t|tember|ember|ober)?\\.?(?![a-z])";
+  // 날짜 사이 구분 기호: 공백 · * · 점 · 하이픈 · 빗금 · 밑줄 (22nd*Jan23, 22.Jan, 22-Jan)
+  var DSEP = "[\\s*·.\\-/_]";
   var DAYS_EN_RE = "Mon|Tue|Wed|Thu|Fri|Sat|Sun";
   var CJK = "\\u3040-\\u30FF\\u4E00-\\u9FFF"; // 가나·한자
   // 한국어 규칙 (팀 회의록 + 한국어 시간 표현) 에 영어·중국어·일본어 표현을 더했어요. 영어는 대소문자를 가리지 않아요.
@@ -17,7 +21,7 @@
     // 영어: Nov 8 · 8 November · Saturday · 7pm / 중국어·일본어: 11月8日 · 2026年 · (土) · 星期六 · 周六 · 土曜日 · 19時 · 7点
     date: new RegExp(
       "((?:^|[^\\d.])(0?[1-9]|1[0-2])\\s*[./월]\\s*(0?[1-9]|[12]\\d|3[01])(?![\\d.]|\\s*[A-Za-z%])\\s*일?)|(\\d{4}\\s*[./-]\\s*\\d{1,2}\\s*[./-]\\s*\\d{1,2})|" +
-      "(\\b(" + MONTHS_EN + ")[a-z]*\\.?\\s+\\d{1,2}(st|nd|rd|th)?\\b)|(\\b\\d{1,2}(st|nd|rd|th)?\\s+(" + MONTHS_EN + ")[a-z]*\\b)|(\\b(" + DAYS_EN_RE + ")(day|urday|nesday|sday|rsday)?\\b)|(\\b\\d{1,2}(:\\d{2})?\\s*[ap]\\.?m\\.?(?![a-z]))|" +
+      "(\\b" + MONTH_WORD + DSEP + "+\\d{1,2}(st|nd|rd|th)?\\b)|(\\b\\d{1,2}(st|nd|rd|th)?" + DSEP + "*" + MONTH_WORD + ")|((令和|平成)\\s*(\\d{1,2}|元)\\s*年)|(\\b(" + DAYS_EN_RE + ")(day|urday|nesday|sday|rsday)?\\b)|(\\b\\d{1,2}(:\\d{2})?\\s*[ap]\\.?m\\.?(?![a-z]))|" +
       "(\\d{1,2}:\\d{2})|([월화수목금토일]요일|\\([월화수목금토일]\\))|((새벽|오전|오후|낮|저녁|밤)\\s*\\d{1,2}\\s*시)|" +
       "(\\d{1,2}\\s*月\\s*\\d{1,2}\\s*日)|(\\d{4}\\s*年)|([（(][日月火水木金土一二三四五六天][)）])|(星期[一二三四五六日天]|周[一二三四五六日天]|[日月火水木金土]曜日?)|(\\d{1,2}\\s*[時时点])",
       "i"),
@@ -28,12 +32,13 @@
       "(극장|미술관|갤러리|공원|광장|도서관|회관|[가-힣A-Za-z0-9](홀|센터|무대)|\\d+층|\\d+호)|" +
       "(\\b(museums?|galler(y|ies)|auditorium|arena|library|plaza|venue|opera\\s+house)\\b)|(\\btheat(er|re)s?\\b(?!\\s+of\\b))|" +
       "(\\b[A-Za-z][A-Za-z.&'-]*\\s+(hall|cent(er|re)|square|park|stage)\\b(?!\\s+of\\b))|(\\b\\d+(st|nd|rd|th)?\\s*(f|fl|floor)\\b)|(\\bB\\d\\b)|" +
-      "(劇場|剧场|剧院|会館|会馆|美術館|美术馆|博物館|博物馆|図書館|图书馆|画廊|ギャラリー|広場|广场|公園|公园|音楽堂|音乐厅|ホール|[" + CJK + "](センター|中心|ステージ)|\\d+\\s*[階楼])",
+      "(\\b(venue|location|where)\\s*[:：])|((会場|会场|場所|地点|地點|場地)\\s*[:：])|" +
+      "(劇場|剧场|剧院|劇院|会館|会馆|會館|[" + CJK + "][廳厅]|美術館|美术馆|博物館|博物馆|図書館|图书馆|画廊|ギャラリー|広場|广场|公園|公园|音楽堂|音乐厅|ホール|[" + CJK + "](センター|中心|ステージ)|\\d+\\s*[階楼])",
       "i"),
     // 영어: $25 · €20 · £10 · KRW 70,000 · tickets · admission · free entry / 중국어·일본어: 円·元 · ¥ · 無料·免费 · 前売·票价·门票·チケット
     price: new RegExp(
       "(\\d{1,3}(,\\d{3})*\\s*원|무료|[RSAV]석|예매)|" +
-      "([$€£₩]\\s?\\d)|(\\b(krw|usd|eur|jpy|won)\\s?\\d)|(\\d\\s?(krw|usd|eur|won)\\b)|(\\btickets?\\b)|(\\badmission\\b)|(\\bbooking\\b)|(\\bfree\\s+(entry|admission)\\b)|(\\b(entry|admission)\\s+free\\b)|" +
+      "([$€£₩]\\s?\\d)|(\\bbook\\s+(now|online|tickets?|here)\\b)|(\\breservations?\\b)|(\\b(krw|usd|eur|jpy|won)\\s?\\d)|(\\d\\s?(krw|usd|eur|won)\\b)|(\\btickets?\\b)|(\\badmission\\b)|(\\bbooking\\b)|(\\bfree\\s+(entry|admission)\\b)|(\\b(entry|admission)\\s+free\\b)|" +
       "(\\d[\\d,]*\\s*[円元圓])|([¥￥]\\s?\\d)|(入場無料|無料|免费|免費|前売|前売券|当日券|票价|票價|门票|門票|チケット|入場料|入场费|予約|预约|預約)",
       "i"),
     // 영어: audio description · sign language · wheelchair · captions · subtitles · braille · barrier-free · accessible · hearing loop · relaxed performance
@@ -111,6 +116,9 @@
   // "11.8(토) 19:30" → "11월 8일 토요일 저녁 7시 30분"  (대체텍스트·큰 글씨 안내문에서 소리 내어 읽기 좋게)
   //   연도: 2026.11.8 · 2026-11-08 → 2026년 11월 8일 / 영어: Nov 8, 2026 → 2026년 11월 8일
   //   기간: 11.8~11.10 → 11월 8일부터 11월 10일까지 / 19:30~21:00 → 저녁 7시 30분부터 밤 9시까지
+  // 두 자리 연도 → 네 자리 (23 → 2023)
+  function fullYear(y) { return y.length === 2 ? "20" + y : y; }
+
   function speakDate(text) {
     var s = String(text);
     // 기간의 '~'는 화면 낭독기가 '물결'로 읽어서 '부터 … 까지'로 바꿔요
@@ -124,6 +132,10 @@
     });
     s = s.replace(/(\d{1,2}:\d{2})\s*[~∼〜–-]\s*(\d{1,2}:\d{2})/g, "$1부터 $2까지");
     s = s.replace(/\b(Sun|Mon|Tue|Wed|Thu|Fri|Sat)[a-z]*\.?,?(?=\s)/gi, function (_, d) { return DAYS_EN[d.toLowerCase()]; });
+    // 일본 연호: 令和8年 → 2026년, 平成31年 → 2019년 (元年 = 1년)
+    s = s.replace(/(令和|平成)\s*(\d{1,2}|元)\s*年/g, function (_, era, n) { return ((era === "令和" ? 2018 : 1988) + (n === "元" ? 1 : Number(n))) + "년 "; });
+    // 공연 시간 낱말: 開演 → 공연 시작, 開場 → 입장 (일본어·중국어)
+    s = s.replace(/\s*(開演|开演)/g, " 공연 시작").replace(/\s*(開場|开场|開場時間)/g, " 입장").replace(/\s*(終演|终演)/g, " 공연 끝");
     // 중국어·일본어: 2026年11月8日 · 11月8日 · (土) · 星期六 · 周六 · 土曜日 · 晚上7点半 · 19時30分
     s = s.replace(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/g, function (_, y, m, d) { return y + "년 " + Number(m) + "월 " + Number(d) + "일"; });
     s = s.replace(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/g, function (_, m, d) { return Number(m) + "월 " + Number(d) + "일"; });
@@ -138,12 +150,13 @@
       return h + ":" + (half === "半" ? "30" : mm ? ("0" + Number(mm)).slice(-2) : "00");
     });
     // 영어 일·월 순서: 8 November 2026 → 2026년 11월 8일
-    s = s.replace(new RegExp("\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(" + MONTHS_EN + ")[a-z]*\\b(?:,?\\s*(\\d{4}))?", "gi"), function (_, d, mon, y) {
-      return (y ? y + "년 " : "") + MONTH_NO[mon.toLowerCase()] + "월 " + Number(d) + "일";
+    //   22nd*Jan23 · 22-Jan-2023 처럼 기호로 잇거나 두 자리 연도가 붙어도 (19:30 같은 시각은 연도로 안 봐요)
+    s = s.replace(new RegExp("\\b(\\d{1,2})(?:st|nd|rd|th)?" + DSEP + "*" + MONTH_WORD + "(?:[\\s*·.\\-/_,']*(\\d{4}|\\d{2})(?![\\d:]))?", "gi"), function (_, d, mon, y) {
+      return (y ? fullYear(y) + "년 " : "") + MONTH_NO[mon.toLowerCase()] + "월 " + Number(d) + "일";
     });
     // 연도가 붙은 날짜 (월·일 규칙보다 먼저)
     s = s.replace(/(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})(?!\d)/g, function (_, y, m, d) { return y + "년 " + Number(m) + "월 " + Number(d) + "일"; });
-    s = s.replace(new RegExp("\\b(" + MONTHS_EN + ")[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?:,?\\s*(\\d{4}))?", "gi"), function (_, mon, d, y) {
+    s = s.replace(new RegExp("\\b" + MONTH_WORD + DSEP + "+(\\d{1,2})(?:st|nd|rd|th)?\\b(?:,?\\s*(\\d{4}))?", "gi"), function (_, mon, d, y) {
       return (y ? y + "년 " : "") + MONTH_NO[mon.toLowerCase()] + "월 " + Number(d) + "일";
     });
     // 월·일: 앞이 숫자인 경우(연도 일부)는 빼요

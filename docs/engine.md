@@ -15,7 +15,7 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 > 엔진 코드에는 기준값과 안내 문구를 직접 넣지 않아요 (테스트로 확인해요). 목적별 문구는 `purposes.*.messages`, 목적과 상관없는 공통 문구(충돌, 큰 글씨 안내문, 배치, 계층, 좁은 시야 등)는 `messages`, 배경 띠 후보 색·여백은 `contrast.backplate`, 목적 추천 비율은 `purposeSuggestion.artSizeRatio`에 있어요. 문구의 `{pt}`·`{role}` 같은 자리는 엔진이 채워요.
 | `engine/engine.js` | 검사 본체: 크기·대비·굵기·간격·확대 후 배치·위계, 목적 추천, 수정 전략, 충돌 감지 |
 | `engine/color.js` | 대비 계산, OKLCH로 '같은 색상·밝기만 조절' 추천색 찾기. 대비는 실제로 넣을 **반올림한 #RRGGBB 색**으로 계산해서, '통과'라고 한 추천색은 다시 검사해도 통과해요. 배경 띠도 PSD에 실제로 들어가는 대로(불투명도 0~255 단계, 섞인 색 정수) 계산해요 (`blendStored`) |
-| `engine/roles.js` | 역할 분류(제목·일시·장소·가격·접근성), 대체텍스트 초안. 날짜 읽기(`speakDate`): 연도(2026.11.8)·영어(Nov 8)·기간(11.8~11.10 → '부터 … 까지')·때(새벽·오전·오후·저녁·밤). 장소의 '홀·센터·무대'는 이름 끝에 붙을 때만(콘서트홀, 야외무대) | **영어·중국어·일본어**도 알아봐요: 일시(Nov 8, 7pm, 11月8日, 星期六, 土曜日, 19時), 장소(Concert Hall, Museum, 劇場, ホール, 剧院, 3階), 가격($25, Free entry, 円, 元, 無料, 免费, チケット), 접근성(Audio description, Sign language, 手話, 車いす, 无障碍). 영어는 대소문자를 가리지 않고, 'Hall of Fame'·'Center of the World'처럼 제목에 흔한 말은 빼요. 중국어·일본어 날짜도 한국어로 읽어요(11月8日(土) 19:30 → 11월 8일 토요일 저녁 7시 30분)
+| `engine/roles.js` | 역할 분류(제목·일시·장소·가격·접근성), 대체텍스트 초안. 날짜 읽기(`speakDate`): 연도(2026.11.8)·영어(Nov 8)·기간(11.8~11.10 → '부터 … 까지')·때(새벽·오전·오후·저녁·밤). 장소의 '홀·센터·무대'는 이름 끝에 붙을 때만(콘서트홀, 야외무대) | **영어·중국어·일본어**도 알아봐요: 일시(Nov 8, 7pm, 11月8日, 星期六, 土曜日, 19時), 장소(Concert Hall, Museum, 劇場, ホール, 剧院, 3階), 가격($25, Free entry, 円, 元, 無料, 免费, チケット), 접근성(Audio description, Sign language, 手話, 車いす, 无障碍). 영어는 대소문자를 가리지 않고, 'Hall of Fame'·'Center of the World'처럼 제목에 흔한 말은 빼요. 중국어·일본어 날짜도 한국어로 읽어요(11月8日(土) 19:30 → 11월 8일 토요일 저녁 7시 30분). 기호로 잇거나 연도가 붙은 날짜(22nd\*Jan23, 22-Jan-2023 → 2023년 1월 22일), 일본 연호(令和8年 → 2026년), 開演·開場(공연 시작·입장), 이름표가 붙은 장소(Venue:, 会場:, 地点：), 번체 音樂廳·劇院, 'Book now'·'Reservation'도 찾아요. 좌석 등급만 있는 'R 90,000'은 뜻이 여러 가지라 넘겨요
 | `test/engine.test.js`, `test/criteria.test.js` | 샘플 포스터로 확인하는 테스트 |
 
 ## 목적별 정책 (팀 정책 표 → 코드)
@@ -99,7 +99,7 @@ const fixes = Engine.toApplyFixes(result);       // → A의 applyFixes(psd, fix
 - `checkDocument(doc, { colorVision: false })` 이면 `colorOnly`·`cvd`를 하지 않아요 (기본은 켜짐). `result.environment.colorVision`에 남아요
 
 ### 글꼴 가독성 (`font`) — 기준 ① 보강
-- 글꼴 이름으로 **장식·손글씨 글꼴**(script, brush, 붓, 손글씨, 캘리…), **폭이 좁은 글꼴**(condensed, narrow…), **기울임**(italic, 가짜 기울임)을 찾아요. 영문 키워드는 이름 속 단어의 시작과 비교해요 (OpenSans 의 "pen" 같은 오탐 방지)
+- 글꼴 이름으로 **장식·손글씨 글꼴**(script, brush, 붓, 손글씨, 캘리…), **폭이 좁은 글꼴**(condensed, narrow…), **기울임**(italic, 가짜 기울임)을 찾아요. 영문 키워드는 이름 속 단어의 시작과 비교해요 (OpenSans 의 "pen" 같은 오탐 방지). **일본·중국 붓글씨·장식 글꼴**(行書 Gyosho, 草書 Sosho, 筆 Fude, 手書き, ポップ体, 行楷 Xingkai, 舒体 ShuTi, 彩云 Caiyun, 琥珀 Hupo)은 회사 이름이 앞에 붙어서(HGSGyoshotai, STXingkai, FZShuTi) 이름 어디에 있어도 찾아요 (`fontLegibility.decorativeAnywhere`). 해서(KaiTi)·예서(LiSu)는 비교적 읽기 쉬워 빼요
 - **영문 전부 대문자**(6글자 이상 또는 PSD 대문자 설정)
 - 정보 글자는 주의, 예술 글자는 참고. 자동 수정은 없고 글꼴 바꾸기를 안내해요
 
