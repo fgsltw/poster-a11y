@@ -518,7 +518,9 @@
       });
     }
     var issues = [];
-    if (has(F.decorative)) issues.push({ key: "decorative", text: "장식·손글씨 글꼴" });
+    var flatName = raw.toLowerCase().replace(/[\s_.-]+/g, "");
+    var anywhere = (F.decorativeAnywhere || []).some(function (k) { return flatName.indexOf(k.toLowerCase()) >= 0; });
+    if (has(F.decorative) || anywhere) issues.push({ key: "decorative", text: "장식·손글씨 글꼴" });
     if (has(F.condensed)) issues.push({ key: "condensed", text: "폭이 좁은 글꼴" });
     if (has(F.italic) || (l.font && l.font.fauxItalic)) issues.push({ key: "italic", text: "기울임 글꼴" });
     // 영문 전부 대문자: 긴 문장(영문 단어 allCapsMinWords 개 이상)만. 짧은 문구·약어(SOLD OUT, 10AM_08PM)는 넘겨요
