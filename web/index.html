@@ -1033,10 +1033,10 @@
 
   <section class="band nums" aria-labelledby="numsTitle">
     <div class="nums-head rv">
-      <h2 id="numsTitle" class="focus">2m 떨어진 포스터,<br>시력에 따라 이만큼 커야 읽혀요</h2>
-      <p class="sub2">시력표 글자(5′)를 시력으로 나누고, 편하게 읽는 여유 2배를 곱해 계산했어요.</p>
+      <h2 id="numsTitle" class="focus">휴대폰으로 보는 SNS 이미지,<br>시력에 따라 이만큼 커야 읽혀요</h2>
+      <p class="sub2">휴대폰 화면을 35cm에서 볼 때, 화면 위 글자 높이예요. 시력표 글자(5′)를 시력으로 나누고, 편하게 읽는 여유 2배를 곱해 계산했어요.</p>
     </div>
-    <div class="bars rv" id="needBars" role="img" aria-label="2m에서 읽기 편한 글자 높이: 시력 1.0은 약 0.6cm, 0.3은 약 1.9cm, 0.2는 약 2.9cm, 0.06은 약 9.7cm"></div>
+    <div class="bars rv" id="needBars" role="img" aria-label="휴대폰 화면(35cm)에서 읽기 편한 글자 높이"></div>
     <ul class="stats">
       <li class="rv" style="--d:.0s"><b class="big">7<small>:1</small></b><span>저시력자를 위한 글자·배경 대비</span><em>WCAG 1.4.6</em></li>
       <li class="rv" style="--d:.12s"><b class="big">10<small>°</small></b><span>시각장애로 판정하는 시야</span><em>보건복지부 장애정도 판정기준</em></li>
@@ -1536,10 +1536,12 @@
   const setTopH = () => document.documentElement.style.setProperty("--top-h", document.querySelector(".top").offsetHeight + "px");
   setTopH(); window.addEventListener("resize", setTopH);
 
-  // ------------------------------------------------------------------ 홈: 숫자로 보면 (2m에서 읽기 편한 글자 높이)
+  // ------------------------------------------------------------------ 홈: 숫자로 보면 (휴대폰 화면 35cm에서 읽기 편한 글자 높이)
   //   글자 높이 = 2 × 거리 × tan(각도/2), 각도 = 5′ ÷ 시력 × 여유(policies.lowVisionReading.acuityReserve)
+  //   거리는 기본 쓰는 곳(SNS 이미지)의 보는 거리 (policies.environments.sns.distanceM)
   (function needBars() {
-    const reserve = (EnginePolicies.lowVisionReading || {}).acuityReserve || 2, d = 2000;
+    const reserve = (EnginePolicies.lowVisionReading || {}).acuityReserve || 2;
+    const d = (((EnginePolicies.environments || {}).sns || {}).distanceM || 0.35) * 1000;
     const rows = [[1.0, "보통 시력"], [0.3, "저시력"], [0.2, "시각장애"], [0.06, "심한 시각장애"]].map(([v, who]) => {
       const rad = ((5 / v) * reserve / 60) * (Math.PI / 180);
       return { v, who, mm: 2 * d * Math.tan(rad / 2) };
@@ -1547,9 +1549,10 @@
     const max = Math.max(...rows.map((r) => r.mm));
     $("needBars").innerHTML = rows.map((r, i) => {
       const h = Math.max(4, (r.mm / max) * 82).toFixed(1) + "%";
-      return `<div class="col"><div class="barbox" style="--h:${h}"><div class="bar${i ? " hl" : ""}" style="height:${h};--d:${(0.15 * i).toFixed(2)}s"></div><span class="v">${(r.mm / 10).toFixed(1)}cm</span></div>
+      return `<div class="col"><div class="barbox" style="--h:${h}"><div class="bar${i ? " hl" : ""}" style="height:${h};--d:${(0.15 * i).toFixed(2)}s"></div><span class="v">${r.mm.toFixed(1)}mm</span></div>
       <div class="who"><b>${r.v < 0.1 ? r.v.toFixed(2) : r.v.toFixed(1)}</b>${r.who}</div></div>`;
     }).join("");
+    $("needBars").setAttribute("aria-label", `휴대폰 화면(${Math.round(d / 10)}cm)에서 읽기 편한 글자 높이: ` + rows.map((r) => `시력 ${r.v < 0.1 ? r.v.toFixed(2) : r.v.toFixed(1)} → 약 ${r.mm.toFixed(1)}mm`).join(", "));
   })();
   // 스크롤해서 보이면 나타나기: 보통은 떠오르기 + 제목 초점 맞추기, 움직임 줄이기 설정이면 은은하게 나타나기만
   if ("IntersectionObserver" in window) {
