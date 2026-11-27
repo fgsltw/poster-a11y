@@ -980,10 +980,10 @@
         <label><input type="radio" name="demoEye" value="normal"><span>보통 눈</span></label>
       </div>
       <div class="pair" id="cmp">
-        <figure><span class="tag l">원본</span><img id="demoBefore" src="home/before-low.jpg" width="720" height="900" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요."></figure>
-        <figure><span class="tag r">고친 뒤</span><img id="demoAfter" src="home/after-low.jpg" width="720" height="900" fetchpriority="high" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 커지고 진해져서 읽혀요."></figure>
+        <figure><span class="tag l">원본</span><img id="demoBefore" src="home/before-low.jpg" width="720" height="900" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 휴대폰으로 본 모습. 일시·장소·참가 글자가 작고 옅어서 흐려 보여요."></figure>
+        <figure><span class="tag r">고친 뒤</span><img id="demoAfter" src="home/after-low.jpg" width="720" height="900" fetchpriority="high" alt="고친 포스터를 시력 0.3인 사람이 휴대폰으로 본 모습. 일시·장소·참가 글자가 커지고 진해져서 읽혀요."></figure>
       </div>
-      <figcaption class="cap" id="demoCap"><span id="demoNote">시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요. 고치면 글자가 커지고 진해져서 읽혀요.</span></figcaption>
+      <figcaption class="cap" id="demoCap"><span id="demoNote">시력 0.3인 사람이 휴대폰 화면(35cm)으로 본 모습이에요. 원본은 일시·장소·참가 글자가 작고 옅어서 흐려 보여요. 고치면 글자가 커지고 진해져서 읽혀요.</span></figcaption>
     </figure>
   </section>
 
@@ -1152,7 +1152,7 @@
   </button>
   <input id="file" type="file" accept=".psd" hidden>
   <div class="samples">PSD가 없으면
-    <button class="linkbtn" type="button" data-sample="sample-record.psd" data-medium="wall" data-usage="info">샘플 포스터로 해보기 (한밤의 레코드)</button>
+    <button class="linkbtn" type="button" data-sample="sample-noki.psd" data-medium="sns" data-usage="info">샘플 포스터로 해보기 (노키)</button>
     <button class="linkbtn" type="button" data-sample="sample-poster-cmyk.psd">인쇄용(CMYK) 샘플</button>
     <button class="linkbtn" type="button" data-sample="sample-color.psd" data-medium="wall" data-usage="info">색·시야 문제 샘플 (벽 포스터)</button>
   </div>
@@ -1589,14 +1589,14 @@
   $("start").querySelector("h1").tabIndex = -1;
   const goStart = () => { if (location.hash === "#start") route(); else location.hash = "start"; };
   $("goStart").onclick = goStart; $("goStart2").onclick = goStart;
-  $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-record.psd"]').click(); };
+  $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-noki.psd"]').click(); };
   route();
   // 원본 ↔ 고친 뒤 비교 손잡이
   const DEMO = {
-    low: { note: "시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요. 고치면 글자가 커지고 진해져서 읽혀요.", before: "원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요.", after: "고친 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 커지고 진해져서 읽혀요." },
-    cvd: { note: "적색맹인 사람이 본 모습이에요. 원본은 빨간 ‘매진’과 초록 ‘예매 가능’이 비슷한 색으로 보여요. 고치면 ‘매진’이 굵게, 밑줄로 달라 보여요.", before: "원본 포스터를 적색맹인 사람이 본 모습. 매진과 예매 가능이 비슷한 색으로 보여 구분되지 않아요.", after: "고친 포스터를 적색맹인 사람이 본 모습. 매진이 굵게 밑줄로 바뀌어 구분돼요." },
+    low: { note: "시력 0.3인 사람이 휴대폰 화면(35cm)으로 본 모습이에요. 원본은 일시·장소·참가 글자가 작고 옅어서 흐려 보여요. 고치면 글자가 커지고 진해져서 읽혀요.", before: "원본 포스터를 시력 0.3인 사람이 휴대폰으로 본 모습. 일시·장소·참가 글자가 작고 옅어서 흐려 보여요.", after: "고친 포스터를 시력 0.3인 사람이 휴대폰으로 본 모습. 일시·장소·참가 글자가 커지고 진해져서 읽혀요." },
+    cvd: { note: "적색맹인 사람이 본 모습이에요. 원본은 주황 ‘무료’가 옆의 회색 글자와 색만 달라서, 적색맹이면 비슷하게 보여요. 고치면 ‘무료’가 굵게, 밑줄로 달라 보여요.", before: "원본 포스터를 적색맹인 사람이 본 모습. 무료가 옆 글자와 비슷한 색으로 보여 눈에 띄지 않아요.", after: "고친 포스터를 적색맹인 사람이 본 모습. 무료가 굵게 밑줄로 바뀌어 눈에 띄어요." },
     field: { note: "시야가 10°인 사람이 2m에서 볼 때 한 번에 보이는 범위예요 (흩어진 정보를 담은 다른 예시). 원본은 일시와 장소가 떨어져 있어 장소가 안 보여요. 고치면 일시·장소·가격을 모은 ‘핵심 정보 띠’가 한눈에 들어와요.", before: "예시 포스터를 시야 10°로 본 모습. 위쪽 일시를 보면 아래쪽 장소가 보이지 않아요.", after: "고친 포스터를 시야 10°로 본 모습. 일시·장소·가격을 한데 모은 핵심 정보 띠가 한 번에 보여요." },
-    normal: { note: "보통 눈으로 보면 디자인은 거의 그대로예요. 글자 크기와 진하기만 바뀌었어요.", before: "원본 포스터", after: "고친 포스터. 날짜·장소·가격 글자가 커지고 진해졌어요." }
+    normal: { note: "보통 눈으로 보면 디자인은 그대로예요. 정보 글자의 크기·진하기·굵기만 바뀌었어요.", before: "원본 포스터", after: "고친 포스터. 일시·장소·참가 글자가 커지고 진해졌어요." }
   };
   document.querySelectorAll("input[name=demoEye]").forEach((r) => (r.onchange = () => {
     const d = DEMO[r.value], sfx = r.value === "normal" ? "" : "-" + r.value;
