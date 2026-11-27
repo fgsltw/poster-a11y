@@ -1150,7 +1150,8 @@
   </button>
   <input id="file" type="file" accept=".psd" hidden>
   <div class="samples">PSD가 없으면
-    <button class="linkbtn" type="button" data-sample="sample-poster.psd">샘플 포스터로 해보기</button>
+    <button class="linkbtn" type="button" data-sample="sample-demo.psd" data-medium="sns" data-usage="info">샘플 포스터로 해보기</button>
+    <button class="linkbtn" type="button" data-sample="sample-poster.psd">그림 위 글자 샘플</button>
     <button class="linkbtn" type="button" data-sample="sample-poster-cmyk.psd">인쇄용(CMYK) 샘플</button>
     <button class="linkbtn" type="button" data-sample="sample-color.psd" data-medium="wall" data-usage="info">색·시야 문제 샘플 (벽 포스터)</button>
   </div>
@@ -1584,7 +1585,7 @@
   $("start").querySelector("h1").tabIndex = -1;
   const goStart = () => { if (location.hash === "#start") route(); else location.hash = "start"; };
   $("goStart").onclick = goStart; $("goStart2").onclick = goStart;
-  $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-poster.psd"]').click(); };
+  $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-demo.psd"]').click(); };
   route();
   // 원본 ↔ 고친 뒤 비교 손잡이
   const DEMO = {

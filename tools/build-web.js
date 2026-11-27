@@ -25,6 +25,7 @@ const FILES = [
   ["engine/color.js", "engine/color.js"],
   ["engine/roles.js", "engine/roles.js"],
   ["engine/engine.js", "engine/engine.js"],
+  ["samples/sample-demo.psd", "samples/sample-demo.psd"],
   ["samples/sample-poster.psd", "samples/sample-poster.psd"],
   ["samples/sample-poster-cmyk.psd", "samples/sample-poster-cmyk.psd"],
   ["samples/sample-color.psd", "samples/sample-color.psd"],
@@ -59,7 +60,7 @@ function main() {
   for (const f of fs.readdirSync(OUT)) if (f !== ".vercel") fs.rmSync(path.join(OUT, f), { recursive: true, force: true });
   for (const [from, to] of FILES) {
     const src = path.join(ROOT, from);
-    if (!fs.existsSync(src)) throw new Error(`파일이 없어요: ${from} (npm install / npm run sample 을 먼저 해 주세요)`);
+    if (!fs.existsSync(src)) throw new Error(`파일이 없어요: ${from} (npm install / npm run sample · npm run sample:demo 를 먼저 해 주세요)`);
     fs.mkdirSync(path.dirname(path.join(OUT, to)), { recursive: true });
     fs.copyFileSync(src, path.join(OUT, to));
   }
