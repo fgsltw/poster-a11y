@@ -25,6 +25,7 @@ const FILES = [
   ["engine/color.js", "engine/color.js"],
   ["engine/roles.js", "engine/roles.js"],
   ["engine/engine.js", "engine/engine.js"],
+  ["samples/sample-record.psd", "samples/sample-record.psd"],
   ["samples/sample-poster.psd", "samples/sample-poster.psd"],
   ["samples/sample-poster-cmyk.psd", "samples/sample-poster-cmyk.psd"],
   ["samples/sample-color.psd", "samples/sample-color.psd"],

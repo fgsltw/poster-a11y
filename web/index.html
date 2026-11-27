@@ -174,7 +174,7 @@
     /* 비교 그림 칸은 그림 폭만큼, 글자 칸은 남은 만큼 (그림이 글자 위로 넘어가 가리지 않게) */
     #home > .hero { grid-template-columns: minmax(0, 1fr) auto; }
     /* 포스터 한 장 폭 (두 장 나란히) */
-    #home .demo { --demo-w: calc(2 * min(320px, 24vw, calc((100svh - var(--top-h, 56px) - 250px) * 720 / 1019)) + 12px); }
+    #home .demo { --demo-w: calc(2 * min(320px, 24vw, calc((100svh - var(--top-h, 56px) - 250px) * 4 / 5)) + 12px); }
     #home .demo .pair { width: var(--demo-w); }
     #home .demo .seg { width: var(--demo-w); box-sizing: border-box; }
     #home .demo .seg label { flex: 1; text-align: center; }
@@ -866,7 +866,7 @@
   #home .demo .seg input:checked + span { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .pair figure { margin: 0; position: relative; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-  .pair img { display: block; width: 100%; height: auto; aspect-ratio: 720 / 1019; }
+  .pair img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: contain; background: #fff; } /* 좁은 시야 예시(A판)는 위아래가 길어서 안에 맞춰요 */
   .pair .tag { position: absolute; top: 8px; padding: 3px 10px; border-radius: 980px; font-size: 13px; font-weight: 700; color: #fff; background: rgba(29,29,31,.78); }
   .pair .tag.l { left: 8px; } .pair .tag.r { left: 8px; background: var(--blue); }
   /* 고치기 화면: 지금 볼 번호 하나만 + 그 자리 밝게(주변은 살짝 어둡게) + 바로 옆 말풍선 */
@@ -978,8 +978,8 @@
         <label><input type="radio" name="demoEye" value="normal"><span>보통 눈</span></label>
       </div>
       <div class="pair" id="cmp">
-        <figure><span class="tag l">원본</span><img id="demoBefore" src="home/before-low.jpg" width="720" height="1019" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요."></figure>
-        <figure><span class="tag r">고친 뒤</span><img id="demoAfter" src="home/after-low.jpg" width="720" height="1019" fetchpriority="high" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 커지고 진해져서 읽혀요."></figure>
+        <figure><span class="tag l">원본</span><img id="demoBefore" src="home/before-low.jpg" width="720" height="900" fetchpriority="high" alt="원본 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요."></figure>
+        <figure><span class="tag r">고친 뒤</span><img id="demoAfter" src="home/after-low.jpg" width="720" height="900" fetchpriority="high" alt="고친 포스터를 시력 0.3인 사람이 본 모습. 날짜·장소·가격 글자가 커지고 진해져서 읽혀요."></figure>
       </div>
       <figcaption class="cap" id="demoCap"><span id="demoNote">시력 0.3인 사람이 2m 떨어져서 본 모습이에요. 원본은 날짜·장소·가격 글자가 작고 옅어서 흐려 보여요. 고치면 글자가 커지고 진해져서 읽혀요.</span></figcaption>
     </figure>
@@ -1150,7 +1150,7 @@
   </button>
   <input id="file" type="file" accept=".psd" hidden>
   <div class="samples">PSD가 없으면
-    <button class="linkbtn" type="button" data-sample="sample-poster.psd">샘플 포스터로 해보기</button>
+    <button class="linkbtn" type="button" data-sample="sample-record.psd" data-medium="wall" data-usage="info">샘플 포스터로 해보기 (한밤의 레코드)</button>
     <button class="linkbtn" type="button" data-sample="sample-poster-cmyk.psd">인쇄용(CMYK) 샘플</button>
     <button class="linkbtn" type="button" data-sample="sample-color.psd" data-medium="wall" data-usage="info">색·시야 문제 샘플 (벽 포스터)</button>
   </div>
@@ -1584,7 +1584,7 @@
   $("start").querySelector("h1").tabIndex = -1;
   const goStart = () => { if (location.hash === "#start") route(); else location.hash = "start"; };
   $("goStart").onclick = goStart; $("goStart2").onclick = goStart;
-  $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-poster.psd"]').click(); };
+  $("goSample").onclick = () => { goStart(); document.querySelector('[data-sample="sample-record.psd"]').click(); };
   route();
   // 원본 ↔ 고친 뒤 비교 손잡이
   const DEMO = {
